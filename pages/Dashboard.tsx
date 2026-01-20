@@ -1,9 +1,9 @@
 
 import React, { useState, useMemo } from 'react';
-import { DataRecord, TrainingStat } from '../types';
+import { DataRecord, LookupItem } from '../types';
 import { api } from '../services/api';
 import { Calendar, ChevronRight, X, ChevronDown, Activity, Clock, Award, BarChart3, MapPin, ExternalLink, Trophy, Trash2, Edit2, Check, Loader2, AlertTriangle, Info, Zap } from 'lucide-react';
-import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import { ComposedChart, Line, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, CartesianGrid } from 'recharts';
 import { format } from 'date-fns';
 
 interface DashboardProps {
@@ -13,15 +13,22 @@ interface DashboardProps {
   defaultTrainingType?: string;
 }
 
-const Dashboard: React.FC<DashboardProps> = ({ data, refreshData, onNavigateToRaces, defaultTrainingType }) => {
-  const [selectedDate, setSelectedDate] = useState<string | null>(null);
-  const [selectedChartType, setSelectedChartType] = useState<string>(defaultTrainingType || '');
-  const [editingLap, setEditingLap] = useState<DataRecord | null>(null);
-  const [isUpdating, setIsUpdating] = useState(false);
-  
-  const [confirmDeleteId, setConfirmDeleteId] = useState<string | number | null>(null);
-  const [showStabilityInfo, setShowStabilityInfo] = useState(false);
+interface DailySummary {
+    date: string;
+    itemName: string;
+    players: {
+        name: string;
+        avg: number;
+        best: number;
+        stability: number;
+        count: number;
+    }[];
+}
 
+const Dashboard: React.FC<DashboardProps> = ({ data, refreshData, onNavigateToRaces, defaultTrainingType }) => {
+  const [selectedChartType, setSelectedChartType] = useState<string>(defaultTrainingType || '');
+  
+  // Get upcoming races
   const upcomingRaces = useMemo(() => {
     const todayStr = format(new Date(), 'yyyy-MM-dd');
     const races = data
@@ -45,50 +52,65 @@ const Dashboard: React.FC<DashboardProps> = ({ data, refreshData, onNavigateToRa
     }
   };
 
+  // Complex Stats Logic - Group by Date, then by Player
   const trainingStats = useMemo(() => {
-    const stats = new Map<string, { [key: string]: { id: string | number, value: number, fullRecord: DataRecord }[] }>();
-    data.filter(r => r.item === 'training').forEach(record => {
-      if (!stats.has(record.date)) stats.set(record.date, {});
-      const dayStats = stats.get(record.date)!;
-      if (!dayStats[record.name]) dayStats[record.name] = [];
-      dayStats[record.name].push({ id: record.id!, value: parseFloat(record.value), fullRecord: record });
+    // 1. Group by Date + Training Type
+    const grouped = new Map<string, DataRecord[]>();
+    data.filter(r => r.item === 'training').forEach(r => {
+        const key = `${r.date}_${r.name}`;
+        if (!grouped.has(key)) grouped.set(key, []);
+        grouped.get(key)!.push(r);
     });
 
-    const result: TrainingStat[] = [];
-    stats.forEach((items, date) => {
-      Object.keys(items).forEach(itemName => {
-        const records = items[itemName];
-        const values = records.map(r => r.value);
-        const sum = values.reduce((a, b) => a + b, 0);
-        const avg = sum / values.length;
-        
-        const squareDiffs = values.map(v => Math.pow(v - avg, 2));
-        const avgSquareDiff = squareDiffs.reduce((a, b) => a + b, 0) / squareDiffs.length;
-        const stdDev = Math.sqrt(avgSquareDiff);
-        
-        // 調整穩定度邏輯：當標準差為 0.5s 時，得分約為 85 (100 - 0.5 * 30)
-        const stability = Math.max(0, 100 - (stdDev * 30));
+    const summaries: DailySummary[] = [];
 
-        result.push({
-          date, itemName, avg: parseFloat(avg.toFixed(4)), best: Math.min(...values),
-          count: values.length, records: records.map(r => ({ id: r.id, value: r.value })), stabilityScore: parseFloat(stability.toFixed(1))
+    grouped.forEach((records, key) => {
+        const [date, itemName] = key.split('_');
+        
+        // Group by Player within this date/type
+        const playerMap = new Map<string, DataRecord[]>();
+        records.forEach(r => {
+            const pKey = r.person_name;
+            if(!playerMap.has(pKey)) playerMap.set(pKey, []);
+            playerMap.get(pKey)!.push(r);
         });
-      });
+
+        const playerStats = Array.from(playerMap.entries()).map(([name, pRecs]) => {
+            const values = pRecs.map(r => parseFloat(r.value));
+            const sum = values.reduce((a, b) => a + b, 0);
+            const avg = sum / values.length;
+            const best = Math.min(...values);
+
+            // Stability
+            const squareDiffs = values.map(v => Math.pow(v - avg, 2));
+            const avgSquareDiff = squareDiffs.reduce((a, b) => a + b, 0) / squareDiffs.length;
+            const stdDev = Math.sqrt(avgSquareDiff);
+            // Limit stability to 0-100, slightly more lenient formula
+            const stability = Math.max(0, 100 - (stdDev * 20));
+
+            return {
+                name: name.length > 3 ? name.substring(0,2)+'..' : name, // Truncate name for chart
+                fullName: name,
+                avg: parseFloat(avg.toFixed(3)),
+                best: parseFloat(best.toFixed(3)),
+                stability: parseFloat(stability.toFixed(0)),
+                count: values.length
+            };
+        });
+
+        // Sort by average time (faster first)
+        summaries.push({
+            date,
+            itemName,
+            players: playerStats.sort((a,b) => a.avg - b.avg)
+        });
     });
-    return result.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+    return summaries.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [data]);
 
   const trainingTypesList = useMemo(() => Array.from(new Set(trainingStats.map(s => s.itemName))), [trainingStats]);
-  const currentTypeStats = useMemo(() => trainingStats.filter(s => s.itemName === selectedChartType), [trainingStats, selectedChartType]);
-
-  const chartData = useMemo(() => {
-    if (!selectedChartType) return [];
-    return currentTypeStats.slice(0, 5).reverse().map(s => ({ 
-      date: format(new Date(s.date), 'MM/dd'), 
-      avg: s.avg,
-      best: s.best
-    }));
-  }, [currentTypeStats, selectedChartType]);
+  const currentTypeSummaries = useMemo(() => trainingStats.filter(s => s.itemName === selectedChartType), [trainingStats, selectedChartType]);
 
   const allTimeBest = useMemo(() => {
     if (!selectedChartType) return null;
@@ -96,43 +118,6 @@ const Dashboard: React.FC<DashboardProps> = ({ data, refreshData, onNavigateToRa
     if (filtered.length === 0) return null;
     return Math.min(...filtered.map(r => parseFloat(r.value)));
   }, [data, selectedChartType]);
-
-  const detailStats = useMemo(() => {
-    if (!selectedDate) return null;
-    return trainingStats.find(s => s.date === selectedDate && s.itemName === selectedChartType);
-  }, [selectedDate, trainingStats, selectedChartType]);
-
-  const handleUpdateLap = async () => {
-    if (!editingLap) return;
-    setIsUpdating(true);
-    const success = await api.submitRecord({
-      ...editingLap,
-      value: parseFloat(editingLap.value).toFixed(4)
-    });
-    if (success) {
-      await refreshData();
-      setEditingLap(null);
-    } else {
-      alert('同步失敗');
-    }
-    setIsUpdating(false);
-  };
-
-  const executeDelete = async () => {
-    if (!confirmDeleteId) return;
-    setIsUpdating(true);
-    const success = await api.deleteRecord(confirmDeleteId, 'training');
-    if (success) {
-      await refreshData();
-      const stillHasData = data.some(d => d.id !== confirmDeleteId && d.date === selectedDate && d.name === selectedChartType && d.item === 'training');
-      if (!stillHasData) setSelectedDate(null);
-      setConfirmDeleteId(null);
-      setEditingLap(null);
-    } else {
-      alert('伺服器刪除失敗');
-    }
-    setIsUpdating(false);
-  };
 
   return (
     <div className="h-full overflow-y-auto px-4 py-6 space-y-8 animate-fade-in no-scrollbar pb-10">
@@ -187,7 +172,7 @@ const Dashboard: React.FC<DashboardProps> = ({ data, refreshData, onNavigateToRa
           </h2>
         </div>
 
-        {/* 下拉選單與卡片高度同步縮小 (矮一點) */}
+        {/* Filters and Best Record */}
         <div className="grid grid-cols-5 gap-3 mb-6 z-20 items-stretch">
             <div className="col-span-3 relative">
                 <select 
@@ -203,7 +188,6 @@ const Dashboard: React.FC<DashboardProps> = ({ data, refreshData, onNavigateToRa
             <div className="col-span-2 glass-card rounded-xl py-2 px-3 border-sunset-gold/30 shadow-glow-gold relative overflow-hidden group flex flex-col justify-center">
                <div className="absolute inset-0 bg-gradient-to-br from-sunset-gold/10 via-transparent to-transparent opacity-60"></div>
                <div className="absolute top-[-50%] left-[-50%] w-[200%] h-[200%] bg-gradient-to-r from-transparent via-sunset-gold/5 to-transparent rotate-45 animate-[shimmer_4s_infinite] pointer-events-none"></div>
-               
                <div className="relative z-10">
                   <div className="flex items-center gap-1.5 mb-0.5">
                     <Zap size={9} className="text-sunset-gold fill-sunset-gold animate-bounce" style={{ animationDuration: '3s' }} />
@@ -217,74 +201,89 @@ const Dashboard: React.FC<DashboardProps> = ({ data, refreshData, onNavigateToRa
         </div>
 
         {selectedChartType ? (
-          <>
-            <div className="glass-card rounded-3xl p-5 h-60 relative mb-6">
-               <div className="absolute top-3 right-5 flex gap-4">
-                  <div className="flex items-center gap-1.5"><div className="w-2 h-0.5 bg-sunset-rose"></div><span className="text-[8px] font-black text-zinc-500 uppercase">平均</span></div>
-                  <div className="flex items-center gap-1.5"><div className="w-2 h-0.5 bg-sunset-gold"></div><span className="text-[8px] font-black text-zinc-500 uppercase">最快</span></div>
-               </div>
-               {chartData.length > 0 ? (
-                 <ResponsiveContainer width="100%" height="100%">
-                   <AreaChart data={chartData} margin={{ top: 25, right: 10, left: -20, bottom: 0 }}>
-                     <defs>
-                       <linearGradient id="chartGrad" x1="0" y1="0" x2="0" y2="1">
-                         <stop offset="0%" stopColor="#f43f5e" stopOpacity={0.25}/>
-                         <stop offset="100%" stopColor="#f43f5e" stopOpacity={0}/>
-                       </linearGradient>
-                     </defs>
-                     <XAxis dataKey="date" stroke="#52525b" fontSize={9} tickLine={false} axisLine={false} tickMargin={10} tick={{fill: '#71717a', fontWeight: 700}} />
-                     <YAxis hide domain={['dataMin - 0.01', 'dataMax + 0.01']} />
-                     <Tooltip cursor={{stroke: 'rgba(255,255,255,0.1)'}} content={({ active, payload }) => active && payload && (
-                       <div className="bg-black/90 backdrop-blur border border-white/10 px-3 py-2 rounded-lg text-[10px] font-mono font-black space-y-1 shadow-2xl">
-                         <div className="text-sunset-rose">AVG: {Number(payload[0].value).toFixed(4)}s</div>
-                         <div className="text-sunset-gold">BEST: {Number(payload[1].value).toFixed(4)}s</div>
-                       </div>
-                     )} />
-                     <Area type="monotone" dataKey="avg" stroke="#f43f5e" strokeWidth={3} fillOpacity={1} fill="url(#chartGrad)" dot={{ r: 6, fill: '#f43f5e', strokeWidth: 0 }} activeDot={{ r: 8, strokeWidth: 0 }} />
-                     <Area type="monotone" dataKey="best" stroke="#fbbf24" strokeWidth={2} strokeDasharray="5 5" fill="transparent" dot={{ r: 6, fill: '#fbbf24', strokeWidth: 0 }} activeDot={{ r: 8, strokeWidth: 0 }} />
-                   </AreaChart>
-                 </ResponsiveContainer>
-               ) : (
-                 <div className="flex h-full items-center justify-center text-zinc-600 text-[10px] font-black uppercase">等待雲端數據同步...</div>
-               )}
-            </div>
-
-            <div className="space-y-3 pb-4">
-               {currentTypeStats.map((stat, idx) => (
-                 <div key={idx} onClick={() => setSelectedDate(stat.date)} className="glass-card rounded-2xl p-5 cursor-pointer active:scale-[0.98] transition-all border-l-2 border-l-transparent hover:border-l-sunset-rose group">
-                   <div className="flex justify-between items-center mb-3">
-                      <span className="text-sm font-black text-white font-mono tracking-wider">{format(new Date(stat.date), 'yyyy.MM.dd')}</span>
-                      <div className="text-[10px] text-zinc-500 font-black uppercase tracking-widest bg-white/5 px-2 py-1 rounded border border-white/5">{stat.count} SETS</div>
+            <div className="space-y-6 pb-4">
+               {currentTypeSummaries.map((summary, idx) => (
+                 <div key={idx} className="glass-card rounded-2xl p-5 border-l-2 border-l-transparent hover:border-l-sunset-rose group">
+                   <div className="flex justify-between items-center mb-4">
+                      <div className="flex items-center gap-2">
+                          <span className="text-sm font-black text-white font-mono tracking-wider">{format(new Date(summary.date), 'yyyy.MM.dd')}</span>
+                          <span className="text-[10px] text-zinc-500 font-black bg-white/5 px-2 py-0.5 rounded uppercase">
+                             {summary.players.reduce((acc, p) => acc + p.count, 0)} SETS
+                          </span>
+                      </div>
+                      <div className="flex gap-2 text-[8px] font-black uppercase">
+                        <span className="flex items-center gap-1 text-zinc-400"><div className="w-1.5 h-1.5 bg-zinc-500 rounded-sm"></div>平均</span>
+                        <span className="flex items-center gap-1 text-sunset-gold"><div className="w-1.5 h-1.5 bg-sunset-gold rounded-full"></div>最快</span>
+                        <span className="flex items-center gap-1 text-emerald-500"><div className="w-2 h-0.5 bg-emerald-500"></div>穩定度</span>
+                      </div>
                    </div>
-                   <div className="grid grid-cols-3 gap-3">
-                      <div className="flex flex-col bg-black/20 p-2 rounded-xl">
-                        <span className="text-[9px] text-zinc-500 uppercase font-black mb-0.5">平均</span>
-                        <span className="text-xl font-black text-white font-mono tracking-tight">{stat.avg.toFixed(4)}<span className="text-xs ml-0.5 text-zinc-500">s</span></span>
-                      </div>
-                      <div className="flex flex-col bg-black/20 p-2 rounded-xl border border-sunset-gold/10">
-                        <span className="text-[9px] text-sunset-gold uppercase font-black mb-0.5">最快</span>
-                        <span className="text-xl font-black text-sunset-gold font-mono tracking-tight">{stat.best.toFixed(4)}<span className="text-xs ml-0.5 text-sunset-gold/50">s</span></span>
-                      </div>
-                      <div className="flex flex-col bg-black/20 p-2 rounded-xl relative">
-                         <div className="flex justify-between items-center mb-0.5">
-                            <span className="text-[9px] text-zinc-500 uppercase font-black">穩定度</span>
-                            <button 
-                                onClick={(e) => { e.stopPropagation(); setShowStabilityInfo(!showStabilityInfo); }}
-                                className="text-zinc-600 hover:text-zinc-400"
-                            >
-                                <Info size={10} />
-                            </button>
-                         </div>
-                        <div className="h-1.5 w-full bg-zinc-800 rounded-full mt-auto overflow-hidden">
-                           <div className={`h-full rounded-full ${stat.stabilityScore > 85 ? 'bg-green-500' : stat.stabilityScore > 70 ? 'bg-amber-500' : 'bg-sunset-rose'}`} style={{ width: `${stat.stabilityScore}%` }}></div>
-                        </div>
-                        <span className="text-[10px] font-mono font-black text-right mt-1 text-zinc-400">{stat.stabilityScore.toFixed(0)}</span>
-                      </div>
+                   
+                   {/* Combined Composed Chart */}
+                   <div className="h-56 w-full">
+                       <ResponsiveContainer width="100%" height="100%">
+                           <ComposedChart data={summary.players} margin={{ top: 10, right: 0, left: -25, bottom: 0 }}>
+                                <CartesianGrid stroke="rgba(255,255,255,0.05)" vertical={false} />
+                                <XAxis 
+                                    dataKey="name" 
+                                    tick={{fontSize: 9, fill: '#71717a', fontWeight: 900}} 
+                                    axisLine={false} 
+                                    tickLine={false} 
+                                    interval={0}
+                                />
+                                {/* Left Y-Axis for Time (Seconds) */}
+                                <YAxis 
+                                    yAxisId="left"
+                                    tick={{fontSize: 9, fill: '#71717a', fontWeight: 900}} 
+                                    axisLine={false} 
+                                    tickLine={false}
+                                    domain={['auto', 'auto']}
+                                />
+                                {/* Right Y-Axis for Stability (0-100) */}
+                                <YAxis 
+                                    yAxisId="right"
+                                    orientation="right"
+                                    domain={[0, 100]}
+                                    hide
+                                />
+                                <Tooltip 
+                                    cursor={{fill: 'rgba(255,255,255,0.05)'}}
+                                    contentStyle={{backgroundColor: '#18181b', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', fontSize: '10px'}}
+                                    itemStyle={{padding: 0}}
+                                    formatter={(value: number, name: string) => {
+                                        if (name === 'avg') return [`${value}s`, '平均時間'];
+                                        if (name === 'best') return [`${value}s`, '最快時間'];
+                                        if (name === 'stability') return [`${value}`, '穩定分數'];
+                                        return [value, name];
+                                    }}
+                                    labelFormatter={(label) => `選手: ${label}`}
+                                />
+                                
+                                {/* Bars for Average Time */}
+                                <Bar yAxisId="left" dataKey="avg" barSize={12} radius={[4, 4, 0, 0]} fill="#52525b" fillOpacity={0.6} />
+                                
+                                {/* Points/Scatter for Best Time (using Bar hack or Scatter inside composed) -> Use Bar for simplicity but colored Gold */}
+                                {/* To overlap, we can use another Bar with thinner width, or just side-by-side. 
+                                    Let's put Best Time as a distinct colored bar next to Avg, or use Line/Scatter. 
+                                    Let's try a small diamond shape via Line with dots only? No, use Bar for comparison.
+                                */}
+                                <Bar yAxisId="left" dataKey="best" barSize={6} radius={[4, 4, 0, 0]} fill="#fbbf24" />
+
+                                {/* Line for Stability */}
+                                <Line 
+                                    yAxisId="right" 
+                                    type="monotone" 
+                                    dataKey="stability" 
+                                    stroke="#10b981" 
+                                    strokeWidth={2} 
+                                    dot={{r: 2, fill: '#10b981', strokeWidth: 0}} 
+                                    activeDot={{r: 4}} 
+                                />
+                           </ComposedChart>
+                       </ResponsiveContainer>
                    </div>
                  </div>
                ))}
             </div>
-          </>
         ) : (
            <div className="text-center py-20 opacity-30">
              <BarChart3 size={32} className="mx-auto mb-4" />
@@ -292,115 +291,6 @@ const Dashboard: React.FC<DashboardProps> = ({ data, refreshData, onNavigateToRa
            </div>
         )}
       </section>
-
-      {detailStats && (
-        <div className="fixed inset-0 z-[60] flex items-end justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in" onClick={() => { if(!isUpdating) setSelectedDate(null); }}>
-          <div className="glass-card w-full max-w-md rounded-[32px] p-5 shadow-2xl animate-slide-up bg-[#0f0508] max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}>
-             <div className="flex justify-between items-start mb-6 shrink-0">
-               <div>
-                 <p className="text-[9px] text-sunset-rose font-black uppercase tracking-[0.2em] mb-1">詳細數據</p>
-                 <h3 className="text-2xl font-black text-white font-mono">{format(new Date(detailStats.date), 'yyyy.MM.dd')}</h3>
-                 <p className="text-zinc-500 text-[10px] font-black uppercase mt-1 tracking-widest">{detailStats.itemName}</p>
-               </div>
-               <button onClick={() => setSelectedDate(null)} className="p-2.5 bg-white/5 rounded-full text-zinc-500"><X size={20} /></button>
-             </div>
-             
-             <div className="grid grid-cols-2 gap-4 mb-6 shrink-0">
-                <div className="bg-white/5 rounded-2xl p-4 border border-white/5 flex flex-col items-center">
-                   <Clock size={16} className="text-sunset-rose mb-2" />
-                   <div className="text-2xl font-black text-white font-mono">{detailStats.avg.toFixed(4)}</div>
-                   <span className="text-[8px] text-zinc-500 font-black uppercase mt-1">平均秒數</span>
-                </div>
-                <div className="bg-sunset-gold/5 rounded-2xl p-4 border border-sunset-gold/10 flex flex-col items-center">
-                   <Award size={16} className="text-sunset-gold mb-2" />
-                   <div className="text-2xl font-black text-sunset-gold font-mono">{detailStats.best.toFixed(4)}</div>
-                   <span className="text-[8px] text-zinc-500 font-black uppercase mt-1">最佳單趟</span>
-                </div>
-             </div>
-
-             <div className="bg-black/20 rounded-2xl p-4 border border-white/5 flex-1 overflow-hidden flex flex-col">
-               <h4 className="text-[9px] text-zinc-600 font-black uppercase tracking-widest mb-3 shrink-0 italic">單趟數據管理</h4>
-               <div className="space-y-2 overflow-y-auto no-scrollbar flex-1 pb-2 px-1">
-                 {data.filter(d => d.date === detailStats.date && d.name === detailStats.itemName && d.item === 'training').map((record) => (
-                   <div key={record.id} className="flex items-center gap-2 bg-white/5 rounded-xl p-2 border border-white/5 relative min-h-[48px] overflow-hidden">
-                     {editingLap?.id === record.id ? (
-                        <div className="flex items-center gap-2 w-full animate-fade-in">
-                          <input 
-                            autoFocus
-                            type="number" 
-                            step="0.0001"
-                            onInput={(e) => {
-                                const target = e.target as HTMLInputElement;
-                                const parts = target.value.split('.');
-                                if (parts[1] && parts[1].length > 4) {
-                                    target.value = parts[0] + '.' + parts[1].slice(0, 4);
-                                }
-                            }}
-                            className="flex-1 bg-black/50 text-white text-lg font-mono font-black outline-none p-2 rounded-lg border border-sunset-rose/50 min-w-0"
-                            value={editingLap.value}
-                            onChange={(e) => setEditingLap({...editingLap, value: e.target.value})}
-                          />
-                          <div className="flex gap-1 shrink-0">
-                            <button 
-                              onClick={handleUpdateLap} 
-                              disabled={isUpdating} 
-                              className="w-10 h-10 flex items-center justify-center bg-green-500/20 text-green-500 rounded-lg active:scale-95 transition-all border border-green-500/20"
-                            >
-                              {isUpdating ? <Loader2 size={16} className="animate-spin" /> : <Check size={18} />}
-                            </button>
-                            <button 
-                              onClick={() => setConfirmDeleteId(record.id!)}
-                              className="w-10 h-10 flex items-center justify-center bg-rose-500/20 text-rose-500 rounded-lg active:scale-95 transition-all border border-rose-500/20"
-                            >
-                              <Trash2 size={18} />
-                            </button>
-                            <button 
-                              onClick={() => setEditingLap(null)}
-                              className="w-10 h-10 flex items-center justify-center bg-zinc-800 text-zinc-400 rounded-lg active:scale-95"
-                            >
-                              <X size={18} />
-                            </button>
-                          </div>
-                        </div>
-                     ) : (
-                       <div className="flex items-center justify-between w-full">
-                        <div 
-                          className={`flex-1 text-lg font-mono font-black px-2 py-2 truncate ${parseFloat(record.value) === detailStats.best ? 'text-sunset-gold' : 'text-zinc-300'}`}
-                        >
-                          {parseFloat(record.value).toFixed(4)} <span className="text-[10px] text-zinc-600 font-normal">s</span>
-                        </div>
-                        
-                        <button 
-                          onClick={(e) => { e.stopPropagation(); setEditingLap({ ...record }); }}
-                          className="w-10 h-10 flex items-center justify-center text-zinc-500 hover:text-white bg-white/5 rounded-lg active:scale-95 transition-all border border-white/5"
-                        >
-                          <Edit2 size={16} />
-                        </button>
-                       </div>
-                     )}
-                   </div>
-                 ))}
-               </div>
-             </div>
-          </div>
-        </div>
-      )}
-
-      {confirmDeleteId && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm animate-fade-in">
-          <div className="glass-card w-full max-w-xs rounded-3xl p-6 shadow-2xl border-sunset-rose/30 animate-scale-in text-center">
-            <div className="w-16 h-16 bg-sunset-rose/20 rounded-full flex items-center justify-center mx-auto mb-4">
-               <AlertTriangle size={32} className="text-sunset-rose" />
-            </div>
-            <h3 className="text-lg font-black text-white mb-2">確認移除數據？</h3>
-            <p className="text-xs text-zinc-400 mb-6 leading-relaxed">此筆紀錄將從資料庫中永久抹除，此操作無法復原。</p>
-            <div className="grid grid-cols-2 gap-3 mt-6">
-              <button onClick={() => setConfirmDeleteId(null)} className="py-3 bg-zinc-900 text-zinc-400 font-bold text-xs rounded-xl active:bg-zinc-800 transition-colors border border-white/5">取消</button>
-              <button onClick={executeDelete} className="py-3 bg-sunset-rose text-white font-bold text-xs rounded-xl active:scale-95 transition-all shadow-glow-rose">確定刪除</button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

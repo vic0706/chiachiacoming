@@ -31,7 +31,7 @@ export const api = {
       safeFetchJson(`${WORKER_URL}/race-records`),
       safeFetchJson(`${WORKER_URL}/training-types`),
       safeFetchJson(`${WORKER_URL}/races`),
-      safeFetchJson(`${WORKER_URL}/people`) // 獲取選手名單
+      safeFetchJson(`${WORKER_URL}/people`)
     ]);
 
     const formattedTraining = (trainRecs || []).map((r: any) => ({
@@ -74,11 +74,39 @@ export const api = {
         is_default: t.is_default === 1
       })),
       races: (races || []).map((r: any) => ({ id: r.id, name: r.series_name })),
-      people: (people || []).map((p: any) => ({ id: p.id, name: p.name })) // 回傳選手名單
+      people: (people || []).map((p: any) => ({ 
+        id: p.id, 
+        name: p.name,
+        birthday: p.birthday ? String(p.birthday).replace(/\//g, '-').split('T')[0] : '',
+        is_hidden: p.is_retired === 1,
+        s_url: p.s_url || '',
+        b_url: p.b_url || ''
+      })) 
     };
   },
 
-  submitRecord: async (record: Partial<DataRecord>): Promise<boolean> => {
+  generateOtp: async (adminPassword: string): Promise<{ success: boolean, otp?: string, error?: string }> => {
+    try {
+      const formData = new FormData();
+      formData.append('admin_password', adminPassword);
+      
+      const res = await fetch(`${WORKER_URL}/auth/generate-otp`, {
+        method: 'POST',
+        body: formData
+      });
+      
+      const data = await res.json();
+      if (res.ok && data.success) {
+        return { success: true, otp: data.otp };
+      } else {
+        return { success: false, error: data.error || '驗證失敗' };
+      }
+    } catch (e) {
+      return { success: false, error: '連線錯誤' };
+    }
+  },
+
+  submitRecord: async (record: Partial<DataRecord>, otp?: string): Promise<boolean> => {
     try {
       const isUpdate = !!record.id;
       const formData = new FormData();
@@ -101,6 +129,11 @@ export const api = {
         formData.append('rank_text', record.value || '');
         formData.append('note', record.note || '');
         formData.append('url', record.url || '');
+      }
+
+      // 如果是新增模式 (POST)，需要 OTP
+      if (!isUpdate && otp) {
+        formData.append('guest_otp', otp);
       }
 
       let url = `${WORKER_URL}/${table}`;
@@ -139,7 +172,7 @@ export const api = {
     }
   },
 
-  manageLookup: async (table: 'training-types' | 'races' | 'people', name: string, id?: number | string, isDelete: boolean = false, isDefault: boolean = false): Promise<boolean> => {
+  manageLookup: async (table: 'training-types' | 'races' | 'people', name: string, id?: number | string, isDelete: boolean = false, isDefault: boolean = false, extra?: { birthday?: string, is_hidden?: boolean, s_url?: string, b_url?: string }): Promise<boolean> => {
     try {
       const formData = new FormData();
       let url = `${WORKER_URL}/${table}`;
@@ -158,10 +191,22 @@ export const api = {
         if (table === 'training-types') {
           formData.append('is_default', isDefault ? '1' : '0');
         }
+        if (table === 'people' && extra) {
+          if (extra.birthday !== undefined) formData.append('birthday', extra.birthday || '');
+          if (extra.is_hidden !== undefined) formData.append('is_retired', extra.is_hidden ? '1' : '0');
+          if (extra.s_url !== undefined) formData.append('s_url', extra.s_url || '');
+          if (extra.b_url !== undefined) formData.append('b_url', extra.b_url || '');
+        }
       } else {
         formData.append(fieldName, name);
         if (table === 'training-types') {
           formData.append('is_default', isDefault ? '1' : '0');
+        }
+        if (table === 'people' && extra) {
+          if (extra.birthday !== undefined) formData.append('birthday', extra.birthday || '');
+          if (extra.is_hidden !== undefined) formData.append('is_retired', extra.is_hidden ? '1' : '0');
+          if (extra.s_url !== undefined) formData.append('s_url', extra.s_url || '');
+          if (extra.b_url !== undefined) formData.append('b_url', extra.b_url || '');
         }
       }
 

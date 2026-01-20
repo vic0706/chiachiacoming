@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard';
 import Races from './pages/Races';
@@ -44,17 +44,27 @@ const App: React.FC = () => {
     // 確保 selectedPersonId 在名單內，否則預設為第一個
     if (pList.length > 0) {
       const savedId = localStorage.getItem('louie_active_person_id');
-      if (!savedId || !pList.some(p => String(p.id) === savedId)) {
-        const firstId = String(pList[0].id);
-        setSelectedPersonId(firstId);
-        localStorage.setItem('louie_active_person_id', firstId);
+      // 檢查 savedId 是否有效且該選手未被隱藏 (如果系統剛啟動不知道是否隱藏，這裡先簡單判斷是否存在)
+      const visiblePerson = pList.find(p => String(p.id) === savedId && !p.is_hidden);
+      
+      if (!savedId || !visiblePerson) {
+        // 優先選擇第一個未隱藏的選手
+        const firstVisible = pList.find(p => !p.is_hidden);
+        if (firstVisible) {
+           const firstId = String(firstVisible.id);
+           setSelectedPersonId(firstId);
+           localStorage.setItem('louie_active_person_id', firstId);
+        }
       }
       
-      // 如果沒有釘選任何選手，預設釘選第一個
+      // 如果沒有釘選任何選手，預設釘選第一個未隱藏的
       if (pinnedPeopleIds.length === 0) {
-        const firstId = String(pList[0].id);
-        setPinnedPeopleIds([firstId]);
-        localStorage.setItem('louie_pinned_people_ids', JSON.stringify([firstId]));
+        const firstVisible = pList.find(p => !p.is_hidden);
+        if (firstVisible) {
+           const firstId = String(firstVisible.id);
+           setPinnedPeopleIds([firstId]);
+           localStorage.setItem('louie_pinned_people_ids', JSON.stringify([firstId]));
+        }
       }
     }
 
@@ -95,7 +105,14 @@ const App: React.FC = () => {
     });
   };
 
-  const activePersonName = people.find(p => String(p.id) === String(selectedPersonId))?.name || DEFAULT_NAME;
+  // 過濾掉隱藏的選手和其相關數據 (用於 Dashboard 和 Training)
+  const activePeople = useMemo(() => people.filter(p => !p.is_hidden), [people]);
+  const activeData = useMemo(() => {
+    const hiddenIds = people.filter(p => p.is_hidden).map(p => String(p.id));
+    return data.filter(d => !hiddenIds.includes(String(d.people_id)));
+  }, [data, people]);
+
+  const activePersonName = activePeople.find(p => String(p.id) === String(selectedPersonId))?.name || DEFAULT_NAME;
 
   const renderPage = () => {
     if (isLoading && !hasInitialized.current) {
@@ -121,7 +138,7 @@ const App: React.FC = () => {
       case 'dashboard':
         return (
           <Dashboard 
-            data={data} 
+            data={activeData} 
             refreshData={fetchData}
             onNavigateToRaces={() => setCurrentPage('races')} 
             defaultTrainingType={defaultTrainingType}
@@ -130,9 +147,9 @@ const App: React.FC = () => {
       case 'races':
         return (
           <Races 
-            data={data} 
+            data={data} // 賽事頁面顯示所有數據 (包含隱藏選手)
+            people={people} // 賽事頁面需要完整選手名單
             refreshData={fetchData} 
-            personName={activePersonName} 
             raceGroups={raceGroups} 
           />
         );
@@ -142,8 +159,8 @@ const App: React.FC = () => {
             trainingTypes={trainingTypes} 
             defaultType={defaultTrainingType}
             refreshData={fetchData} 
-            data={data}
-            people={people}
+            data={activeData}
+            people={activePeople}
             activePersonId={selectedPersonId}
             onSelectPerson={handleUpdateActivePerson}
             pinnedPeopleIds={pinnedPeopleIds}
@@ -157,7 +174,7 @@ const App: React.FC = () => {
             raceGroups={raceGroups}
             defaultType={defaultTrainingType}
             personName={activePersonName}
-            people={people}
+            people={people} 
             refreshData={fetchData}
             onUpdateDefault={(val) => {
               setDefaultTrainingType(val);
@@ -167,7 +184,7 @@ const App: React.FC = () => {
           />
         );
       default:
-        return <Dashboard data={data} refreshData={fetchData} onNavigateToRaces={() => setCurrentPage('races')} defaultTrainingType={defaultTrainingType} />;
+        return <Dashboard data={activeData} refreshData={fetchData} onNavigateToRaces={() => setCurrentPage('races')} defaultTrainingType={defaultTrainingType} />;
     }
   };
 

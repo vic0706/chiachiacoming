@@ -5,6 +5,10 @@ export interface LookupItem {
   id: number | string;
   name: string;
   is_default?: boolean;
+  birthday?: string;
+  is_hidden?: boolean;
+  s_url?: string;
+  b_url?: string;
 }
 
 export interface DataRecord {
