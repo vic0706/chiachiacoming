@@ -24,7 +24,8 @@ const Settings: React.FC<SettingsProps> = ({ trainingTypes, raceGroups, defaultT
   const [editingType, setEditingType] = useState<LookupItem | null>(null);
   const [editingGroup, setEditingGroup] = useState<LookupItem | null>(null);
 
-  const [isPeopleUnlocked, setIsPeopleUnlocked] = useState(false);
+  // 密碼功能暫停: 預設開啟權限 (true)，並隱藏鎖頭按鈕
+  const [isPeopleUnlocked, setIsPeopleUnlocked] = useState(true);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [passwordInput, setPasswordInput] = useState('');
   
@@ -35,9 +36,6 @@ const Settings: React.FC<SettingsProps> = ({ trainingTypes, raceGroups, defaultT
   const [showEditPersonModal, setShowEditPersonModal] = useState(false);
 
   // Cropper State for Person Modal
-  const [cropperType, setCropperType] = useState<'s' | 'b' | null>(null); // Which URL is being cropped?
-  // We need local state for url/zoom/x/y for both s and b to handle live preview before save
-  // When opening modal, parse existing URLs.
   const [tempSUrl, setTempSUrl] = useState('');
   const [tempBUrl, setTempBUrl] = useState('');
 
@@ -271,12 +269,15 @@ const Settings: React.FC<SettingsProps> = ({ trainingTypes, raceGroups, defaultT
            <h3 className="text-xs font-bold text-zinc-500 flex items-center tracking-widest uppercase gap-2">
              <User size={14} className="text-rose-500" /> 選手名單管理
            </h3>
+           {/* 密碼功能暫停: 隱藏鎖頭按鈕 */}
+           {/* 
            <button 
              onClick={() => isPeopleUnlocked ? setIsPeopleUnlocked(false) : setShowPasswordModal(true)} 
              className={`w-8 h-8 flex items-center justify-center rounded-lg transition-all active:scale-95 ${isPeopleUnlocked ? 'text-rose-500 bg-rose-500/10' : 'text-zinc-500 bg-zinc-800'}`}
            >
               {isPeopleUnlocked ? <Unlock size={14} /> : <Edit2 size={14} />}
            </button>
+           */}
         </div>
 
         {isPeopleUnlocked ? (
