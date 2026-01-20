@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { LayoutDashboard, Trophy, ClipboardPen, Settings } from 'lucide-react';
+import { LayoutDashboard, Trophy, ClipboardPen, Settings, ContactRound } from 'lucide-react';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -51,8 +51,9 @@ const Layout: React.FC<LayoutProps> = ({ children, currentPage, onNavigate }) =>
 
       <nav className="fixed bottom-0 left-0 right-0 z-50 nav-glass border-t border-white/10 shadow-glass backdrop-blur-xl pb-[env(safe-area-inset-bottom)]">
         <div className="absolute top-0 inset-x-0 h-[1px] bg-gradient-to-r from-transparent via-sunset-rose/40 to-transparent"></div>
-        <div className="max-w-md mx-auto grid grid-cols-4 h-[60px] px-2">
+        <div className="max-w-md mx-auto grid grid-cols-5 h-[60px] px-2">
             <NavButton active={currentPage === 'dashboard'} onClick={() => onNavigate('dashboard')} icon={<LayoutDashboard size={22} />} label="總覽" />
+            <NavButton active={currentPage === 'personal'} onClick={() => onNavigate('personal')} icon={<ContactRound size={22} />} label="個人" />
             <NavButton active={currentPage === 'races'} onClick={() => onNavigate('races')} icon={<Trophy size={22} />} label="賽事" />
             <NavButton active={currentPage === 'training'} onClick={() => onNavigate('training')} icon={<ClipboardPen size={22} />} label="紀錄" />
             <NavButton active={currentPage === 'settings'} onClick={() => onNavigate('settings')} icon={<Settings size={22} />} label="設定" />

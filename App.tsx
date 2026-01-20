@@ -5,6 +5,7 @@ import Dashboard from './pages/Dashboard';
 import Races from './pages/Races';
 import Training from './pages/Training';
 import Settings from './pages/Settings';
+import Personal from './pages/Personal';
 import { api } from './services/api';
 import { DataRecord, LookupItem } from './types';
 
@@ -85,7 +86,7 @@ const App: React.FC = () => {
   }, [pinnedPeopleIds.length]);
 
   useEffect(() => {
-    if (!hasInitialized.current || currentPage === 'dashboard' || currentPage === 'races') {
+    if (!hasInitialized.current || currentPage === 'dashboard' || currentPage === 'races' || currentPage === 'personal') {
       fetchData();
     }
   }, [currentPage, fetchData]);
@@ -142,6 +143,18 @@ const App: React.FC = () => {
             refreshData={fetchData}
             onNavigateToRaces={() => setCurrentPage('races')} 
             defaultTrainingType={defaultTrainingType}
+            people={people} // Pass people for avatar lookup
+          />
+        );
+      case 'personal':
+        return (
+          <Personal 
+            data={activeData}
+            people={people} 
+            trainingTypes={trainingTypes}
+            refreshData={fetchData}
+            activePersonId={selectedPersonId}
+            onSelectPerson={handleUpdateActivePerson}
           />
         );
       case 'races':
@@ -170,6 +183,7 @@ const App: React.FC = () => {
       case 'settings':
         return (
           <Settings 
+            data={data}
             trainingTypes={trainingTypes} 
             raceGroups={raceGroups}
             defaultType={defaultTrainingType}
@@ -184,7 +198,7 @@ const App: React.FC = () => {
           />
         );
       default:
-        return <Dashboard data={activeData} refreshData={fetchData} onNavigateToRaces={() => setCurrentPage('races')} defaultTrainingType={defaultTrainingType} />;
+        return <Dashboard data={activeData} people={people} refreshData={fetchData} onNavigateToRaces={() => setCurrentPage('races')} defaultTrainingType={defaultTrainingType} />;
     }
   };
 

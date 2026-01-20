@@ -1,10 +1,12 @@
 
-import React, { useState, useRef } from 'react';
-import { Plus, Star, User, Activity, Settings as SettingsIcon, Edit2, Save, X, Flag, Loader2, AlertTriangle, Lock, Unlock, Eye, EyeOff, Cake, CalendarDays, Trash2, Image as ImageIcon, Maximize } from 'lucide-react';
-import { LookupItem } from '../types';
+import React, { useState, useRef, useEffect } from 'react';
+import { Plus, Star, User, Activity, Settings as SettingsIcon, Edit2, Save, X, Flag, Loader2, AlertTriangle, Lock, Unlock, Eye, EyeOff, Cake, CalendarDays, Trash2, Image as ImageIcon, Maximize, Download, FileSpreadsheet } from 'lucide-react';
+import { LookupItem, DataRecord } from '../types';
 import { api } from '../services/api';
+import { format } from 'date-fns';
 
 interface SettingsProps {
+  data: DataRecord[];
   trainingTypes: LookupItem[];
   raceGroups: LookupItem[];
   defaultType: string;
@@ -15,7 +17,136 @@ interface SettingsProps {
   onUpdateName: (name: string) => void;
 }
 
-const Settings: React.FC<SettingsProps> = ({ trainingTypes, raceGroups, defaultType, personName, people, refreshData, onUpdateDefault, onUpdateName }) => {
+// Helper Component for Image Cropper
+const ImageCropperInput = ({ label, urlValue, onChange, ratioClass = 'h-32 w-full' }: { label: string, urlValue: string, onChange: (val: string) => void, ratioClass?: string }) => {
+  const [baseUrl, fragment] = urlValue.split('#');
+  
+  // Initialize state
+  const [z, setZ] = useState(1);
+  const [x, setX] = useState(50);
+  const [y, setY] = useState(50);
+
+  // Sync state with props
+  useEffect(() => {
+      const [, frag] = urlValue.split('#');
+      const params = new URLSearchParams(frag || '');
+      setZ(parseFloat(params.get('z') || '1'));
+      setX(parseFloat(params.get('x') || '50'));
+      setY(parseFloat(params.get('y') || '50'));
+  }, [urlValue]);
+  
+  const cropperRef = useRef<HTMLDivElement>(null);
+  const isDragging = useRef(false);
+  const lastPoint = useRef({ x: 0, y: 0 });
+
+  const updateUrl = (newZ: number, newX: number, newY: number) => {
+      if (!baseUrl) return;
+      onChange(`${baseUrl}#z=${newZ}&x=${newX}&y=${newY}`);
+  };
+
+  const handleDragStart = (e: React.MouseEvent | React.TouchEvent) => {
+      isDragging.current = true;
+      const point = 'touches' in e ? e.touches[0] : (e as React.MouseEvent);
+      lastPoint.current = { x: point.clientX, y: point.clientY };
+  };
+  
+  const handleDragMove = (e: React.MouseEvent | React.TouchEvent) => {
+      if (!isDragging.current || !cropperRef.current) return;
+      if(e.cancelable) e.preventDefault();
+      
+      const point = 'touches' in e ? e.touches[0] : (e as React.MouseEvent);
+      const dx = point.clientX - lastPoint.current.x;
+      const dy = point.clientY - lastPoint.current.y;
+      
+      const rect = cropperRef.current.getBoundingClientRect();
+      if (rect.width > 0 && rect.height > 0) {
+          const sensitivity = 0.8; 
+          const deltaX = (dx / rect.width) * 100 * sensitivity;
+          const deltaY = (dy / rect.height) * 100 * sensitivity;
+          const newX = Math.min(100, Math.max(0, x + deltaX));
+          const newY = Math.min(100, Math.max(0, y + deltaY));
+          
+          setX(newX);
+          setY(newY);
+          updateUrl(z, newX, newY);
+      }
+      lastPoint.current = { x: point.clientX, y: point.clientY };
+  };
+  const handleDragEnd = () => isDragging.current = false;
+
+  return (
+      <div className="space-y-2">
+          <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1 flex items-center gap-1"><ImageIcon size={12}/> {label}</label>
+          <input 
+              type="text" 
+              placeholder="https://..."
+              value={baseUrl}
+              onChange={(e) => { onChange(e.target.value); }}
+              className="w-full bg-zinc-900 border border-white/10 rounded-xl px-4 py-3 text-white text-xs font-mono outline-none focus:border-rose-500/50 transition-colors shadow-inner"
+          />
+          {baseUrl && (
+               <div className="space-y-3 bg-white/5 p-4 rounded-2xl border border-white/10 shadow-lg mt-2">
+                  <div className="text-[9px] font-black text-zinc-500 uppercase tracking-widest flex items-center gap-1"><Maximize size={10}/> 縮放與位置調整</div>
+                  <div className="flex justify-center bg-black rounded-xl border border-white/5 p-2">
+                    <div 
+                        ref={cropperRef}
+                        className={`relative overflow-hidden bg-zinc-900 border border-white/10 shadow-inner group cursor-move touch-none ${ratioClass}`}
+                        style={{ touchAction: 'none' }}
+                        onMouseDown={handleDragStart}
+                        onMouseMove={handleDragMove}
+                        onMouseUp={handleDragEnd}
+                        onMouseLeave={handleDragEnd}
+                        onTouchStart={handleDragStart}
+                        onTouchMove={handleDragMove}
+                        onTouchEnd={handleDragEnd}
+                    >
+                        {/* 修正：使用 object-contain 顯示原圖，不裁切，方便調整 */}
+                        <img 
+                            src={baseUrl} 
+                            className="w-full h-full object-contain pointer-events-none select-none"
+                            style={{ 
+                                transform: `translate(${(x - 50) * 1.5}%, ${(y - 50) * 1.5}%) scale(${z})`
+                            }}
+                        />
+                        {/* Grid Overlay */}
+                        <div className="absolute inset-0 pointer-events-none opacity-20">
+                            <div className="w-full h-full border border-white/30 flex">
+                                <div className="flex-1 border-r border-white/30"></div>
+                                <div className="flex-1 border-r border-white/30"></div>
+                                <div className="flex-1"></div>
+                            </div>
+                            <div className="absolute inset-0 flex flex-col">
+                                <div className="flex-1 border-b border-white/30"></div>
+                                <div className="flex-1 border-b border-white/30"></div>
+                                <div className="flex-1"></div>
+                            </div>
+                        </div>
+                    </div>
+                  </div>
+                  <div className="px-1">
+                      <div className="flex justify-between text-[8px] text-zinc-500 font-mono mb-1">
+                          <span>ZOOM: {z.toFixed(2)}x</span>
+                          <span>POS: {x.toFixed(0)},{y.toFixed(0)}</span>
+                      </div>
+                      <input 
+                          type="range" 
+                          min="0.1" max="5" step="0.01" 
+                          value={z} 
+                          onChange={e => {
+                              const val = parseFloat(e.target.value);
+                              setZ(val);
+                              updateUrl(val, x, y);
+                          }} 
+                          className="w-full accent-sunset-rose h-1.5 bg-zinc-800 rounded-full appearance-none shadow-inner" 
+                      />
+                  </div>
+              </div>
+          )}
+      </div>
+  );
+};
+
+const Settings: React.FC<SettingsProps> = ({ data, trainingTypes, raceGroups, defaultType, personName, people, refreshData, onUpdateDefault, onUpdateName }) => {
   const [newType, setNewType] = useState('');
   const [newGroup, setNewGroup] = useState('');
   const [isSyncing, setIsSyncing] = useState(false);
@@ -24,7 +155,6 @@ const Settings: React.FC<SettingsProps> = ({ trainingTypes, raceGroups, defaultT
   const [editingType, setEditingType] = useState<LookupItem | null>(null);
   const [editingGroup, setEditingGroup] = useState<LookupItem | null>(null);
 
-  // 密碼功能暫停: 預設開啟權限 (true)，並隱藏鎖頭按鈕
   const [isPeopleUnlocked, setIsPeopleUnlocked] = useState(true);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [passwordInput, setPasswordInput] = useState('');
@@ -35,11 +165,21 @@ const Settings: React.FC<SettingsProps> = ({ trainingTypes, raceGroups, defaultT
   const [editingPerson, setEditingPerson] = useState<LookupItem | null>(null);
   const [showEditPersonModal, setShowEditPersonModal] = useState(false);
 
-  // Cropper State for Person Modal
   const [tempSUrl, setTempSUrl] = useState('');
   const [tempBUrl, setTempBUrl] = useState('');
 
   const [deleteTarget, setDeleteTarget] = useState<{table: 'training-types' | 'races' | 'people', id: number | string, name: string} | null>(null);
+
+  // CSV Export State - 預設為今天 (yyyy-MM-dd)
+  const [exportDate, setExportDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [exportType, setExportType] = useState(defaultType || (trainingTypes[0]?.name || ''));
+
+  // Update exportType when trainingTypes loaded
+  useEffect(() => {
+    if (!exportType && trainingTypes.length > 0) {
+        setExportType(trainingTypes[0].name);
+    }
+  }, [trainingTypes, exportType]);
 
   const handleAction = async (action: () => Promise<boolean>, targetId?: string | number) => {
     if (targetId) setTogglingId(targetId);
@@ -49,7 +189,7 @@ const Settings: React.FC<SettingsProps> = ({ trainingTypes, raceGroups, defaultT
     if (success) {
         await refreshData();
     } else {
-        alert('同步操作失敗，請檢查網路連線');
+        alert('同步操作失敗，請檢查網路連線或確認是否已解鎖上傳權限');
     }
 
     if (targetId) setTogglingId(null);
@@ -68,11 +208,15 @@ const Settings: React.FC<SettingsProps> = ({ trainingTypes, raceGroups, defaultT
   const handleAddGroup = () => handleAction(() => api.manageLookup('races', newGroup).then(res => { setNewGroup(''); return res; }));
   const handleUpdateGroup = () => editingGroup && handleAction(() => api.manageLookup('races', editingGroup.name, editingGroup.id).then(res => { setEditingGroup(null); return res; }));
 
-  const handleUnlock = () => {
+  const handleUnlock = async () => {
     if (passwordInput === 'chiachiacm') {
       setIsPeopleUnlocked(true);
       setShowPasswordModal(false);
       setPasswordInput('');
+      
+      // Auto-authenticate with API when unlocking UI
+      // This solves the 401 Upload Error
+      await api.authenticate('chiachiacm'); 
     } else {
       alert('密碼錯誤');
     }
@@ -148,103 +292,65 @@ const Settings: React.FC<SettingsProps> = ({ trainingTypes, raceGroups, defaultT
     setDeleteTarget(null);
   };
 
-  // Helper Component for Image Cropper
-  const ImageCropperInput = ({ label, urlValue, onChange }: { label: string, urlValue: string, onChange: (val: string) => void }) => {
-    const [baseUrl, fragment] = urlValue.split('#');
-    const params = new URLSearchParams(fragment || '');
-    
-    const [z, setZ] = useState(parseFloat(params.get('z') || '1'));
-    const [x, setX] = useState(parseFloat(params.get('x') || '50'));
-    const [y, setY] = useState(parseFloat(params.get('y') || '50'));
-    
-    const cropperRef = useRef<HTMLDivElement>(null);
-    const isDragging = useRef(false);
-    const lastPoint = useRef({ x: 0, y: 0 });
+  const handleExportCSV = () => {
+    if (!exportType) {
+        alert("請選擇訓練項目");
+        return;
+    }
 
-    const updateUrl = (newZ: number, newX: number, newY: number) => {
-        if (!baseUrl) return;
-        onChange(`${baseUrl}#z=${newZ}&x=${newX}&y=${newY}`);
-    };
+    // Filter records: Strict Date Match (YYYY-MM-DD)
+    const filteredRecords = data.filter(r => {
+        if (r.item !== 'training') return false;
+        if (r.name !== exportType) return false;
+        if (r.date !== exportDate) return false; // Exact match
+        return true;
+    }).sort((a, b) => (Number(a.id) || 0) - (Number(b.id) || 0)); // Sort by ID asc (Sequence 1, 2, 3...)
 
-    const handleDragStart = (e: React.MouseEvent | React.TouchEvent) => {
-        isDragging.current = true;
-        const point = 'touches' in e ? e.touches[0] : (e as React.MouseEvent);
-        lastPoint.current = { x: point.clientX, y: point.clientY };
-    };
+    if (filteredRecords.length === 0) {
+        alert("無符合條件的數據");
+        return;
+    }
+
+    // Group by (Person Name)
+    const grouped = new Map<string, string[]>();
+    filteredRecords.forEach(r => {
+        const key = r.person_name;
+        if (!grouped.has(key)) grouped.set(key, []);
+        grouped.get(key)!.push(r.value);
+    });
+
+    // Generate CSV Content with BOM for Chinese support
+    let csvContent = "\uFEFF"; // BOM
+    // Header
+    csvContent += "Date,Name,null,null,Score1,Score2,Score3,Score4,Score5,Score6,Score7,Score8,Score9,Score10\n";
     
-    const handleDragMove = (e: React.MouseEvent | React.TouchEvent) => {
-        if (!isDragging.current || !cropperRef.current) return;
-        if(e.cancelable) e.preventDefault();
-        
-        const point = 'touches' in e ? e.touches[0] : (e as React.MouseEvent);
-        const dx = point.clientX - lastPoint.current.x;
-        const dy = point.clientY - lastPoint.current.y;
-        
-        const rect = cropperRef.current.getBoundingClientRect();
-        if (rect.width > 0 && rect.height > 0) {
-            const sensitivity = 0.8; 
-            const deltaX = (dx / rect.width) * 100 * sensitivity;
-            const deltaY = (dy / rect.height) * 100 * sensitivity;
-            const newX = Math.min(100, Math.max(0, x + deltaX));
-            const newY = Math.min(100, Math.max(0, y + deltaY));
-            setX(newX);
-            setY(newY);
-            updateUrl(z, newX, newY);
-        }
-        lastPoint.current = { x: point.clientX, y: point.clientY };
-    };
-    const handleDragEnd = () => isDragging.current = false;
+    // Sort by Name for tidiness
+    const sortedNames = Array.from(grouped.keys()).sort();
+    
+    sortedNames.forEach(name => {
+        const scores = grouped.get(name) || [];
+        // Format: Date, Name, null, null, score1, score2...
+        // Note: Using empty strings for "null" columns in CSV
+        const row = [
+            exportDate, 
+            name, 
+            "", 
+            "", 
+            ...scores
+        ].join(",");
+        csvContent += row + "\n";
+    });
 
-    return (
-        <div className="space-y-2">
-            <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1 flex items-center gap-1"><ImageIcon size={12}/> {label}</label>
-            <input 
-                type="text" 
-                placeholder="https://..."
-                value={baseUrl}
-                onChange={(e) => { onChange(e.target.value); }}
-                className="w-full bg-zinc-900 border border-white/10 rounded-xl px-4 py-3 text-white text-xs font-mono outline-none focus:border-rose-500/50 transition-colors shadow-inner"
-            />
-            {baseUrl && (
-                 <div className="space-y-3 bg-white/5 p-4 rounded-2xl border border-white/10 shadow-lg mt-2">
-                    <div className="text-[9px] font-black text-zinc-500 uppercase tracking-widest flex items-center gap-1"><Maximize size={10}/> 縮放與位置</div>
-                    <div 
-                        ref={cropperRef}
-                        className="relative h-24 rounded-xl overflow-hidden bg-black border border-white/10 shadow-inner group cursor-move touch-none"
-                        style={{ touchAction: 'none' }}
-                        onMouseDown={handleDragStart}
-                        onMouseMove={handleDragMove}
-                        onMouseUp={handleDragEnd}
-                        onMouseLeave={handleDragEnd}
-                        onTouchStart={handleDragStart}
-                        onTouchMove={handleDragMove}
-                        onTouchEnd={handleDragEnd}
-                    >
-                        <img 
-                            src={baseUrl} 
-                            className="w-full h-full object-cover pointer-events-none select-none"
-                            style={{ 
-                                transform: `translate(${(x - 50) * 1.5}%, ${(y - 50) * 1.5}%) scale(${z})`
-                            }}
-                        />
-                    </div>
-                    <input 
-                        type="range" 
-                        min="1" max="5" step="0.01" 
-                        value={z} 
-                        onChange={e => {
-                            const val = parseFloat(e.target.value);
-                            setZ(val);
-                            updateUrl(val, x, y);
-                        }} 
-                        className="w-full accent-sunset-rose h-1.5 bg-zinc-800 rounded-full appearance-none shadow-inner" 
-                    />
-                </div>
-            )}
-        </div>
-    );
+    // Create Download Link
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `LR_${exportType}_${exportDate}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
-
 
   return (
     <div className="h-full overflow-y-auto px-3 pt-4 pb-20 space-y-6 animate-fade-in no-scrollbar relative">
@@ -269,15 +375,6 @@ const Settings: React.FC<SettingsProps> = ({ trainingTypes, raceGroups, defaultT
            <h3 className="text-xs font-bold text-zinc-500 flex items-center tracking-widest uppercase gap-2">
              <User size={14} className="text-rose-500" /> 選手名單管理
            </h3>
-           {/* 密碼功能暫停: 隱藏鎖頭按鈕 */}
-           {/* 
-           <button 
-             onClick={() => isPeopleUnlocked ? setIsPeopleUnlocked(false) : setShowPasswordModal(true)} 
-             className={`w-8 h-8 flex items-center justify-center rounded-lg transition-all active:scale-95 ${isPeopleUnlocked ? 'text-rose-500 bg-rose-500/10' : 'text-zinc-500 bg-zinc-800'}`}
-           >
-              {isPeopleUnlocked ? <Unlock size={14} /> : <Edit2 size={14} />}
-           </button>
-           */}
         </div>
 
         {isPeopleUnlocked ? (
@@ -311,11 +408,10 @@ const Settings: React.FC<SettingsProps> = ({ trainingTypes, raceGroups, defaultT
               </div>
             </div>
             
-            {/* 選手列表 - 頭像為主 */}
+            {/* 選手列表 */}
             <div className="grid grid-cols-4 gap-2 max-h-96 overflow-y-auto no-scrollbar pr-1">
               {people.map((p) => {
                 const isLoading = togglingId === p.id;
-                // Parse s_url crop info
                 const [sUrlBase, sUrlFragment] = (p.s_url || '').split('#');
                 let sz=1, sx=50, sy=50;
                 if(sUrlFragment) {
@@ -464,7 +560,35 @@ const Settings: React.FC<SettingsProps> = ({ trainingTypes, raceGroups, defaultT
         </div>
       </section>
 
-      {/* --------------------- MODALS --------------------- */}
+      {/* 數據導出 CSV */}
+      <section className="glass-card rounded-2xl p-5 border border-white/5">
+        <h3 className="text-xs font-bold text-zinc-500 mb-4 flex items-center tracking-widest uppercase gap-2"><FileSpreadsheet size={14} className="text-emerald-500" /> 數據導出 (CSV)</h3>
+        <div className="flex flex-col gap-3">
+            <div className="flex gap-3">
+                <input 
+                    type="date" 
+                    value={exportDate} 
+                    onChange={(e) => setExportDate(e.target.value)}
+                    className="flex-1 bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 text-white text-sm outline-none focus:border-emerald-500/50 shadow-inner" 
+                />
+                <div className="relative flex-1">
+                    <select 
+                        value={exportType}
+                        onChange={(e) => setExportType(e.target.value)}
+                        className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 text-white text-sm outline-none focus:border-emerald-500/50 shadow-inner appearance-none"
+                    >
+                        {trainingTypes.map(t => <option key={t.id} value={t.name}>{t.name}</option>)}
+                    </select>
+                </div>
+            </div>
+            <button 
+                onClick={handleExportCSV}
+                className="w-full bg-zinc-800 text-emerald-500 font-bold text-xs tracking-widest py-3 rounded-xl border border-emerald-500/20 shadow-lg active:scale-95 transition-all flex items-center justify-center gap-2 hover:bg-zinc-700"
+            >
+                <Download size={16} /> 導出 CSV
+            </button>
+        </div>
+      </section>
 
       {/* 編輯選手資料 Modal */}
       {showEditPersonModal && editingPerson && (
@@ -499,9 +623,19 @@ const Settings: React.FC<SettingsProps> = ({ trainingTypes, raceGroups, defaultT
                     />
                  </div>
 
-                 {/* 圖片 Croppers */}
-                 <ImageCropperInput label="頭像 (Small URL)" urlValue={tempSUrl} onChange={setTempSUrl} />
-                 <ImageCropperInput label="全身照 (Big URL)" urlValue={tempBUrl} onChange={setTempBUrl} />
+                 {/* 圖片 Croppers - Changed to show Original Image via ImageCropperInput modification */}
+                 <ImageCropperInput 
+                    label="頭像 (Small URL)" 
+                    urlValue={tempSUrl} 
+                    onChange={setTempSUrl} 
+                    ratioClass="aspect-square w-32 mx-auto"
+                 />
+                 <ImageCropperInput 
+                    label="全身照 (Big URL)" 
+                    urlValue={tempBUrl} 
+                    onChange={setTempBUrl} 
+                    ratioClass="aspect-square w-full mx-auto"
+                 />
                  
                  <div className="flex items-center gap-2 mt-2 p-2 rounded-lg border border-zinc-800 bg-zinc-900/50">
                     <button 
@@ -559,7 +693,7 @@ const Settings: React.FC<SettingsProps> = ({ trainingTypes, raceGroups, defaultT
                  <Lock size={20} className="text-white" />
                </div>
                <h3 className="text-lg font-black text-white">管理員驗證</h3>
-               <p className="text-[10px] text-zinc-500 mt-1">請輸入密碼以編輯選手名單</p>
+               <p className="text-[10px] text-zinc-500 mt-1">請輸入密碼以編輯選手名單及解鎖上傳權限</p>
             </div>
             <input 
               autoFocus
@@ -579,7 +713,7 @@ const Settings: React.FC<SettingsProps> = ({ trainingTypes, raceGroups, defaultT
 
       <section className="text-center pt-8 opacity-30">
         <div className="text-[10px] font-black text-zinc-500 tracking-[0.4em] uppercase">Louie Professional</div>
-        <div className="text-[8px] text-zinc-600 mt-2 font-mono italic">Performance Core v3.2 (D1 Engine)</div>
+        <div className="text-[8px] text-zinc-600 mt-2 font-mono italic">Performance Core v3.3 (D1 Engine)</div>
       </section>
     </div>
   );

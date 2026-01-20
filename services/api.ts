@@ -2,6 +2,7 @@
 import { DataRecord, LookupItem } from '../types';
 
 const WORKER_URL = 'https://runbike.vic070680.workers.dev/api';
+const OTP_STORAGE_KEY = 'louie_guest_otp';
 
 const safeFetchJson = async (url: string, options?: RequestInit) => {
   try {
@@ -25,6 +26,33 @@ const safeFetchJson = async (url: string, options?: RequestInit) => {
 };
 
 export const api = {
+  // New Authentication Method
+  authenticate: async (password: string): Promise<boolean> => {
+    try {
+      const formData = new FormData();
+      formData.append('admin_password', password);
+      
+      const res = await fetch(`${WORKER_URL}/generate-otp`, {
+        method: 'POST',
+        body: formData
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && data.otp) {
+          localStorage.setItem(OTP_STORAGE_KEY, data.otp);
+          return true;
+        }
+      }
+      return false;
+    } catch (e) {
+      console.error('Auth failed', e);
+      return false;
+    }
+  },
+
+  getOtp: () => localStorage.getItem(OTP_STORAGE_KEY) || '',
+
   fetchAppData: async () => {
     const [trainRecs, raceRecs, trainTypes, races, people] = await Promise.all([
       safeFetchJson(`${WORKER_URL}/training-records`),
@@ -93,6 +121,9 @@ export const api = {
       const formData = new FormData();
       const peopleId = record.people_id || 1; 
 
+      // Append Guest OTP for Write Permissions
+      formData.append('guest_otp', localStorage.getItem(OTP_STORAGE_KEY) || '');
+
       let table = '';
       if (record.item === 'training') {
         table = 'training-records';
@@ -135,6 +166,8 @@ export const api = {
       const table = item === 'training' ? 'training-records' : 'race-records';
       const formData = new FormData();
       formData.append('_method', 'DELETE');
+      // Append Guest OTP for Write Permissions
+      formData.append('guest_otp', localStorage.getItem(OTP_STORAGE_KEY) || '');
 
       const response = await fetch(`${WORKER_URL}/${table}/${id}`, {
         method: 'POST',
@@ -151,6 +184,10 @@ export const api = {
   manageLookup: async (table: 'training-types' | 'races' | 'people', name: string, id?: number | string, isDelete: boolean = false, isDefault: boolean = false, extra?: { birthday?: string, is_hidden?: boolean, s_url?: string, b_url?: string }): Promise<boolean> => {
     try {
       const formData = new FormData();
+      // Manage endpoints generally don't require guest_otp based on current worker logic, 
+      // but if the worker is updated to protect these too, we should add it. 
+      // For now, based on user snippet, only records are protected.
+      
       let url = `${WORKER_URL}/${table}`;
 
       let fieldName = 'type_name';

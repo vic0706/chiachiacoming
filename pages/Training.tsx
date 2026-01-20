@@ -107,7 +107,7 @@ const Training: React.FC<TrainingProps> = ({
     if (num === '.' && inputValue.includes('.')) return;
     if (inputValue.includes('.')) {
         const parts = inputValue.split('.');
-        if (parts[1].length >= 4) return;
+        if (parts[1].length >= 3) return; // Limit to 3 decimal places
     }
     setInputValue(prev => prev + num);
   };
@@ -134,12 +134,12 @@ const Training: React.FC<TrainingProps> = ({
       item: 'training',
       training_type_id: selectedTypeId,
       people_id: activePersonId,
-      value: val.toFixed(4) 
+      value: val.toFixed(3) // Change to 3 decimals
     };
 
     const success = await api.submitRecord(record);
     if (success) {
-      setLastRecord(`${val.toFixed(4)}s`);
+      setLastRecord(`${val.toFixed(3)}s`);
       setInputValue('');
       setStatus('success');
       await refreshData();
@@ -151,15 +151,18 @@ const Training: React.FC<TrainingProps> = ({
     }
   };
 
-  const todayHistory = data
-    .filter(d => 
+  const todayRecords = data.filter(d => 
       d.item === 'training' && 
       d.date === format(new Date(), 'yyyy-MM-dd') && 
       d.name === selectedTypeName &&
       String(d.people_id) === String(activePersonId)
-    )
+  );
+
+  const todayHistory = todayRecords
     .sort((a, b) => Number(b.id) - Number(a.id))
     .slice(0, 5);
+  
+  const todayCount = todayRecords.length;
 
   return (
     <div className="flex flex-col h-full px-3 pt-3 pb-1 relative animate-fade-in overflow-hidden">
@@ -195,7 +198,7 @@ const Training: React.FC<TrainingProps> = ({
             )}
           </div>
           <span className={`text-4xl font-black leading-none font-mono tracking-tighter block relative z-10 transition-colors truncate ${inputValue ? 'text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.3)]' : 'text-zinc-800'}`}>
-            {inputValue || '0.0000'}
+            {inputValue || '0.000'}
           </span>
         </div>
 
@@ -257,11 +260,11 @@ const Training: React.FC<TrainingProps> = ({
              <>
                <div className="text-[9px] text-zinc-500 font-black tracking-widest uppercase italic flex items-center gap-1">
                   <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></div>
-                  {activePerson?.name} Today
+                  {activePerson?.name} Today <span className="text-zinc-400">({todayCount})</span>
                </div>
                <div className="flex space-x-1 overflow-x-auto no-scrollbar">
                  {todayHistory.map((h, i) => (
-                   <span key={i} className="bg-zinc-900 text-zinc-300 text-[9px] px-2 rounded border border-white/10 font-mono">{parseFloat(h.value).toFixed(4)}</span>
+                   <span key={i} className="bg-zinc-900 text-zinc-300 text-[9px] px-2 rounded border border-white/10 font-mono">{parseFloat(h.value).toFixed(3)}</span>
                  ))}
                </div>
              </>
