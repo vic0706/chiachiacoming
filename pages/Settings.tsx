@@ -1,6 +1,6 @@
 
 import React, { useState, useRef } from 'react';
-import { Plus, Star, User, Activity, Settings as SettingsIcon, Edit2, Save, X, Flag, Loader2, AlertTriangle, Lock, Unlock, Eye, EyeOff, Cake, CalendarDays, Trash2, Image as ImageIcon, Maximize, Key } from 'lucide-react';
+import { Plus, Star, User, Activity, Settings as SettingsIcon, Edit2, Save, X, Flag, Loader2, AlertTriangle, Lock, Unlock, Eye, EyeOff, Cake, CalendarDays, Trash2, Image as ImageIcon, Maximize } from 'lucide-react';
 import { LookupItem } from '../types';
 import { api } from '../services/api';
 
@@ -24,16 +24,9 @@ const Settings: React.FC<SettingsProps> = ({ trainingTypes, raceGroups, defaultT
   const [editingType, setEditingType] = useState<LookupItem | null>(null);
   const [editingGroup, setEditingGroup] = useState<LookupItem | null>(null);
 
-  // 密碼與權限狀態
-  const [isAdminUnlocked, setIsAdminUnlocked] = useState(false);
+  const [isPeopleUnlocked, setIsPeopleUnlocked] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
-  const [adminPasswordInput, setAdminPasswordInput] = useState('');
-  const [authLoading, setAuthLoading] = useState(false);
-
-  // OTP 相關
-  const [activeAdminPassword, setActiveAdminPassword] = useState(''); // 暫存驗證過的主密碼，用於重複生成 OTP
-  const [generatedOtp, setGeneratedOtp] = useState<string | null>(null);
-  const [otpLoading, setOtpLoading] = useState(false);
+  const [passwordInput, setPasswordInput] = useState('');
   
   const [newPersonName, setNewPersonName] = useState('');
   const [newPersonBirthday, setNewPersonBirthday] = useState('');
@@ -41,7 +34,10 @@ const Settings: React.FC<SettingsProps> = ({ trainingTypes, raceGroups, defaultT
   const [editingPerson, setEditingPerson] = useState<LookupItem | null>(null);
   const [showEditPersonModal, setShowEditPersonModal] = useState(false);
 
-  // Cropper State
+  // Cropper State for Person Modal
+  const [cropperType, setCropperType] = useState<'s' | 'b' | null>(null); // Which URL is being cropped?
+  // We need local state for url/zoom/x/y for both s and b to handle live preview before save
+  // When opening modal, parse existing URLs.
   const [tempSUrl, setTempSUrl] = useState('');
   const [tempBUrl, setTempBUrl] = useState('');
 
@@ -74,41 +70,13 @@ const Settings: React.FC<SettingsProps> = ({ trainingTypes, raceGroups, defaultT
   const handleAddGroup = () => handleAction(() => api.manageLookup('races', newGroup).then(res => { setNewGroup(''); return res; }));
   const handleUpdateGroup = () => editingGroup && handleAction(() => api.manageLookup('races', editingGroup.name, editingGroup.id).then(res => { setEditingGroup(null); return res; }));
 
-  const handleAdminAuth = async () => {
-    if (!adminPasswordInput) {
-      alert('請輸入管理密碼');
-      return;
-    }
-    
-    setAuthLoading(true);
-    // 直接呼叫產生 OTP 的 API 來驗證密碼是否正確
-    const result = await api.generateOtp(adminPasswordInput);
-    setAuthLoading(false);
-
-    if (result.success) {
-        // 驗證成功
-        setIsAdminUnlocked(true);
-        setActiveAdminPassword(adminPasswordInput); // 記住密碼以便重複產生 OTP
-        setGeneratedOtp(result.otp || null); // 第一次驗證成功順便帶出 OTP
-        setShowPasswordModal(false);
-        setAdminPasswordInput('');
+  const handleUnlock = () => {
+    if (passwordInput === 'chiachiacm') {
+      setIsPeopleUnlocked(true);
+      setShowPasswordModal(false);
+      setPasswordInput('');
     } else {
-        alert('管理密碼錯誤，拒絕存取');
-        setAdminPasswordInput('');
-    }
-  };
-
-  const handleGenerateOtp = async () => {
-    if (!activeAdminPassword) return;
-    setOtpLoading(true);
-    const result = await api.generateOtp(activeAdminPassword);
-    setOtpLoading(false);
-    
-    if (result.success && result.otp) {
-        setGeneratedOtp(result.otp);
-    } else {
-        alert('無法產生 OTP，可能密碼已過期，請重新驗證');
-        setIsAdminUnlocked(false);
+      alert('密碼錯誤');
     }
   };
 
@@ -132,8 +100,6 @@ const Settings: React.FC<SettingsProps> = ({ trainingTypes, raceGroups, defaultT
   };
 
   const handleOpenEditPerson = (p: LookupItem) => {
-    // 只有解鎖後才能編輯
-    if (!isAdminUnlocked) return; 
     setEditingPerson({ ...p });
     setTempSUrl(p.s_url || '');
     setTempBUrl(p.b_url || '');
@@ -299,115 +265,87 @@ const Settings: React.FC<SettingsProps> = ({ trainingTypes, raceGroups, defaultT
         {isSyncing && <Loader2 size={16} className="animate-spin text-rose-500" />}
       </div>
 
-      {/* 選手名單及密碼管理區塊 */}
+      {/* 選手名單管理區塊 */}
       <section className="glass-card rounded-2xl p-5 border border-white/5">
         <div className="flex items-center justify-between mb-4">
            <h3 className="text-xs font-bold text-zinc-500 flex items-center tracking-widest uppercase gap-2">
-             <User size={14} className="text-rose-500" /> 選手名單及密碼管理
+             <User size={14} className="text-rose-500" /> 選手名單管理
            </h3>
            <button 
-             onClick={() => isAdminUnlocked ? setIsAdminUnlocked(false) : setShowPasswordModal(true)} 
-             className={`w-8 h-8 flex items-center justify-center rounded-lg transition-all active:scale-95 ${isAdminUnlocked ? 'text-rose-500 bg-rose-500/10' : 'text-zinc-500 bg-zinc-800'}`}
+             onClick={() => isPeopleUnlocked ? setIsPeopleUnlocked(false) : setShowPasswordModal(true)} 
+             className={`w-8 h-8 flex items-center justify-center rounded-lg transition-all active:scale-95 ${isPeopleUnlocked ? 'text-rose-500 bg-rose-500/10' : 'text-zinc-500 bg-zinc-800'}`}
            >
-              {isAdminUnlocked ? <Unlock size={14} /> : <Lock size={14} />}
+              {isPeopleUnlocked ? <Unlock size={14} /> : <Edit2 size={14} />}
            </button>
         </div>
 
-        {/* 解鎖後顯示功能區：新增選手 與 產生OTP */}
-        {isAdminUnlocked && (
-          <div className="animate-fade-in space-y-5 mb-5">
-             {/* 產生 OTP */}
-             <div className="bg-zinc-900/50 p-4 rounded-xl border border-sunset-gold/20 flex flex-col gap-3 relative overflow-hidden">
-                <div className="absolute top-0 right-0 p-2 opacity-10"><Key size={48} className="text-sunset-gold"/></div>
-                <div className="flex justify-between items-center z-10">
-                    <span className="text-[10px] font-black text-sunset-gold uppercase tracking-widest">訪客一次性密碼 (Guest OTP)</span>
+        {isPeopleUnlocked ? (
+          <>
+            {/* 新增選手輸入框 */}
+            <div className="flex flex-col gap-3 mb-5 p-3 bg-zinc-900/50 rounded-xl border border-white/5">
+              <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">新增選手</span>
+              <div className="flex flex-col gap-3">
+                <input 
+                    type="text" 
+                    value={newPersonName} 
+                    onChange={(e) => setNewPersonName(e.target.value)} 
+                    placeholder="姓名" 
+                    className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-3 text-white text-xs outline-none focus:border-rose-500/50 transition-colors shadow-inner" 
+                />
+                <div className="flex gap-2">
+                    <input 
+                        type="date" 
+                        value={newPersonBirthday} 
+                        onChange={(e) => setNewPersonBirthday(e.target.value)} 
+                        className="flex-1 bg-zinc-950 border border-zinc-800 rounded-lg px-2 py-3 text-white text-xs font-mono outline-none focus:border-rose-500/50 transition-colors shadow-inner" 
+                    />
                     <button 
-                        onClick={handleGenerateOtp}
-                        disabled={otpLoading}
-                        className="bg-sunset-gold text-black text-[10px] font-black px-3 py-1.5 rounded-lg active:scale-95 transition-all shadow-glow-gold flex items-center gap-1"
+                        onClick={handleAddPerson} 
+                        disabled={!newPersonName || isSyncing} 
+                        className="w-12 bg-rose-600 text-white rounded-lg flex items-center justify-center border border-white/5 shadow-lg active:scale-95 transition-all disabled:opacity-50"
                     >
-                        {otpLoading ? <Loader2 size={10} className="animate-spin"/> : <Key size={10}/>} 重新產生
+                        <Plus size={18} />
                     </button>
                 </div>
-                {generatedOtp ? (
-                    <div className="flex flex-col items-center justify-center py-2 bg-black/40 rounded-lg border border-sunset-gold/10 z-10">
-                        <span className="text-3xl font-black font-mono text-white tracking-[0.2em]">{generatedOtp}</span>
-                        <span className="text-[9px] text-zinc-500 mt-1">有效期限：3 小時</span>
-                    </div>
-                ) : (
-                    <div className="text-[10px] text-zinc-600 text-center italic py-2">點擊產生按鈕以獲取密碼</div>
-                )}
-             </div>
+              </div>
+            </div>
+            
+            {/* 選手列表 - 頭像為主 */}
+            <div className="grid grid-cols-4 gap-2 max-h-96 overflow-y-auto no-scrollbar pr-1">
+              {people.map((p) => {
+                const isLoading = togglingId === p.id;
+                // Parse s_url crop info
+                const [sUrlBase, sUrlFragment] = (p.s_url || '').split('#');
+                let sz=1, sx=50, sy=50;
+                if(sUrlFragment) {
+                   const sp = new URLSearchParams(sUrlFragment);
+                   sz = parseFloat(sp.get('z')||'1');
+                   sx = parseFloat(sp.get('x')||'50');
+                   sy = parseFloat(sp.get('y')||'50');
+                }
 
-             {/* 新增選手輸入框 */}
-             <div className="flex flex-col gap-3 p-3 bg-zinc-900/50 rounded-xl border border-white/5">
-                <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">新增選手</span>
-                <div className="flex flex-col gap-3">
-                    <input 
-                        type="text" 
-                        value={newPersonName} 
-                        onChange={(e) => setNewPersonName(e.target.value)} 
-                        placeholder="姓名" 
-                        className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-3 text-white text-xs outline-none focus:border-rose-500/50 transition-colors shadow-inner" 
-                    />
-                    <div className="flex gap-2">
-                        <input 
-                            type="date" 
-                            value={newPersonBirthday} 
-                            onChange={(e) => setNewPersonBirthday(e.target.value)} 
-                            className="flex-1 bg-zinc-950 border border-zinc-800 rounded-lg px-2 py-3 text-white text-xs font-mono outline-none focus:border-rose-500/50 transition-colors shadow-inner" 
-                        />
-                        <button 
-                            onClick={handleAddPerson} 
-                            disabled={!newPersonName || isSyncing} 
-                            className="w-12 bg-rose-600 text-white rounded-lg flex items-center justify-center border border-white/5 shadow-lg active:scale-95 transition-all disabled:opacity-50"
-                        >
-                            <Plus size={18} />
-                        </button>
-                    </div>
-                </div>
-             </div>
-          </div>
-        )}
-        
-        {/* 選手列表 - 永遠顯示 Grid (但未解鎖時點擊無效/無編輯按鈕) */}
-        <div className="grid grid-cols-4 gap-2 max-h-96 overflow-y-auto no-scrollbar pr-1">
-            {people.map((p) => {
-            const isLoading = togglingId === p.id;
-            // Parse s_url crop info
-            const [sUrlBase, sUrlFragment] = (p.s_url || '').split('#');
-            let sz=1, sx=50, sy=50;
-            if(sUrlFragment) {
-                const sp = new URLSearchParams(sUrlFragment);
-                sz = parseFloat(sp.get('z')||'1');
-                sx = parseFloat(sp.get('x')||'50');
-                sy = parseFloat(sp.get('y')||'50');
-            }
-
-            return (
-                <div key={p.id} onClick={() => handleOpenEditPerson(p)} className={`flex flex-col items-center justify-center p-2 rounded-xl border transition-all relative overflow-hidden ${isAdminUnlocked ? 'active:scale-95 cursor-pointer hover:bg-zinc-800' : 'cursor-default'} ${p.is_hidden ? 'bg-zinc-950/40 border-zinc-800 opacity-70' : 'bg-zinc-900/40 border-white/10'}`}>
-                
-                {/* 頭像區域 */}
-                <div className="relative mb-2 w-12 h-12">
-                    <div className={`w-full h-full rounded-full flex items-center justify-center overflow-hidden border-2 transition-colors relative ${p.is_hidden ? 'bg-zinc-800 border-zinc-700' : 'bg-zinc-800 border-rose-500 shadow-glow-rose'}`}>
-                        {sUrlBase ? (
-                            <img 
-                                src={sUrlBase} 
-                                alt={p.name} 
-                                className="w-full h-full object-cover" 
-                                style={{ transform: `translate(${(sx - 50) * 1.5}%, ${(sy - 50) * 1.5}%) scale(${sz})` }}
-                            />
-                        ) : (
-                            <span className={`text-xs font-black ${p.is_hidden ? 'text-zinc-600' : 'text-white'}`}>{p.name.charAt(0)}</span>
+                return (
+                  <div key={p.id} onClick={() => handleOpenEditPerson(p)} className={`flex flex-col items-center justify-center p-2 rounded-xl border transition-all relative overflow-hidden active:scale-95 cursor-pointer ${p.is_hidden ? 'bg-zinc-950/40 border-zinc-800 opacity-70' : 'bg-zinc-900/40 border-white/10 hover:bg-zinc-800'}`}>
+                    
+                    {/* 頭像區域 */}
+                    <div className="relative mb-2 w-12 h-12">
+                        <div className={`w-full h-full rounded-full flex items-center justify-center overflow-hidden border-2 transition-colors relative ${p.is_hidden ? 'bg-zinc-800 border-zinc-700' : 'bg-zinc-800 border-rose-500 shadow-glow-rose'}`}>
+                            {sUrlBase ? (
+                                <img 
+                                    src={sUrlBase} 
+                                    alt={p.name} 
+                                    className="w-full h-full object-cover" 
+                                    style={{ transform: `translate(${(sx - 50) * 1.5}%, ${(sy - 50) * 1.5}%) scale(${sz})` }}
+                                />
+                            ) : (
+                                <span className={`text-xs font-black ${p.is_hidden ? 'text-zinc-600' : 'text-white'}`}>{p.name.charAt(0)}</span>
+                            )}
+                        </div>
+                        {p.is_hidden && (
+                             <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-zinc-900 rounded-full flex items-center justify-center border border-zinc-700 z-10">
+                                <span className="text-[8px] text-zinc-500 font-bold">退</span>
+                             </div>
                         )}
-                    </div>
-                    {p.is_hidden && (
-                            <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-zinc-900 rounded-full flex items-center justify-center border border-zinc-700 z-10">
-                            <span className="text-[8px] text-zinc-500 font-bold">退</span>
-                            </div>
-                    )}
-                    {/* 編輯狀態才顯示的右上角按鈕 */}
-                    {isAdminUnlocked && (
                         <button 
                             onClick={(e) => { e.stopPropagation(); handleTogglePersonVisibility(p); }} 
                             disabled={isLoading}
@@ -415,22 +353,49 @@ const Settings: React.FC<SettingsProps> = ({ trainingTypes, raceGroups, defaultT
                         >
                             {isLoading ? <Loader2 size={10} className="animate-spin" /> : (p.is_hidden ? <EyeOff size={10} className="text-zinc-400"/> : <Eye size={10} className="text-emerald-400"/>)}
                         </button>
-                    )}
-                </div>
+                    </div>
 
-                {/* 名字區域 */}
-                <div className="flex flex-col items-center w-full">
-                    <span className={`text-[9px] font-bold tracking-wider truncate max-w-full ${p.is_hidden ? 'text-zinc-600 line-through' : 'text-zinc-300'}`}>
-                        {p.name}
-                    </span>
-                    {p.birthday && (
-                            <span className="text-[7px] text-zinc-600 font-mono scale-90">{p.birthday.split('-')[0]}</span>
-                    )}
-                </div>
-                </div>
-            );
-            })}
-        </div>
+                    {/* 名字區域 */}
+                    <div className="flex flex-col items-center w-full">
+                        <span className={`text-[9px] font-bold tracking-wider truncate max-w-full ${p.is_hidden ? 'text-zinc-600 line-through' : 'text-zinc-300'}`}>
+                            {p.name}
+                        </span>
+                        {p.birthday && (
+                             <span className="text-[7px] text-zinc-600 font-mono scale-90">{p.birthday.split('-')[0]}</span>
+                        )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </>
+        ) : (
+          <div className="flex flex-wrap gap-2">
+            {people.map(p => {
+               const [sUrlBase, sUrlFragment] = (p.s_url || '').split('#');
+               let sz=1, sx=50, sy=50;
+               if(sUrlFragment) {
+                  const sp = new URLSearchParams(sUrlFragment);
+                  sz = parseFloat(sp.get('z')||'1');
+                  sx = parseFloat(sp.get('x')||'50');
+                  sy = parseFloat(sp.get('y')||'50');
+               }
+               return (
+               <div key={p.id} className={`border rounded-xl px-2 py-1 text-[10px] font-black tracking-wider shadow-sm flex items-center gap-1.5 ${p.is_hidden ? 'bg-zinc-900/30 border-zinc-800/30 text-zinc-600' : 'bg-zinc-950/50 border-zinc-800/50 text-white'}`}>
+                 <div className="w-4 h-4 rounded-full overflow-hidden flex items-center justify-center bg-zinc-800">
+                     {sUrlBase ? (
+                         <img src={sUrlBase} className="w-full h-full object-cover" style={{ transform: `translate(${(sx - 50) * 1.5}%, ${(sy - 50) * 1.5}%) scale(${sz})` }}/>
+                     ) : (
+                         <span className="text-[7px]">{p.name.charAt(0)}</span>
+                     )}
+                 </div>
+                 {p.name}
+                 {p.is_hidden && <span className="text-[7px] border border-zinc-700 px-0.5 rounded">退</span>}
+               </div>
+            )})}
+            {people.length === 0 && <span className="text-zinc-600 text-[10px] italic">暫無名單</span>}
+          </div>
+        )}
       </section>
 
       {/* 訓練項目管理 */}
@@ -584,7 +549,7 @@ const Settings: React.FC<SettingsProps> = ({ trainingTypes, raceGroups, defaultT
         </div>
       )}
 
-      {/* 管理員驗證 Modal */}
+      {/* 密碼驗證 Modal */}
       {showPasswordModal && (
         <div className="fixed inset-0 z-[120] flex items-center justify-center p-6 bg-black/85 backdrop-blur-md animate-fade-in">
           <div className="glass-card w-full max-w-xs rounded-3xl p-6 shadow-2xl border-white/10 animate-scale-in">
@@ -593,21 +558,19 @@ const Settings: React.FC<SettingsProps> = ({ trainingTypes, raceGroups, defaultT
                  <Lock size={20} className="text-white" />
                </div>
                <h3 className="text-lg font-black text-white">管理員驗證</h3>
-               <p className="text-[10px] text-zinc-500 mt-1">請輸入管理密碼以管理選手</p>
+               <p className="text-[10px] text-zinc-500 mt-1">請輸入密碼以編輯選手名單</p>
             </div>
             <input 
               autoFocus
               type="password" 
-              value={adminPasswordInput}
-              onChange={(e) => setAdminPasswordInput(e.target.value)}
-              placeholder="Admin Password"
+              value={passwordInput}
+              onChange={(e) => setPasswordInput(e.target.value)}
+              placeholder="Password"
               className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-white text-center tracking-widest mb-4 outline-none focus:border-rose-500/50"
             />
             <div className="grid grid-cols-2 gap-3">
-               <button onClick={() => { setShowPasswordModal(false); setAdminPasswordInput(''); }} className="py-3 bg-zinc-900 text-zinc-400 font-bold text-xs rounded-xl">取消</button>
-               <button onClick={handleAdminAuth} disabled={authLoading} className="py-3 bg-rose-600 text-white font-bold text-xs rounded-xl flex items-center justify-center">
-                 {authLoading ? <Loader2 size={16} className="animate-spin" /> : '驗證'}
-               </button>
+               <button onClick={() => { setShowPasswordModal(false); setPasswordInput(''); }} className="py-3 bg-zinc-900 text-zinc-400 font-bold text-xs rounded-xl">取消</button>
+               <button onClick={handleUnlock} className="py-3 bg-rose-600 text-white font-bold text-xs rounded-xl">解鎖</button>
             </div>
           </div>
         </div>

@@ -3,7 +3,7 @@ import React, { useState, useMemo } from 'react';
 import { DataRecord, LookupItem } from '../types';
 import { api } from '../services/api';
 import { Calendar, ChevronRight, X, ChevronDown, Activity, Clock, Award, BarChart3, MapPin, ExternalLink, Trophy, Trash2, Edit2, Check, Loader2, AlertTriangle, Info, Zap } from 'lucide-react';
-import { ComposedChart, Line, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, CartesianGrid } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { format } from 'date-fns';
 
 interface DashboardProps {
@@ -16,13 +16,11 @@ interface DashboardProps {
 interface DailySummary {
     date: string;
     itemName: string;
-    players: {
-        name: string;
-        avg: number;
-        best: number;
-        stability: number;
-        count: number;
-    }[];
+    totalAvg: number;
+    totalBest: number;
+    totalStability: number;
+    recordCount: number;
+    players: any[];
 }
 
 const Dashboard: React.FC<DashboardProps> = ({ data, refreshData, onNavigateToRaces, defaultTrainingType }) => {
@@ -52,7 +50,7 @@ const Dashboard: React.FC<DashboardProps> = ({ data, refreshData, onNavigateToRa
     }
   };
 
-  // Complex Stats Logic - Group by Date, then by Player
+  // Complex Stats Logic
   const trainingStats = useMemo(() => {
     // 1. Group by Date + Training Type
     const grouped = new Map<string, DataRecord[]>();
@@ -67,42 +65,25 @@ const Dashboard: React.FC<DashboardProps> = ({ data, refreshData, onNavigateToRa
     grouped.forEach((records, key) => {
         const [date, itemName] = key.split('_');
         
-        // Group by Player within this date/type
-        const playerMap = new Map<string, DataRecord[]>();
-        records.forEach(r => {
-            const pKey = r.person_name;
-            if(!playerMap.has(pKey)) playerMap.set(pKey, []);
-            playerMap.get(pKey)!.push(r);
-        });
+        const values = records.map(r => parseFloat(r.value));
+        const sum = values.reduce((a, b) => a + b, 0);
+        const totalAvg = sum / values.length;
+        const totalBest = Math.min(...values);
+        
+        // Overall Stability
+        const squareDiffs = values.map(v => Math.pow(v - totalAvg, 2));
+        const avgSquareDiff = squareDiffs.reduce((a, b) => a + b, 0) / squareDiffs.length;
+        const stdDev = Math.sqrt(avgSquareDiff);
+        const totalStability = Math.max(0, 100 - (stdDev * 30));
 
-        const playerStats = Array.from(playerMap.entries()).map(([name, pRecs]) => {
-            const values = pRecs.map(r => parseFloat(r.value));
-            const sum = values.reduce((a, b) => a + b, 0);
-            const avg = sum / values.length;
-            const best = Math.min(...values);
-
-            // Stability
-            const squareDiffs = values.map(v => Math.pow(v - avg, 2));
-            const avgSquareDiff = squareDiffs.reduce((a, b) => a + b, 0) / squareDiffs.length;
-            const stdDev = Math.sqrt(avgSquareDiff);
-            // Limit stability to 0-100, slightly more lenient formula
-            const stability = Math.max(0, 100 - (stdDev * 20));
-
-            return {
-                name: name.length > 3 ? name.substring(0,2)+'..' : name, // Truncate name for chart
-                fullName: name,
-                avg: parseFloat(avg.toFixed(3)),
-                best: parseFloat(best.toFixed(3)),
-                stability: parseFloat(stability.toFixed(0)),
-                count: values.length
-            };
-        });
-
-        // Sort by average time (faster first)
         summaries.push({
             date,
             itemName,
-            players: playerStats.sort((a,b) => a.avg - b.avg)
+            totalAvg,
+            totalBest,
+            totalStability,
+            recordCount: values.length,
+            players: [] // Not needed for display anymore
         });
     });
 
@@ -201,88 +182,51 @@ const Dashboard: React.FC<DashboardProps> = ({ data, refreshData, onNavigateToRa
         </div>
 
         {selectedChartType ? (
-            <div className="space-y-6 pb-4">
-               {currentTypeSummaries.map((summary, idx) => (
+            <div className="space-y-4 pb-4">
+               {currentTypeSummaries.map((summary, idx) => {
+                 const chartData = [
+                    { name: '平均', value: summary.totalAvg, color: '#a1a1aa' },
+                    { name: '最快', value: summary.totalBest, color: '#fbbf24' },
+                    { name: '穩定', value: summary.totalStability, color: summary.totalStability > 80 ? '#22c55e' : '#f43f5e' },
+                 ];
+
+                 return (
                  <div key={idx} className="glass-card rounded-2xl p-5 border-l-2 border-l-transparent hover:border-l-sunset-rose group">
-                   <div className="flex justify-between items-center mb-4">
+                   <div className="flex justify-between items-center mb-3">
                       <div className="flex items-center gap-2">
                           <span className="text-sm font-black text-white font-mono tracking-wider">{format(new Date(summary.date), 'yyyy.MM.dd')}</span>
-                          <span className="text-[10px] text-zinc-500 font-black bg-white/5 px-2 py-0.5 rounded uppercase">
-                             {summary.players.reduce((acc, p) => acc + p.count, 0)} SETS
-                          </span>
-                      </div>
-                      <div className="flex gap-2 text-[8px] font-black uppercase">
-                        <span className="flex items-center gap-1 text-zinc-400"><div className="w-1.5 h-1.5 bg-zinc-500 rounded-sm"></div>平均</span>
-                        <span className="flex items-center gap-1 text-sunset-gold"><div className="w-1.5 h-1.5 bg-sunset-gold rounded-full"></div>最快</span>
-                        <span className="flex items-center gap-1 text-emerald-500"><div className="w-2 h-0.5 bg-emerald-500"></div>穩定度</span>
+                          <span className="text-[10px] text-zinc-500 font-black bg-white/5 px-2 py-0.5 rounded uppercase">{summary.recordCount} SETS</span>
                       </div>
                    </div>
                    
-                   {/* Combined Composed Chart */}
-                   <div className="h-56 w-full">
-                       <ResponsiveContainer width="100%" height="100%">
-                           <ComposedChart data={summary.players} margin={{ top: 10, right: 0, left: -25, bottom: 0 }}>
-                                <CartesianGrid stroke="rgba(255,255,255,0.05)" vertical={false} />
-                                <XAxis 
-                                    dataKey="name" 
-                                    tick={{fontSize: 9, fill: '#71717a', fontWeight: 900}} 
-                                    axisLine={false} 
-                                    tickLine={false} 
-                                    interval={0}
-                                />
-                                {/* Left Y-Axis for Time (Seconds) */}
-                                <YAxis 
-                                    yAxisId="left"
-                                    tick={{fontSize: 9, fill: '#71717a', fontWeight: 900}} 
-                                    axisLine={false} 
-                                    tickLine={false}
-                                    domain={['auto', 'auto']}
-                                />
-                                {/* Right Y-Axis for Stability (0-100) */}
-                                <YAxis 
-                                    yAxisId="right"
-                                    orientation="right"
-                                    domain={[0, 100]}
-                                    hide
-                                />
-                                <Tooltip 
-                                    cursor={{fill: 'rgba(255,255,255,0.05)'}}
-                                    contentStyle={{backgroundColor: '#18181b', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', fontSize: '10px'}}
-                                    itemStyle={{padding: 0}}
-                                    formatter={(value: number, name: string) => {
-                                        if (name === 'avg') return [`${value}s`, '平均時間'];
-                                        if (name === 'best') return [`${value}s`, '最快時間'];
-                                        if (name === 'stability') return [`${value}`, '穩定分數'];
-                                        return [value, name];
-                                    }}
-                                    labelFormatter={(label) => `選手: ${label}`}
-                                />
-                                
-                                {/* Bars for Average Time */}
-                                <Bar yAxisId="left" dataKey="avg" barSize={12} radius={[4, 4, 0, 0]} fill="#52525b" fillOpacity={0.6} />
-                                
-                                {/* Points/Scatter for Best Time (using Bar hack or Scatter inside composed) -> Use Bar for simplicity but colored Gold */}
-                                {/* To overlap, we can use another Bar with thinner width, or just side-by-side. 
-                                    Let's put Best Time as a distinct colored bar next to Avg, or use Line/Scatter. 
-                                    Let's try a small diamond shape via Line with dots only? No, use Bar for comparison.
-                                */}
-                                <Bar yAxisId="left" dataKey="best" barSize={6} radius={[4, 4, 0, 0]} fill="#fbbf24" />
-
-                                {/* Line for Stability */}
-                                <Line 
-                                    yAxisId="right" 
-                                    type="monotone" 
-                                    dataKey="stability" 
-                                    stroke="#10b981" 
-                                    strokeWidth={2} 
-                                    dot={{r: 2, fill: '#10b981', strokeWidth: 0}} 
-                                    activeDot={{r: 4}} 
-                                />
-                           </ComposedChart>
-                       </ResponsiveContainer>
+                   {/* Chart Visualization */}
+                   <div className="h-28 w-full mt-2">
+                      <ResponsiveContainer width="100%" height="100%">
+                         <BarChart data={chartData} layout="vertical" margin={{ top: 0, right: 30, left: 0, bottom: 0 }}>
+                            <XAxis type="number" hide />
+                            <YAxis dataKey="name" type="category" width={40} tick={{fontSize: 10, fill: '#71717a', fontWeight: 900}} axisLine={false} tickLine={false} />
+                            <Tooltip 
+                                cursor={{fill: 'rgba(255,255,255,0.05)'}}
+                                contentStyle={{backgroundColor: '#18181b', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', fontSize: '10px'}}
+                                itemStyle={{color: '#fff'}}
+                                formatter={(value: number, name: string) => [name === '穩定' ? value.toFixed(0) : `${value.toFixed(4)}s`, name]}
+                            />
+                            <Bar dataKey="value" barSize={12} radius={[0, 4, 4, 0]}>
+                                {chartData.map((entry, index) => (
+                                    <Cell key={`cell-${index}`} fill={entry.color} />
+                                ))}
+                            </Bar>
+                         </BarChart>
+                      </ResponsiveContainer>
+                   </div>
+                   
+                   {/* Values Row (Optional for quick glance) */}
+                   <div className="flex justify-between mt-1 px-1">
+                      <div className="text-[9px] text-zinc-500 font-mono">AVG: {summary.totalAvg.toFixed(3)}s</div>
+                      <div className="text-[9px] text-sunset-gold font-mono">BEST: {summary.totalBest.toFixed(3)}s</div>
                    </div>
                  </div>
-               ))}
+               )})}
             </div>
         ) : (
            <div className="text-center py-20 opacity-30">

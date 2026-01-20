@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { api } from '../services/api';
 import { DataRecord, LookupItem } from '../types';
-import { RotateCcw, CheckCircle, ChevronDown, X, Settings2, Check, Key, Lock, Unlock } from 'lucide-react';
+import { RotateCcw, CheckCircle, ChevronDown, X, Settings2, Check } from 'lucide-react';
 import { format } from 'date-fns';
 
 interface TrainingProps {
@@ -30,11 +30,6 @@ const Training: React.FC<TrainingProps> = ({
 }) => {
   const [selectedTypeId, setSelectedTypeId] = useState<string>('');
   const [inputValue, setInputValue] = useState('');
-  
-  // 鎖定狀態管理
-  const [isLocked, setIsLocked] = useState(true);
-  const [guestOtpInput, setGuestOtpInput] = useState('');
-  
   const [status, setStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
   const [lastRecord, setLastRecord] = useState<string | null>(null);
   const [showPeopleModal, setShowPeopleModal] = useState(false);
@@ -73,24 +68,9 @@ const Training: React.FC<TrainingProps> = ({
   const handleBackspace = () => setInputValue(prev => prev.slice(0, -1));
   const handleClear = () => setInputValue('');
 
-  const handleUnlock = () => {
-    if (guestOtpInput.length >= 4) {
-      setIsLocked(false);
-    } else {
-      alert('請輸入有效的一次性密碼 (OTP)');
-    }
-  };
-
   const handleSubmit = async () => {
     if (!selectedTypeId) {
         alert('請先在設定中新增訓練項目');
-        return;
-    }
-    
-    // 雖然前端解鎖了，但後端還會驗證，所以這裡直接使用解鎖時輸入的 OTP
-    if (!guestOtpInput) {
-        alert('請重新輸入一次性密碼');
-        setIsLocked(true);
         return;
     }
 
@@ -110,7 +90,7 @@ const Training: React.FC<TrainingProps> = ({
       value: val.toFixed(4) 
     };
 
-    const success = await api.submitRecord(record, guestOtpInput);
+    const success = await api.submitRecord(record);
     if (success) {
       setLastRecord(`${val.toFixed(4)}s`);
       setInputValue('');
@@ -119,8 +99,7 @@ const Training: React.FC<TrainingProps> = ({
       setTimeout(() => setStatus('idle'), 1500);
     } else {
       setStatus('error');
-      alert('上傳失敗：密碼錯誤或已過期，請重新輸入');
-      setIsLocked(true); // 失敗代表密碼可能有問題，重新鎖定要求輸入
+      alert('上傳失敗');
       setTimeout(() => setStatus('idle'), 1500);
     }
   };
@@ -135,54 +114,6 @@ const Training: React.FC<TrainingProps> = ({
     .sort((a, b) => Number(b.id) - Number(a.id))
     .slice(0, 5);
 
-  // ------------------------------------------------
-  // 鎖定畫面
-  // ------------------------------------------------
-  if (isLocked) {
-    return (
-      <div className="flex flex-col h-full items-center justify-center p-6 animate-fade-in space-y-8 relative overflow-hidden">
-        {/* Background Elements */}
-        <div className="absolute top-[-20%] left-[-20%] w-[140%] h-[60%] bg-gradient-to-b from-sunset-rose/10 to-transparent blur-3xl pointer-events-none rounded-full"></div>
-        <div className="absolute bottom-[-10%] right-[-10%] w-[80%] h-[50%] bg-gradient-to-t from-sunset-gold/10 to-transparent blur-3xl pointer-events-none rounded-full"></div>
-
-        <div className="text-center space-y-2 z-10">
-           <div className="w-20 h-20 bg-zinc-900/80 rounded-3xl flex items-center justify-center mx-auto mb-4 border border-white/10 shadow-glass relative">
-              <Lock size={36} className="text-zinc-400" />
-              <div className="absolute inset-0 bg-white/5 blur-lg rounded-3xl animate-pulse-slow"></div>
-           </div>
-           <h2 className="text-2xl font-black text-white tracking-tighter">系統鎖定</h2>
-           <p className="text-xs text-zinc-500 font-bold uppercase tracking-widest">Training Data Access Control</p>
-        </div>
-
-        <div className="w-full max-w-xs z-10 space-y-4">
-           <div className="bg-zinc-900/50 border border-white/10 rounded-2xl p-1.5 flex items-center shadow-inner">
-              <div className="w-10 h-10 flex items-center justify-center text-zinc-500">
-                 <Key size={18} />
-              </div>
-              <input 
-                 type="tel" // use tel for numeric keypad
-                 autoFocus
-                 placeholder="輸入一次性密碼 (OTP)"
-                 className="flex-1 bg-transparent text-center text-xl font-mono font-black text-white outline-none placeholder:text-zinc-700 tracking-[0.2em]"
-                 value={guestOtpInput}
-                 onChange={(e) => setGuestOtpInput(e.target.value)}
-                 onKeyDown={(e) => e.key === 'Enter' && handleUnlock()}
-              />
-           </div>
-           <button 
-             onClick={handleUnlock}
-             className="w-full py-4 bg-gradient-to-r from-zinc-800 to-zinc-700 hover:from-sunset-rose hover:to-rose-600 text-zinc-300 hover:text-white font-black text-sm tracking-[0.3em] rounded-2xl transition-all shadow-lg active:scale-95 border border-white/5 uppercase"
-           >
-             解鎖紀錄板
-           </button>
-        </div>
-      </div>
-    );
-  }
-
-  // ------------------------------------------------
-  // 正常紀錄介面
-  // ------------------------------------------------
   return (
     <div className="flex flex-col h-full px-3 pt-1 pb-0 relative animate-fade-in overflow-hidden">
       
@@ -202,12 +133,12 @@ const Training: React.FC<TrainingProps> = ({
             <ChevronDown size={12} />
           </div>
         </div>
-
         <button 
           onClick={() => setShowPeopleModal(true)}
           className="flex-none px-3 h-8 bg-zinc-900/60 border border-white/10 text-zinc-400 rounded-lg flex items-center justify-center active:scale-95 transition-all gap-1.5 shadow-sm"
         >
           <Settings2 size={12} />
+          <span className="text-[9px] font-black uppercase tracking-widest">管理選手</span>
         </button>
       </div>
 

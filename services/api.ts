@@ -31,7 +31,7 @@ export const api = {
       safeFetchJson(`${WORKER_URL}/race-records`),
       safeFetchJson(`${WORKER_URL}/training-types`),
       safeFetchJson(`${WORKER_URL}/races`),
-      safeFetchJson(`${WORKER_URL}/people`)
+      safeFetchJson(`${WORKER_URL}/people`) // 獲取選手名單 (後端會回傳所有選手，包含 is_retired)
     ]);
 
     const formattedTraining = (trainRecs || []).map((r: any) => ({
@@ -77,7 +77,9 @@ export const api = {
       people: (people || []).map((p: any) => ({ 
         id: p.id, 
         name: p.name,
+        // Ensure strictly YYYY-MM-DD format for date input compatibility
         birthday: p.birthday ? String(p.birthday).replace(/\//g, '-').split('T')[0] : '',
+        // 對應後端的 is_retired 欄位：1 代表退役(隱藏)，0 代表現役(顯示)
         is_hidden: p.is_retired === 1,
         s_url: p.s_url || '',
         b_url: p.b_url || ''
@@ -85,28 +87,7 @@ export const api = {
     };
   },
 
-  generateOtp: async (adminPassword: string): Promise<{ success: boolean, otp?: string, error?: string }> => {
-    try {
-      const formData = new FormData();
-      formData.append('admin_password', adminPassword);
-      
-      const res = await fetch(`${WORKER_URL}/auth/generate-otp`, {
-        method: 'POST',
-        body: formData
-      });
-      
-      const data = await res.json();
-      if (res.ok && data.success) {
-        return { success: true, otp: data.otp };
-      } else {
-        return { success: false, error: data.error || '驗證失敗' };
-      }
-    } catch (e) {
-      return { success: false, error: '連線錯誤' };
-    }
-  },
-
-  submitRecord: async (record: Partial<DataRecord>, otp?: string): Promise<boolean> => {
+  submitRecord: async (record: Partial<DataRecord>): Promise<boolean> => {
     try {
       const isUpdate = !!record.id;
       const formData = new FormData();
@@ -129,11 +110,6 @@ export const api = {
         formData.append('rank_text', record.value || '');
         formData.append('note', record.note || '');
         formData.append('url', record.url || '');
-      }
-
-      // 如果是新增模式 (POST)，需要 OTP
-      if (!isUpdate && otp) {
-        formData.append('guest_otp', otp);
       }
 
       let url = `${WORKER_URL}/${table}`;
@@ -204,6 +180,7 @@ export const api = {
         }
         if (table === 'people' && extra) {
           if (extra.birthday !== undefined) formData.append('birthday', extra.birthday || '');
+          // 新增時，若沒特別指定，後端預設 is_retired 為 0
           if (extra.is_hidden !== undefined) formData.append('is_retired', extra.is_hidden ? '1' : '0');
           if (extra.s_url !== undefined) formData.append('s_url', extra.s_url || '');
           if (extra.b_url !== undefined) formData.append('b_url', extra.b_url || '');
