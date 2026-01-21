@@ -174,9 +174,6 @@ const Settings: React.FC<SettingsProps> = ({ data, trainingTypes, raceGroups, de
   const [otpInfo, setOtpInfo] = useState<{code: string, expires: string} | null>(null);
   const [isGeneratingOtp, setIsGeneratingOtp] = useState(false);
   
-  const [newPersonName, setNewPersonName] = useState('');
-  const [newPersonBirthday, setNewPersonBirthday] = useState('');
-  
   const [editingPerson, setEditingPerson] = useState<LookupItem | null>(null);
   const [showEditPersonModal, setShowEditPersonModal] = useState(false);
 
@@ -284,23 +281,11 @@ const Settings: React.FC<SettingsProps> = ({ data, trainingTypes, raceGroups, de
   const handleAddGroup = () => handleAction(() => api.manageLookup('races', newGroup).then(res => { setNewGroup(''); return res; }));
   const handleUpdateGroup = () => editingGroup && handleAction(() => api.manageLookup('races', editingGroup.name, editingGroup.id).then(res => { setEditingGroup(null); return res; }));
 
-  const handleAddPerson = () => {
-    if (!newPersonName) return;
-    handleAction(() => api.manageLookup(
-        'people', 
-        newPersonName, 
-        undefined, 
-        false, 
-        false, 
-        { 
-            birthday: newPersonBirthday || '', 
-            is_hidden: false,
-        }
-    ).then(res => { 
-        setNewPersonName(''); 
-        setNewPersonBirthday('');
-        return res; 
-    }));
+  const handleAddPersonClick = () => {
+    setEditingPerson({ id: '', name: '', birthday: '', is_hidden: false, s_url: '', b_url: '', myword: '' });
+    setTempSUrl('');
+    setTempBUrl('');
+    setShowEditPersonModal(true);
   };
 
   const handleOpenEditPerson = (p: LookupItem) => {
@@ -312,10 +297,13 @@ const Settings: React.FC<SettingsProps> = ({ data, trainingTypes, raceGroups, de
 
   const handleSavePerson = () => {
     if (!editingPerson) return;
+    // Determine if it's an update or create based on ID
+    const personId = editingPerson.id ? editingPerson.id : undefined;
+
     handleAction(() => api.manageLookup(
         'people', 
         editingPerson.name, 
-        editingPerson.id, 
+        personId, 
         false, 
         false, 
         { 
@@ -353,24 +341,6 @@ const Settings: React.FC<SettingsProps> = ({ data, trainingTypes, raceGroups, de
       )).then(res => {
           if (res) alert("密碼重置成功");
       });
-  };
-
-  const handleTogglePersonVisibility = (person: LookupItem) => {
-    const newStatus = !person.is_hidden;
-    handleAction(() => api.manageLookup(
-        'people', 
-        person.name, 
-        person.id, 
-        false, 
-        false, 
-        { 
-            birthday: person.birthday || '', 
-            is_hidden: newStatus,
-            s_url: person.s_url || '',
-            b_url: person.b_url || '',
-            myword: person.myword
-        }
-    ), person.id);
   };
 
   const executeDelete = async () => {
@@ -523,37 +493,14 @@ const Settings: React.FC<SettingsProps> = ({ data, trainingTypes, raceGroups, de
            <h3 className="text-xs font-bold text-zinc-500 flex items-center tracking-widest uppercase gap-2">
              <User size={14} className="text-rose-500" /> 選手名單管理
            </h3>
+           <button 
+                onClick={handleAddPersonClick}
+                className="text-[10px] font-black bg-rose-600/10 text-rose-500 px-3 py-1.5 rounded-lg border border-rose-500/20 active:scale-95 transition-all flex items-center gap-1 hover:bg-rose-500/20"
+           >
+               <Plus size={12} /> 新增選手
+           </button>
         </div>
 
-        {/* 新增選手輸入框 */}
-        <div className="flex flex-col gap-3 mb-5 p-3 bg-zinc-900/50 rounded-xl border border-white/5">
-            <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">新增選手</span>
-            <div className="flex flex-col gap-3">
-            <input 
-                type="text" 
-                value={newPersonName} 
-                onChange={(e) => setNewPersonName(e.target.value)} 
-                placeholder="姓名" 
-                className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-3 text-white text-xs outline-none focus:border-rose-500/50 transition-colors shadow-inner" 
-            />
-            <div className="flex gap-2">
-                <input 
-                    type="date" 
-                    value={newPersonBirthday} 
-                    onChange={(e) => setNewPersonBirthday(e.target.value)} 
-                    className="flex-1 bg-zinc-950 border border-zinc-800 rounded-lg px-2 py-3 text-white text-xs font-mono outline-none focus:border-rose-500/50 transition-colors shadow-inner" 
-                />
-                <button 
-                    onClick={handleAddPerson} 
-                    disabled={!newPersonName || isSyncing} 
-                    className="w-12 bg-rose-600 text-white rounded-lg flex items-center justify-center border border-white/5 shadow-lg active:scale-95 transition-all disabled:opacity-50"
-                >
-                    <Plus size={18} />
-                </button>
-            </div>
-            </div>
-        </div>
-        
         {/* 選手列表 */}
         <div className="grid grid-cols-4 gap-2 max-h-96 overflow-y-auto no-scrollbar pr-1">
             {people.map((p) => {
@@ -589,13 +536,6 @@ const Settings: React.FC<SettingsProps> = ({ data, trainingTypes, raceGroups, de
                             <span className="text-[8px] text-zinc-500 font-bold">退</span>
                             </div>
                     )}
-                    <button 
-                        onClick={(e) => { e.stopPropagation(); handleTogglePersonVisibility(p); }} 
-                        disabled={isLoading}
-                        className="absolute -top-1 -right-2 w-6 h-6 flex items-center justify-center rounded-full bg-black/60 backdrop-blur-sm border border-white/10 text-white z-20"
-                    >
-                        {isLoading ? <Loader2 size={10} className="animate-spin" /> : (p.is_hidden ? <EyeOff size={10} className="text-zinc-400"/> : <Eye size={10} className="text-emerald-400"/>)}
-                    </button>
                 </div>
 
                 {/* 名字區域 */}
@@ -714,8 +654,8 @@ const Settings: React.FC<SettingsProps> = ({ data, trainingTypes, raceGroups, de
            <div className="glass-card w-full max-w-xs rounded-3xl p-6 shadow-2xl border-white/10 animate-scale-in max-h-[90vh] overflow-y-auto no-scrollbar" onClick={e => e.stopPropagation()}>
               <div className="flex justify-between items-center mb-6">
                  <div>
-                    <h3 className="text-lg font-black text-white">編輯選手資料</h3>
-                    <p className="text-[10px] text-zinc-500 mt-0.5 font-bold uppercase tracking-wider">Player Profile</p>
+                    <h3 className="text-lg font-black text-white">{editingPerson.id ? '編輯選手資料' : '新增選手'}</h3>
+                    <p className="text-[10px] text-zinc-500 mt-0.5 font-bold uppercase tracking-wider">{editingPerson.id ? 'Player Profile' : 'New Player'}</p>
                  </div>
                  <button onClick={() => setShowEditPersonModal(false)} className="w-8 h-8 flex items-center justify-center bg-white/5 rounded-full text-zinc-400 active:scale-95"><X size={18} /></button>
               </div>
@@ -742,18 +682,23 @@ const Settings: React.FC<SettingsProps> = ({ data, trainingTypes, raceGroups, de
                  </div>
 
                  {/* 圖片 Croppers - Changed to show Original Image via ImageCropperInput modification */}
-                 <ImageCropperInput 
-                    label={`頭像 (${editingPerson.id}_s.jpg)`}
-                    urlValue={tempSUrl} 
-                    onChange={setTempSUrl} 
-                    ratioClass="aspect-square w-32 mx-auto"
-                 />
-                 <ImageCropperInput 
-                    label={`全身照 (${editingPerson.id}_b.jpg)`}
-                    urlValue={tempBUrl} 
-                    onChange={setTempBUrl} 
-                    ratioClass="aspect-square w-full mx-auto"
-                 />
+                 {/* Only show Image Editors when editing an existing person */}
+                 {editingPerson.id && (
+                    <>
+                        <ImageCropperInput 
+                            label={`頭像 (${editingPerson.id}_s.jpg)`}
+                            urlValue={tempSUrl} 
+                            onChange={setTempSUrl} 
+                            ratioClass="aspect-square w-32 mx-auto"
+                        />
+                        <ImageCropperInput 
+                            label={`全身照 (${editingPerson.id}_b.jpg)`}
+                            urlValue={tempBUrl} 
+                            onChange={setTempBUrl} 
+                            ratioClass="aspect-square w-full mx-auto"
+                        />
+                    </>
+                 )}
                  
                  <div className="flex items-center gap-2 mt-2 p-2 rounded-lg border border-zinc-800 bg-zinc-900/50">
                     <button 
@@ -769,11 +714,13 @@ const Settings: React.FC<SettingsProps> = ({ data, trainingTypes, raceGroups, de
                  </div>
 
                  {/* RESET Password Button */}
-                 <div className="pt-2 border-t border-white/10">
-                     <button onClick={handleResetPassword} className="w-full py-2 bg-red-500/10 text-red-500 hover:bg-red-500/20 border border-red-500/20 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all">
-                         <RefreshCcw size={12} /> 重置密碼 (123456)
-                     </button>
-                 </div>
+                 {editingPerson.id && (
+                    <div className="pt-2 border-t border-white/10">
+                        <button onClick={handleResetPassword} className="w-full py-2 bg-red-500/10 text-red-500 hover:bg-red-500/20 border border-red-500/20 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all">
+                            <RefreshCcw size={12} /> 重置密碼 (123456)
+                        </button>
+                    </div>
+                 )}
               </div>
 
               <div className="flex gap-3">

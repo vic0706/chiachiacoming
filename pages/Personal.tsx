@@ -13,6 +13,8 @@ interface PersonalProps {
   activePersonId: string | number;
   onSelectPerson: (id: string | number) => void;
   raceGroups: LookupItem[]; 
+  targetDate?: string | null;
+  onClearTargetDate?: () => void;
 }
 
 interface RiderListItemProps {
@@ -62,7 +64,7 @@ const RiderListItem: React.FC<RiderListItemProps> = ({ person, isActive, onClick
     );
 };
 
-const Personal: React.FC<PersonalProps> = ({ data, people, trainingTypes, refreshData, activePersonId, onSelectPerson, raceGroups }) => {
+const Personal: React.FC<PersonalProps> = ({ data, people, trainingTypes, refreshData, activePersonId, onSelectPerson, raceGroups, targetDate, onClearTargetDate }) => {
   const [selectedType, setSelectedType] = useState<string>(trainingTypes[0]?.name || '');
   
   // Race Filters (Now used inside the Modal)
@@ -133,6 +135,15 @@ const Personal: React.FC<PersonalProps> = ({ data, people, trainingTypes, refres
   // Hero Image Error State
   const [imgError, setImgError] = useState(false);
 
+  // Handle incoming navigation to specific date
+  useEffect(() => {
+      if (targetDate) {
+          setDetailDate(targetDate);
+          setShowDetailModal(true);
+          if (onClearTargetDate) onClearTargetDate();
+      }
+  }, [targetDate, onClearTargetDate]);
+
   // Reset unlock state when modal closes
   useEffect(() => {
     if (!showDetailModal) {
@@ -175,6 +186,14 @@ const Personal: React.FC<PersonalProps> = ({ data, people, trainingTypes, refres
   const currentIndex = activePeople.findIndex(p => String(p.id) === String(activePersonId));
   const person = activePeople[currentIndex >= 0 ? currentIndex : 0] || activePeople[0];
 
+  // Randomize player on page enter (mount)
+  useEffect(() => {
+    if (activePeople.length > 0) {
+        const randomIndex = Math.floor(Math.random() * activePeople.length);
+        onSelectPerson(activePeople[randomIndex].id);
+    }
+  }, []);
+
   useEffect(() => {
       setImgError(false);
       setMyWordImgError(false);
@@ -214,17 +233,9 @@ const Personal: React.FC<PersonalProps> = ({ data, people, trainingTypes, refres
       sy = parseFloat(sp.get('y')||'50');
   }
 
-  const handlePrevPerson = () => {
-    if (activePeople.length === 0) return;
-    const nextIndex = currentIndex > 0 ? currentIndex - 1 : activePeople.length - 1;
-    onSelectPerson(activePeople[nextIndex].id);
-  };
-
-  const handleNextPerson = () => {
-    if (activePeople.length === 0) return;
-    const nextIndex = currentIndex < activePeople.length - 1 ? currentIndex + 1 : 0;
-    onSelectPerson(activePeople[nextIndex].id);
-  };
+  // Disabled Navigation Handlers (Removed from UI)
+  const handlePrevPerson = () => {};
+  const handleNextPerson = () => {};
 
   const personRecords = useMemo(() => {
     if (!person) return [];
@@ -614,21 +625,15 @@ const Personal: React.FC<PersonalProps> = ({ data, people, trainingTypes, refres
             <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[140%] h-[60%] bg-gradient-to-t from-sunset-gold/30 via-sunset-rose/10 to-transparent blur-3xl z-20 pointer-events-none mix-blend-screen"></div>
             <div className="absolute bottom-[-10%] left-1/2 -translate-x-1/2 w-[80%] h-[40%] bg-radial-gradient from-sunset-gold/40 to-transparent blur-2xl z-20 pointer-events-none"></div>
 
-            {/* Navigation & Name Overlay */}
-            <div className="absolute top-0 left-0 right-0 p-4 pt-safe-top z-30 flex items-center justify-between mt-4 pointer-events-none">
-                <div className="pointer-events-auto">
-                    <button onClick={handlePrevPerson} className="w-10 h-10 flex items-center justify-center rounded-full bg-black/40 text-white/80 backdrop-blur-md border border-white/10 active:scale-90 transition-all shadow-lg hover:bg-black/60 hover:text-white"><ChevronLeft size={24} /></button>
-                </div>
+            {/* Navigation & Name Overlay - REMOVED INTERACTIONS */}
+            <div className="absolute top-0 left-0 right-0 p-4 pt-safe-top z-30 flex items-center justify-center mt-4 pointer-events-none">
+                {/* Previous/Next buttons removed */}
                 
-                <div 
-                    className="flex-1 flex flex-col items-center justify-center relative cursor-pointer group select-none z-40 px-2 pointer-events-auto min-w-0"
-                    onClick={() => setShowPlayerList(true)}
-                    role="button"
-                >
+                <div className="flex-1 flex flex-col items-center justify-center relative select-none z-40 px-2 min-w-0">
                     <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[200%] h-[200%] bg-sunset-gold/50 blur-3xl rounded-full pointer-events-none mix-blend-screen animate-pulse-slow"></div>
                     <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[150%] h-[150%] bg-black/20 blur-xl rounded-full pointer-events-none"></div>
                     
-                    <div className="w-full flex justify-center transition-transform group-active:scale-95 overflow-visible">
+                    <div className="w-full flex justify-center overflow-visible">
                         <h1 className="relative text-center text-4xl font-black italic tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-white via-white to-sunset-gold/90 drop-shadow-[0_4px_12px_rgba(0,0,0,1)] filter z-10 break-keep whitespace-nowrap overflow-visible p-2">
                             {person.name}
                         </h1>
@@ -639,10 +644,6 @@ const Personal: React.FC<PersonalProps> = ({ data, people, trainingTypes, refres
                         <span className="text-[9px] font-bold text-sunset-gold tracking-[0.2em] uppercase shadow-black drop-shadow-md">{getAge(person.birthday)}</span>
                         <Star size={10} className="text-sunset-gold fill-sunset-gold animate-pulse" />
                     </div>
-                </div>
-
-                <div className="pointer-events-auto">
-                    <button onClick={handleNextPerson} className="w-10 h-10 flex items-center justify-center rounded-full bg-black/40 text-white/80 backdrop-blur-md border border-white/10 active:scale-90 transition-all shadow-lg hover:bg-black/60 hover:text-white"><ChevronRight size={24} /></button>
                 </div>
             </div>
         </div>
@@ -707,28 +708,28 @@ const Personal: React.FC<PersonalProps> = ({ data, people, trainingTypes, refres
                 </div>
             </div>
 
-            {/* STICKY HEADER AREA (Training Selector Only) */}
+            {/* STICKY HEADER AREA (Training Selector Only) - MODIFIED */}
             <div className="sticky top-0 z-40 py-3 px-4 -mx-4 bg-[#0a0508]/85 backdrop-blur-xl border-b border-white/5 shadow-2xl transition-all">
-                <div className="relative h-12 group">
+                <div className="relative h-12 group flex items-center justify-center">
                     <div className="absolute inset-0 bg-black/60 rounded-2xl border border-sunset-gold/20 shadow-glow-gold pointer-events-none z-0"></div>
+                    {/* Hidden Select covering the area for interaction */}
                     <select 
                         value={selectedType}
                         onChange={(e) => setSelectedType(e.target.value)}
-                        className="relative z-10 w-full h-full appearance-none bg-transparent rounded-2xl px-5 text-white font-black outline-none text-base tracking-wide"
+                        className="absolute inset-0 w-full h-full opacity-0 z-20 cursor-pointer"
                     >
-                        {trainingTypes.map(t => <option key={t.id} value={t.name} className="text-black">{t.name}</option>)}
+                        {trainingTypes.map(t => <option key={t.id} value={t.name}>{t.name}</option>)}
                     </select>
-                    <div className="absolute top-1/2 right-4 -translate-y-1/2 pointer-events-none z-20">
-                        <span className="text-sunset-gold">▼</span>
-                    </div>
-                    <div className="absolute top-1 left-5 pointer-events-none z-20">
-                        <span className="text-[8px] text-zinc-400 uppercase tracking-widest font-black">訓練項目</span>
+                    {/* Visual Label (Static) -> Changed to Dynamic selectedType */}
+                    <div className="relative z-10 flex items-center gap-2 pointer-events-none">
+                        <span className="text-white font-black text-base tracking-wide">{selectedType}</span>
+                        <ChevronDown size={14} className="text-sunset-gold" />
                     </div>
                 </div>
             </div>
 
             <div className="px-4 space-y-3 pt-6">
-                {/* Stats Cards */}
+                {/* Stats Cards - Added Count */}
                 {dailyStats.map((stat, idx) => (
                     <div 
                         key={idx} 
@@ -758,7 +759,10 @@ const Personal: React.FC<PersonalProps> = ({ data, people, trainingTypes, refres
                                     </div>
                                 </div>
                             </div>
-                            <ArrowRight size={18} className="text-zinc-600 group-hover:text-white transition-colors mt-1" />
+                            <div className="flex flex-col items-end">
+                                <ArrowRight size={18} className="text-zinc-600 group-hover:text-white transition-colors mt-1" />
+                                <span className="text-[9px] font-mono text-zinc-500 mt-1 font-bold">{stat.count} Rounds</span>
+                            </div>
                         </div>
                         
                         <div className="grid grid-cols-2 gap-2 relative z-10">
@@ -854,50 +858,61 @@ const Personal: React.FC<PersonalProps> = ({ data, people, trainingTypes, refres
             </div>
         )}
 
-        {/* Personal Management Modal (睿睿) */}
+        {/* Personal Management Modal (睿睿) - DARK CARD FULL SCREEN MODIFICATION */}
         {showPersonalInfoModal && (
-            <div className="fixed inset-0 z-[100] flex items-end justify-center bg-black/85 backdrop-blur-md animate-fade-in" onClick={() => { setShowPersonalInfoModal(false); }}>
-                <div className="glass-card w-full max-w-md rounded-t-[32px] p-6 shadow-2xl animate-slide-up bg-[#0f0508] border-white/10 flex flex-col max-h-[85vh]" onClick={e => e.stopPropagation()}>
+            <div 
+                className="fixed inset-0 z-[100] animate-fade-in flex flex-col bg-[#0a0508] backdrop-blur-xl"
+                onClick={() => { setShowPersonalInfoModal(false); }}
+            >
+                {/* Safe Area Spacer for Top */}
+                <div className="h-[env(safe-area-inset-top)] bg-transparent shrink-0" />
+                
+                <div className="flex-1 flex flex-col p-6 overflow-hidden max-w-md mx-auto w-full animate-slide-up" onClick={e => e.stopPropagation()}>
                     
                     {/* Header */}
-                    <div className="flex justify-between items-center mb-6 shrink-0">
+                    <div className="flex justify-between items-center mb-6 shrink-0 pt-2">
                         <div>
                             <h3 className="text-xl font-black text-white tracking-tight flex items-center gap-2">{person.name}</h3>
-                            <p className="text-[9px] text-zinc-500 font-black uppercase tracking-[0.3em] mt-0.5">Personal Space</p>
+                            <p className="text-[9px] text-rose-500 font-black uppercase tracking-[0.3em] mt-0.5">Personal Space</p>
                         </div>
                         <div className="flex gap-3">
                             {/* Settings Button */}
-                            <button onClick={() => setShowSettingsMode(!showSettingsMode)} className={`w-10 h-10 flex items-center justify-center rounded-full border transition-all active:scale-95 ${showSettingsMode ? 'bg-sunset-rose text-white border-sunset-rose' : 'bg-white/5 text-zinc-400 border-white/10'}`}>
+                            <button onClick={() => setShowSettingsMode(!showSettingsMode)} className={`w-10 h-10 flex items-center justify-center rounded-full border transition-all active:scale-95 ${showSettingsMode ? 'bg-rose-500 text-white border-rose-500' : 'bg-white/5 text-zinc-400 border-white/10'}`}>
                                 <Settings size={20} />
                             </button>
                             {/* Close Button */}
-                            <button onClick={() => { setShowPersonalInfoModal(false); }} className="w-10 h-10 flex items-center justify-center bg-white/5 rounded-full text-zinc-500 active:scale-95"><X size={20} /></button>
+                            <button onClick={() => { setShowPersonalInfoModal(false); }} className="w-10 h-10 flex items-center justify-center bg-white/10 rounded-full text-zinc-400 active:scale-95"><X size={20} /></button>
                         </div>
                     </div>
 
                     {/* Content Area: Swaps between Settings and Race List */}
-                    <div className="flex-1 overflow-y-auto no-scrollbar pb-6 space-y-3">
+                    <div className="flex-1 overflow-y-auto no-scrollbar pb-[env(safe-area-inset-bottom)] space-y-3">
                         
                         {showSettingsMode ? (
                             <div className="space-y-4 animate-fade-in">
-                                <div className="bg-zinc-900/50 p-4 rounded-2xl border border-white/5 flex flex-col gap-3">
-                                    <div className="text-[10px] font-bold text-zinc-500 uppercase flex items-center gap-1"><MessageCircle size={10}/> 我想說的話</div>
-                                    <div className="flex items-center gap-2">
-                                        <textarea value={editMyWord} onChange={e => setEditMyWord(e.target.value)} className="w-full bg-black/40 border border-white/10 rounded-xl px-3 py-2 text-white text-xs outline-none resize-none h-14" />
-                                        <button onClick={handleUpdateMyWord} className="p-2 bg-white/10 text-white rounded-xl active:scale-90"><Save size={16} /></button>
+                                <div className="space-y-1.5">
+                                    <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1 flex items-center gap-1"><MessageCircle size={10}/> 我想說的話</label>
+                                    <div className="flex gap-2">
+                                        <textarea value={editMyWord} onChange={e => setEditMyWord(e.target.value)} className="w-full bg-zinc-900 border border-white/10 rounded-xl px-4 py-3 text-white text-xs outline-none resize-none h-20 shadow-inner" />
                                     </div>
+                                    <button onClick={handleUpdateMyWord} className="w-full py-3 bg-gradient-to-r from-rose-600 to-rose-800 text-white font-bold text-xs rounded-xl shadow-glow active:scale-95 transition-all">
+                                        更新留言
+                                    </button>
                                     {wordFeedback && (
                                         <div className={`text-center text-[10px] font-bold animate-fade-in ${wordFeedback.type === 'success' ? 'text-green-500' : 'text-rose-500'}`}>
                                             {wordFeedback.msg}
                                         </div>
                                     )}
                                 </div>
-                                <div className="bg-zinc-900/50 p-4 rounded-2xl border border-white/5 flex flex-col gap-3">
-                                    <div className="text-[10px] font-bold text-zinc-500 uppercase flex items-center gap-1"><Key size={10}/> 更改密碼</div>
-                                    <div className="flex items-center gap-2">
-                                        <input type="password" value={editPassword} onChange={e => setEditPassword(e.target.value)} placeholder="新密碼" className="w-full bg-black/40 border border-white/10 rounded-xl px-3 py-2 text-white text-xs outline-none" />
-                                        <button onClick={handleChangePassword} className="p-2 bg-white/10 text-white rounded-xl active:scale-90"><Save size={16} /></button>
+                                
+                                <div className="pt-4 border-t border-white/10 space-y-1.5">
+                                    <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1 flex items-center gap-1"><Key size={10}/> 更改密碼</label>
+                                    <div className="flex gap-2">
+                                        <input type="password" value={editPassword} onChange={e => setEditPassword(e.target.value)} placeholder="新密碼" className="w-full bg-zinc-900 border border-white/10 rounded-xl px-4 py-3 text-white text-xs outline-none shadow-inner" />
                                     </div>
+                                    <button onClick={handleChangePassword} className="w-full py-3 bg-zinc-800 text-white font-bold text-xs rounded-xl border border-white/5 active:scale-95 transition-all">
+                                        儲存密碼
+                                    </button>
                                     {passFeedback && (
                                         <div className={`text-center text-[10px] font-bold animate-fade-in ${passFeedback.type === 'success' ? 'text-green-500' : 'text-rose-500'}`}>
                                             {passFeedback.msg}
@@ -907,37 +922,24 @@ const Personal: React.FC<PersonalProps> = ({ data, people, trainingTypes, refres
                             </div>
                         ) : (
                             <>
-                                {/* Race List Header with Filters (Now inside Modal) */}
+                                {/* Race List Header with Filters (Now inside Modal) - REMOVED ADD BUTTON */}
                                 <div className="space-y-3 mb-2">
                                     <div className="flex justify-between items-center">
                                         <h4 className="text-sm font-bold text-white flex items-center gap-2">
-                                            <Trophy size={14} className="text-sunset-gold"/> 
+                                            <Trophy size={14} className="text-rose-500"/> 
                                             賽事列表
                                         </h4>
-                                        {!isAddingRace && (
-                                            <button onClick={() => {
-                                                setRaceForm({
-                                                    id: '', date: format(new Date(), 'yyyy-MM-dd'), name: '', race_id: '', address: '', rank: '', note: '', url: '', event_id: ''
-                                                });
-                                                setEditingRaceId(null);
-                                                setIsAddingRace(true);
-                                                setZoomScale(1);
-                                                setPosX(50);
-                                                setPosY(50);
-                                            }} className="text-[10px] font-black px-3 py-1.5 rounded-xl border border-white/10 bg-white/5 text-white transition-all active:scale-95 flex items-center gap-1">
-                                                <Plus size={12} /> 加入
-                                            </button>
-                                        )}
+                                        {/* Button Removed */}
                                     </div>
 
                                     {/* Filters inside Modal */}
-                                    <div className="flex gap-2 h-8">
-                                        <div className="flex-1 bg-zinc-900/80 rounded-xl p-1 flex relative border border-white/5">
+                                    <div className="flex gap-2 h-9">
+                                        <div className="flex-1 bg-zinc-900 rounded-xl p-1 flex relative border border-white/5">
                                             {(['registered', 'available', 'finished'] as const).map((status) => (
                                                 <button 
                                                     key={status}
                                                     onClick={() => setRaceFilterStatus(status)}
-                                                    className={`flex-1 text-[9px] font-bold rounded-lg transition-all ${raceFilterStatus === status ? 'bg-zinc-700 text-white shadow-md' : 'text-zinc-500 hover:text-zinc-300'}`}
+                                                    className={`flex-1 text-[9px] font-bold rounded-lg transition-all ${raceFilterStatus === status ? 'bg-zinc-800 text-white shadow-md' : 'text-zinc-500 hover:text-zinc-300'}`}
                                                 >
                                                     {status === 'registered' ? '已報名' : status === 'available' ? '可報名' : '已結束'}
                                                 </button>
@@ -947,7 +949,7 @@ const Personal: React.FC<PersonalProps> = ({ data, people, trainingTypes, refres
                                             <select 
                                                 value={raceFilterSeries}
                                                 onChange={(e) => setRaceFilterSeries(e.target.value)}
-                                                className="w-full h-full bg-zinc-900/80 rounded-xl px-2 text-[9px] font-bold text-white appearance-none outline-none border border-white/5"
+                                                className="w-full h-full bg-zinc-900 rounded-xl px-3 text-[9px] font-bold text-white appearance-none outline-none border border-white/5"
                                             >
                                                 <option value="">全部系列</option>
                                                 {raceGroups.map(g => <option key={g.id} value={g.name}>{g.name}</option>)}
@@ -975,9 +977,9 @@ const Personal: React.FC<PersonalProps> = ({ data, people, trainingTypes, refres
                                             <div className="space-y-1.5">
                                                 <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1 flex items-center gap-1"><Camera size={12}/> 照片連結 (URL)</label>
                                                 <div className="flex gap-2">
-                                                    <input type="url" placeholder="https://..." value={raceForm.url} onChange={e => setRaceForm({...raceForm, url: e.target.value})} className="flex-1 bg-black/40 border border-white/10 rounded-xl px-3 py-2 text-white text-xs font-mono outline-none shadow-inner" />
+                                                    <input type="url" placeholder="https://..." value={raceForm.url} onChange={e => setRaceForm({...raceForm, url: e.target.value})} className="flex-1 bg-zinc-900 border border-white/10 rounded-xl px-3 py-2 text-white text-xs font-mono outline-none shadow-inner" />
                                                     {raceForm.url && (
-                                                        <button type="button" onClick={() => window.open(raceForm.url, '_blank')} className="px-3 bg-zinc-800 rounded-xl text-sunset-gold active:scale-95 border border-white/5 flex items-center justify-center">
+                                                        <button type="button" onClick={() => window.open(raceForm.url, '_blank')} className="px-3 bg-zinc-800 rounded-xl text-rose-500 active:scale-95 border border-white/5 flex items-center justify-center">
                                                             <LinkIcon size={14} />
                                                         </button>
                                                     )}
@@ -1008,7 +1010,7 @@ const Personal: React.FC<PersonalProps> = ({ data, people, trainingTypes, refres
                                                         }}
                                                         />
                                                     </div>
-                                                    <input type="range" min="1" max="5" step="0.01" value={zoomScale} onChange={e => setZoomScale(parseFloat(e.target.value))} className="w-full accent-sunset-rose h-1.5 bg-zinc-800 rounded-full appearance-none shadow-inner" />
+                                                    <input type="range" min="1" max="5" step="0.01" value={zoomScale} onChange={e => setZoomScale(parseFloat(e.target.value))} className="w-full accent-rose-500 h-1.5 bg-zinc-800 rounded-full appearance-none shadow-inner" />
                                                 </div>
                                             )}
                                             
@@ -1016,12 +1018,12 @@ const Personal: React.FC<PersonalProps> = ({ data, people, trainingTypes, refres
                                             {(raceFilterStatus === 'finished' || editingRaceId) && (
                                                 <div className="space-y-1.5">
                                                     <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1">成績 / 名次</label>
-                                                    <input type="text" placeholder="例: 冠軍 / 32.5s" value={raceForm.rank} onChange={e => setRaceForm({...raceForm, rank: e.target.value})} className="bg-black/40 border border-white/10 rounded-xl px-3 py-2 text-white text-xs outline-none w-full" />
+                                                    <input type="text" placeholder="例: 冠軍 / 32.5s" value={raceForm.rank} onChange={e => setRaceForm({...raceForm, rank: e.target.value})} className="bg-zinc-900 border border-white/10 rounded-xl px-3 py-2 text-white text-xs outline-none w-full" />
                                                 </div>
                                             )}
 
-                                            <textarea placeholder="備註 / 心得..." value={raceForm.note} onChange={e => setRaceForm({...raceForm, note: e.target.value})} className="w-full bg-black/40 border border-white/10 rounded-xl px-3 py-2 text-white text-xs outline-none h-20 resize-none" />
-                                            <button onClick={handleSubmitRace} className="w-full bg-sunset-rose text-white font-bold text-xs py-3 rounded-xl shadow-glow-rose active:scale-95">
+                                            <textarea placeholder="備註 / 心得..." value={raceForm.note} onChange={e => setRaceForm({...raceForm, note: e.target.value})} className="w-full bg-zinc-900 border border-white/10 rounded-xl px-3 py-2 text-white text-xs outline-none h-20 resize-none" />
+                                            <button onClick={handleSubmitRace} className="w-full bg-gradient-to-r from-rose-600 to-rose-800 text-white font-bold text-xs py-3 rounded-xl shadow-glow active:scale-95">
                                                 {editingRaceId ? '更新紀錄' : '確認加入'}
                                             </button>
                                         </div>

@@ -10,6 +10,7 @@ interface DashboardProps {
   data: DataRecord[];
   refreshData: () => Promise<void>;
   onNavigateToRaces: () => void;
+  onNavigateToPerson: (name: string) => void;
   defaultTrainingType?: string;
   people?: LookupItem[];
 }
@@ -28,10 +29,15 @@ interface DailySummary {
     players: PlayerDailyStats[];
 }
 
-const Dashboard: React.FC<DashboardProps> = ({ data, refreshData, onNavigateToRaces, defaultTrainingType, people = [] }) => {
+const Dashboard: React.FC<DashboardProps> = ({ data, refreshData, onNavigateToRaces, onNavigateToPerson, defaultTrainingType, people = [] }) => {
   const [selectedChartType, setSelectedChartType] = useState<string>(defaultTrainingType || '');
-  const [expandedChart, setExpandedChart] = useState<{data: any[], title: string} | null>(null);
   
+  // State for Expanded Chart View
+  const [expandedChart, setExpandedChart] = useState<{data: any[], title: string, date: string, itemName: string} | null>(null);
+  
+  // State for Drill Down Detail Modal (Bottom Sheet)
+  const [drillDownData, setDrillDownData] = useState<{title: string, records: DataRecord[]} | null>(null);
+
   // Get upcoming races
   const upcomingRaces = useMemo(() => {
     const todayStr = format(new Date(), 'yyyy-MM-dd');
@@ -151,7 +157,25 @@ const Dashboard: React.FC<DashboardProps> = ({ data, refreshData, onNavigateToRa
       }));
       setExpandedChart({
           data: chartData,
-          title: `${format(new Date(summary.date), 'yyyy.MM.dd')} - ${summary.itemName}`
+          title: `${format(new Date(summary.date), 'yyyy.MM.dd')} - ${summary.itemName}`,
+          date: summary.date,
+          itemName: summary.itemName
+      });
+  };
+
+  const handleDrillDown = (activeLabel: string) => {
+      if (!expandedChart) return;
+      
+      const records = data.filter(r => 
+          r.item === 'training' && 
+          r.date === expandedChart.date && 
+          r.name === expandedChart.itemName && 
+          r.person_name === activeLabel
+      ).sort((a, b) => parseFloat(a.value) - parseFloat(b.value)); // Sort by best time
+
+      setDrillDownData({
+          title: `${activeLabel} @ ${expandedChart.date}`,
+          records: records
       });
   };
 
@@ -213,7 +237,7 @@ const Dashboard: React.FC<DashboardProps> = ({ data, refreshData, onNavigateToRa
         {/* Header with Selector on the Right */}
         <div className="flex justify-between items-center mb-4 h-10">
           <h2 className="text-[10px] font-black text-zinc-500 tracking-[0.2em] uppercase flex items-center gap-1.5 shrink-0">
-             <Activity size={12} className="text-sunset-rose" /> 近期表現 (日期圖表)
+             <Activity size={12} className="text-sunset-rose" /> 近期表現
           </h2>
           
           <div className="relative group min-w-[120px]">
@@ -346,7 +370,8 @@ const Dashboard: React.FC<DashboardProps> = ({ data, refreshData, onNavigateToRa
                                 contentStyle={{backgroundColor: '#09090b', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', fontSize: '10px', boxShadow: '0 4px 20px rgba(0,0,0,0.5)'}}
                                 itemStyle={{padding: 0}}
                                 formatter={(value: number, name: string) => {
-                                    if (name === 'stability') return [`${value}分`, '穩定度'];
+                                    // Handle 'stability' key or localized name '穩定度'
+                                    if (name === 'stability' || name === '穩定度') return [`${value}%`, '穩定度'];
                                     return [`${value.toFixed(3)}s`, name];
                                 }}
                                 labelStyle={{color: '#a1a1aa', fontWeight: 900, marginBottom: '4px'}}
@@ -385,11 +410,19 @@ const Dashboard: React.FC<DashboardProps> = ({ data, refreshData, onNavigateToRa
               </div>
               <div className="w-full h-[60vh] bg-zinc-900/50 rounded-3xl p-4 border border-white/10" onClick={e => e.stopPropagation()}>
                 <ResponsiveContainer width="100%" height="100%">
-                    <ComposedChart data={expandedChart.data} margin={{ top: 20, right: 10, left: 0, bottom: 20 }}>
+                    <ComposedChart 
+                        data={expandedChart.data} 
+                        margin={{ top: 20, right: 10, left: 0, bottom: 20 }}
+                        onClick={(e) => {
+                            if (e && e.activeLabel) {
+                                handleDrillDown(e.activeLabel);
+                            }
+                        }}
+                    >
                         <CartesianGrid stroke="rgba(255,255,255,0.1)" vertical={false} />
                         <XAxis 
                             dataKey="name" 
-                            tick={{fontSize: 14, fill: '#fff', fontWeight: 700}} 
+                            tick={{fontSize: 14, fill: '#fff', fontWeight: 700, cursor: 'pointer'}} 
                             axisLine={false} 
                             tickLine={false}
                             dy={10}
@@ -413,16 +446,49 @@ const Dashboard: React.FC<DashboardProps> = ({ data, refreshData, onNavigateToRa
                             contentStyle={{backgroundColor: '#000', border: '1px solid #333', borderRadius: '8px'}}
                             labelStyle={{color: '#fff', marginBottom: '5px'}}
                             formatter={(value: number, name: string) => {
-                                if (name === 'stability') return [`${value}分`, '穩定度'];
+                                if (name === 'stability' || name === '穩定度') return [`${value}%`, '穩定度'];
                                 return [`${value.toFixed(3)}s`, name];
                             }}
                         />
                         <Legend wrapperStyle={{paddingTop: '20px'}} />
-                        <Line yAxisId="left" type="monotone" dataKey="平均" stroke="#71717a" strokeWidth={3} dot={{r: 4, fill:'#71717a'}} />
-                        <Line yAxisId="left" type="monotone" dataKey="最快" stroke="#fbbf24" strokeWidth={5} dot={{r: 6, fill:'#fbbf24'}} />
-                        <Line yAxisId="right" type="monotone" dataKey="stability" name="穩定度" stroke="#8b5cf6" strokeWidth={2} dot={{r: 4, fill: '#8b5cf6'}} />
+                        <Line yAxisId="left" type="monotone" dataKey="平均" stroke="#71717a" strokeWidth={3} dot={{r: 4, fill:'#71717a', cursor: 'pointer'}} activeDot={{r: 8, strokeWidth: 0}} />
+                        <Line yAxisId="left" type="monotone" dataKey="最快" stroke="#fbbf24" strokeWidth={5} dot={{r: 6, fill:'#fbbf24', cursor: 'pointer'}} activeDot={{r: 10, strokeWidth: 0}} />
+                        <Line yAxisId="right" type="monotone" dataKey="stability" name="穩定度" stroke="#8b5cf6" strokeWidth={2} dot={{r: 4, fill: '#8b5cf6', cursor: 'pointer'}} />
                     </ComposedChart>
                 </ResponsiveContainer>
+              </div>
+          </div>
+      )}
+
+      {/* Drill Down Detail Modal (Slide Up from Bottom) */}
+      {drillDownData && (
+          <div className="fixed inset-0 z-[110] flex items-end justify-center bg-black/85 backdrop-blur-md animate-fade-in" onClick={() => setDrillDownData(null)}>
+              <div className="glass-card w-full max-w-md rounded-t-[32px] p-6 shadow-2xl animate-slide-up bg-[#0f0508] border-white/10 flex flex-col max-h-[85vh]" onClick={e => e.stopPropagation()}>
+                  <div className="flex justify-between items-center mb-6 shrink-0">
+                      <div>
+                          <h3 className="text-xl font-black text-white tracking-tight">{drillDownData.title}</h3>
+                          <p className="text-[9px] text-zinc-500 font-black uppercase tracking-[0.3em] mt-0.5">Performance Log</p>
+                      </div>
+                      <button onClick={() => setDrillDownData(null)} className="w-10 h-10 flex items-center justify-center bg-white/5 rounded-full text-zinc-500 active:scale-95"><X size={20} /></button>
+                  </div>
+
+                  <div className="flex-1 overflow-y-auto no-scrollbar pb-6 space-y-2">
+                      {drillDownData.records.map((rec, i) => (
+                          <div key={rec.id} className="flex items-center justify-between bg-zinc-900/50 p-3 rounded-2xl border border-white/5">
+                              <div className="flex items-center gap-3">
+                                  <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black font-mono ${i===0 ? 'bg-sunset-gold text-black shadow-glow-gold' : 'bg-zinc-800 text-zinc-500'}`}>
+                                      {i + 1}
+                                  </div>
+                                  <span className={`text-lg font-mono font-bold ${i===0 ? 'text-sunset-gold' : 'text-zinc-300'}`}>
+                                      {parseFloat(rec.value).toFixed(3)}s
+                                  </span>
+                              </div>
+                          </div>
+                      ))}
+                      {drillDownData.records.length === 0 && (
+                          <div className="text-center py-6 text-zinc-500">無詳細紀錄</div>
+                      )}
+                  </div>
               </div>
           </div>
       )}

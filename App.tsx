@@ -109,6 +109,14 @@ const App: React.FC = () => {
     });
   };
 
+  const handleNavigateToPerson = (personName: string) => {
+    const person = people.find(p => p.name === personName);
+    if (person) {
+        handleUpdateActivePerson(person.id);
+        setCurrentPage('personal');
+    }
+  };
+
   // 過濾掉隱藏的選手和其相關數據 (用於 Dashboard 和 Training)
   const activePeople = useMemo(() => people.filter(p => !p.is_hidden), [people]);
   const activeData = useMemo(() => {
@@ -145,6 +153,7 @@ const App: React.FC = () => {
             data={activeData} 
             refreshData={fetchData}
             onNavigateToRaces={() => setCurrentPage('races')} 
+            onNavigateToPerson={handleNavigateToPerson}
             defaultTrainingType={defaultTrainingType}
             people={people} // Pass people for avatar lookup
           />
@@ -202,7 +211,7 @@ const App: React.FC = () => {
           />
         );
       default:
-        return <Dashboard data={activeData} people={people} refreshData={fetchData} onNavigateToRaces={() => setCurrentPage('races')} defaultTrainingType={defaultTrainingType} />;
+        return <Dashboard data={activeData} people={people} refreshData={fetchData} onNavigateToRaces={() => setCurrentPage('races')} defaultTrainingType={defaultTrainingType} onNavigateToPerson={handleNavigateToPerson} />;
     }
   };
 
