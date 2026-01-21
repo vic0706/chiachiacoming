@@ -708,7 +708,7 @@ const Personal: React.FC<PersonalProps> = ({ data, people, trainingTypes, refres
             </div>
 
             {/* STICKY HEADER AREA (Training Selector Only) */}
-            <div className="sticky top-0 z-40 pb-2 pt-2 px-4 -mx-4 bg-[#0a0508]/85 backdrop-blur-xl border-b border-white/5 shadow-2xl transition-all">
+            <div className="sticky top-0 z-40 py-3 px-4 -mx-4 bg-[#0a0508]/85 backdrop-blur-xl border-b border-white/5 shadow-2xl transition-all">
                 <div className="relative h-12 group">
                     <div className="absolute inset-0 bg-black/60 rounded-2xl border border-sunset-gold/20 shadow-glow-gold pointer-events-none z-0"></div>
                     <select 
@@ -727,7 +727,7 @@ const Personal: React.FC<PersonalProps> = ({ data, people, trainingTypes, refres
                 </div>
             </div>
 
-            <div className="px-4 space-y-3 pt-4">
+            <div className="px-4 space-y-3 pt-6">
                 {/* Stats Cards */}
                 {dailyStats.map((stat, idx) => (
                     <div 
