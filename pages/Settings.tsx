@@ -1,8 +1,9 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Plus, Star, User, Activity, Settings as SettingsIcon, Edit2, Save, X, Flag, Loader2, AlertTriangle, Lock, Unlock, Eye, EyeOff, CalendarDays, Trash2, Image as ImageIcon, Maximize, Download, FileSpreadsheet, KeyRound, RefreshCcw } from 'lucide-react';
+import { Plus, Star, User, Activity, Settings as SettingsIcon, Edit2, Save, X, Flag, Loader2, AlertTriangle, Lock, Unlock, Eye, EyeOff, CalendarDays, Trash2, Image as ImageIcon, Maximize, Download, FileSpreadsheet, KeyRound, RefreshCcw, UploadCloud } from 'lucide-react';
 import { LookupItem, DataRecord } from '../types';
 import { api } from '../services/api';
+import { uploadImage } from '../services/supabase';
 import { format, addHours, isAfter, parseISO } from 'date-fns';
 
 interface SettingsProps {
@@ -17,13 +18,29 @@ interface SettingsProps {
   onUpdateName: (name: string) => void;
 }
 
-// Helper Component for Image Cropper (unchanged)
-const ImageCropperInput = ({ label, urlValue, onChange, ratioClass = 'h-32 w-full' }: { label: string, urlValue: string, onChange: (val: string) => void, ratioClass?: string }) => {
+// Helper Component for Image Cropper with Upload (Updated to match Personal.tsx version)
+const ImageCropperInput = ({ 
+    label, 
+    urlValue, 
+    onChange, 
+    ratioClass = 'h-32 w-full',
+    personId,
+    typeSuffix
+}: { 
+    label: string, 
+    urlValue: string, 
+    onChange: (val: string) => void, 
+    ratioClass?: string,
+    personId?: string | number,
+    typeSuffix: 's' | 'b'
+}) => {
   const [baseUrl, fragment] = urlValue.split('#');
   const [z, setZ] = useState(1);
   const [x, setX] = useState(50);
   const [y, setY] = useState(50);
   const [error, setError] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
       const [, frag] = urlValue.split('#');
@@ -42,6 +59,25 @@ const ImageCropperInput = ({ label, urlValue, onChange, ratioClass = 'h-32 w-ful
   const updateUrl = (newZ: number, newX: number, newY: number) => {
       if (!baseUrl) return;
       onChange(`${baseUrl}#z=${newZ}&x=${newX}&y=${newY}`);
+  };
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+      if (e.target.files && e.target.files[0]) {
+          setIsUploading(true);
+          const file = e.target.files[0];
+          const customName = personId ? `${personId}_${typeSuffix}` : undefined;
+          
+          const result = await uploadImage(file, 'people', customName);
+          
+          if (result.url) {
+              const timestampUrl = `${result.url}?t=${Date.now()}`;
+              onChange(`${timestampUrl}#z=1&x=50&y=50`); 
+          } else {
+              alert(`上傳失敗: ${result.error}`);
+          }
+          setIsUploading(false);
+          if (fileInputRef.current) fileInputRef.current.value = '';
+      }
   };
 
   const handleDragStart = (e: React.MouseEvent | React.TouchEvent) => {
@@ -74,82 +110,33 @@ const ImageCropperInput = ({ label, urlValue, onChange, ratioClass = 'h-32 w-ful
   };
   const handleDragEnd = () => isDragging.current = false;
 
-  const fileName = baseUrl.split('/').pop() || baseUrl;
-
   return (
       <div className="space-y-2">
           <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1 flex items-center gap-1"><ImageIcon size={12}/> {label}</label>
-          <input 
-              disabled
-              type="text" 
-              value={fileName}
-              className="w-full bg-zinc-900 border border-white/5 rounded-xl px-4 py-3 text-zinc-500 text-xs font-mono outline-none shadow-inner"
-          />
+          <div className="flex gap-2">
+            <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileSelect}/>
+            <button onClick={() => fileInputRef.current?.click()} disabled={isUploading} className="w-full px-4 py-3 bg-zinc-800 rounded-xl text-white active:scale-95 border border-white/5 flex items-center justify-center gap-2 hover:bg-zinc-700 transition-all shadow-lg text-xs font-bold tracking-wider">
+                {isUploading ? <Loader2 size={16} className="animate-spin" /> : <UploadCloud size={16} />}
+                {isUploading ? '選擇照片並上傳' : '選擇照片並上傳'}
+            </button>
+          </div>
+
           {baseUrl && (
                <div className="space-y-3 bg-white/5 p-4 rounded-2xl border border-white/10 shadow-lg mt-2">
                   <div className="text-[9px] font-black text-zinc-500 uppercase tracking-widest flex items-center gap-1"><Maximize size={10}/> 縮放與位置調整</div>
                   <div className="flex justify-center bg-black rounded-xl border border-white/5 p-2">
-                    <div 
-                        ref={cropperRef}
-                        className={`relative overflow-hidden bg-zinc-900 border border-white/10 shadow-inner group cursor-move touch-none ${ratioClass}`}
-                        style={{ touchAction: 'none' }}
-                        onMouseDown={handleDragStart}
-                        onMouseMove={handleDragMove}
-                        onMouseUp={handleDragEnd}
-                        onMouseLeave={handleDragEnd}
-                        onTouchStart={handleDragStart}
-                        onTouchMove={handleDragMove}
-                        onTouchEnd={handleDragEnd}
-                    >
+                    <div ref={cropperRef} className={`relative overflow-hidden bg-zinc-900 border border-white/10 shadow-inner group cursor-move touch-none ${ratioClass}`} style={{ touchAction: 'none' }} onMouseDown={handleDragStart} onMouseMove={handleDragMove} onMouseUp={handleDragEnd} onMouseLeave={handleDragEnd} onTouchStart={handleDragStart} onTouchMove={handleDragMove} onTouchEnd={handleDragEnd}>
                         {!error ? (
-                            <img 
-                                src={baseUrl} 
-                                className="w-full h-full object-contain pointer-events-none select-none"
-                                style={{ 
-                                    transform: `translate(${(x - 50) * 1.5}%, ${(y - 50) * 1.5}%) scale(${z})`
-                                }}
-                                onError={() => setError(true)}
-                            />
+                            <img src={baseUrl} className="w-full h-full object-contain pointer-events-none select-none" style={{ transform: `translate(${(x - 50) * 1.5}%, ${(y - 50) * 1.5}%) scale(${z})` }} onError={() => setError(true)} />
                         ) : (
-                            <div className="w-full h-full flex flex-col items-center justify-center bg-zinc-950 text-zinc-600 space-y-2">
-                                <ImageIcon size={24} className="opacity-30"/>
-                                <div className="text-center">
-                                    <p className="text-[10px] font-mono font-bold text-rose-500">Missing: {fileName}</p>
-                                    <p className="text-[8px] opacity-50 uppercase tracking-widest mt-1">Please add file to folder</p>
-                                </div>
-                            </div>
+                            <div className="w-full h-full flex flex-col items-center justify-center bg-zinc-950 text-zinc-600 space-y-2"><ImageIcon size={24} className="opacity-30"/></div>
                         )}
-
-                        <div className="absolute inset-0 pointer-events-none opacity-20">
-                            <div className="w-full h-full border border-white/30 flex">
-                                <div className="flex-1 border-r border-white/30"></div>
-                                <div className="flex-1 border-r border-white/30"></div>
-                                <div className="flex-1"></div>
-                            </div>
-                            <div className="absolute inset-0 flex flex-col">
-                                <div className="flex-1 border-b border-white/30"></div>
-                                <div className="flex-1 border-b border-white/30"></div>
-                                <div className="flex-1"></div>
-                            </div>
-                        </div>
+                        <div className="absolute inset-0 pointer-events-none opacity-20"><div className="w-full h-full border border-white/30 flex"><div className="flex-1 border-r border-white/30"></div><div className="flex-1 border-r border-white/30"></div><div className="flex-1"></div></div><div className="absolute inset-0 flex flex-col"><div className="flex-1 border-b border-white/30"></div><div className="flex-1 border-b border-white/30"></div><div className="flex-1"></div></div></div>
                     </div>
                   </div>
                   <div className="px-1">
-                      <div className="flex justify-between text-[8px] text-zinc-500 font-mono mb-1">
-                          <span>ZOOM: {z.toFixed(2)}x</span>
-                          <span>POS: {x.toFixed(0)},{y.toFixed(0)}</span>
-                      </div>
-                      <input 
-                          type="range" 
-                          min="0.1" max="5" step="0.01" 
-                          value={z} 
-                          onChange={e => {
-                              const val = parseFloat(e.target.value);
-                              setZ(val);
-                              updateUrl(val, x, y);
-                          }} 
-                          className="w-full accent-sunset-rose h-1.5 bg-zinc-800 rounded-full appearance-none shadow-inner" 
-                      />
+                      <div className="flex justify-between text-[8px] text-zinc-500 font-mono mb-1"><span>ZOOM: {z.toFixed(2)}x</span><span>POS: {x.toFixed(0)},{y.toFixed(0)}</span></div>
+                      <input type="range" min="0.1" max="5" step="0.01" value={z} onChange={e => { const val = parseFloat(e.target.value); setZ(val); updateUrl(val, x, y); }} className="w-full accent-sunset-rose h-1.5 bg-zinc-800 rounded-full appearance-none shadow-inner" />
                   </div>
               </div>
           )}
@@ -166,10 +153,8 @@ const Settings: React.FC<SettingsProps> = ({ data, trainingTypes, raceGroups, de
   const [editingType, setEditingType] = useState<LookupItem | null>(null);
   const [editingGroup, setEditingGroup] = useState<LookupItem | null>(null);
 
-  // Admin Lock State
   const [isAdminUnlocked, setIsAdminUnlocked] = useState(false);
   const [adminPasswordInput, setAdminPasswordInput] = useState('');
-  // 暫存管理員密碼，用於後續生成 OTP
   const [cachedAdminPassword, setCachedAdminPassword] = useState(''); 
   const [otpInfo, setOtpInfo] = useState<{code: string, expires: string} | null>(null);
   const [isGeneratingOtp, setIsGeneratingOtp] = useState(false);
@@ -182,17 +167,14 @@ const Settings: React.FC<SettingsProps> = ({ data, trainingTypes, raceGroups, de
 
   const [deleteTarget, setDeleteTarget] = useState<{table: 'training-types' | 'races' | 'people', id: number | string, name: string} | null>(null);
 
-  // CSV Export State - 預設為今天 (yyyy-MM-dd)
   const [exportDate, setExportDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [exportType, setExportType] = useState(defaultType || (trainingTypes[0]?.name || ''));
 
-  // 初始化檢查 LocalStorage 是否有有效的 OTP 資訊
   useEffect(() => {
     const savedOtpJson = localStorage.getItem('louie_admin_generated_otp');
     if (savedOtpJson) {
       try {
         const saved = JSON.parse(savedOtpJson);
-        // 檢查是否過期
         if (saved.expiresAt && isAfter(new Date(saved.expiresAt), new Date())) {
             setOtpInfo({
                 code: saved.code,
@@ -207,7 +189,6 @@ const Settings: React.FC<SettingsProps> = ({ data, trainingTypes, raceGroups, de
     }
   }, []);
 
-  // Update exportType when trainingTypes loaded
   useEffect(() => {
     if (!exportType && trainingTypes.length > 0) {
         setExportType(trainingTypes[0].name);
@@ -216,13 +197,12 @@ const Settings: React.FC<SettingsProps> = ({ data, trainingTypes, raceGroups, de
 
   const handleAdminLogin = async () => {
       setIsSyncing(true);
-      // Login to Settings checks Admin Password valididity
       const result = await api.authenticate(adminPasswordInput);
       setIsSyncing(false);
       
       if (result.success) {
           setIsAdminUnlocked(true);
-          setCachedAdminPassword(adminPasswordInput); // Cache for OTP generation
+          setCachedAdminPassword(adminPasswordInput);
           setAdminPasswordInput('');
       } else {
           alert('密碼錯誤');
@@ -236,15 +216,12 @@ const Settings: React.FC<SettingsProps> = ({ data, trainingTypes, raceGroups, de
       setIsGeneratingOtp(false);
 
       if (result.success && result.otp) {
-          // Worker generates 3 hour OTP
           const expiryDate = addHours(new Date(), 3);
           const newOtpInfo = {
               code: result.otp,
               expires: format(expiryDate, 'MM/dd HH:mm')
           };
           setOtpInfo(newOtpInfo);
-          
-          // Persist to LocalStorage
           localStorage.setItem('louie_admin_generated_otp', JSON.stringify({
               code: result.otp,
               expiresAt: expiryDate.getTime()
@@ -265,7 +242,6 @@ const Settings: React.FC<SettingsProps> = ({ data, trainingTypes, raceGroups, de
 
     if (targetId) setTogglingId(null);
     else setIsSyncing(false);
-    
     return success;
   };
 
@@ -297,7 +273,6 @@ const Settings: React.FC<SettingsProps> = ({ data, trainingTypes, raceGroups, de
 
   const handleSavePerson = () => {
     if (!editingPerson) return;
-    // Determine if it's an update or create based on ID
     const personId = editingPerson.id ? editingPerson.id : undefined;
 
     handleAction(() => api.manageLookup(
@@ -436,8 +411,6 @@ const Settings: React.FC<SettingsProps> = ({ data, trainingTypes, raceGroups, de
 
   return (
     <div className="h-full overflow-y-auto px-3 pt-4 pb-20 space-y-6 animate-fade-in no-scrollbar relative">
-      
-      {/* Header */}
       <div className="mb-6 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-zinc-900 flex items-center justify-center border border-white/5 shadow-inner">
@@ -451,7 +424,6 @@ const Settings: React.FC<SettingsProps> = ({ data, trainingTypes, raceGroups, de
         {isSyncing && <Loader2 size={16} className="animate-spin text-rose-500" />}
       </div>
 
-      {/* OTP Generation Section */}
       <div className="glass-card-gold rounded-2xl p-4 animate-slide-up border-sunset-gold/30">
           <div className="flex justify-between items-center">
               <div className="flex items-center gap-3">
@@ -487,7 +459,6 @@ const Settings: React.FC<SettingsProps> = ({ data, trainingTypes, raceGroups, de
           </div>
       </div>
 
-      {/* 選手名單管理區塊 */}
       <section className="glass-card rounded-2xl p-5 border border-white/5">
         <div className="flex items-center justify-between mb-4">
            <h3 className="text-xs font-bold text-zinc-500 flex items-center tracking-widest uppercase gap-2">
@@ -501,10 +472,8 @@ const Settings: React.FC<SettingsProps> = ({ data, trainingTypes, raceGroups, de
            </button>
         </div>
 
-        {/* 選手列表 */}
         <div className="grid grid-cols-4 gap-2 max-h-96 overflow-y-auto no-scrollbar pr-1">
             {people.map((p) => {
-            const isLoading = togglingId === p.id;
             const [sUrlBase, sUrlFragment] = (p.s_url || '').split('#');
             let sz=1, sx=50, sy=50;
             if(sUrlFragment) {
@@ -517,7 +486,6 @@ const Settings: React.FC<SettingsProps> = ({ data, trainingTypes, raceGroups, de
             return (
                 <div key={p.id} onClick={() => handleOpenEditPerson(p)} className={`flex flex-col items-center justify-center p-2 rounded-xl border transition-all relative overflow-hidden active:scale-95 cursor-pointer ${p.is_hidden ? 'bg-zinc-950/40 border-zinc-800 opacity-70' : 'bg-zinc-900/40 border-white/10 hover:bg-zinc-800'}`}>
                 
-                {/* 頭像區域 */}
                 <div className="relative mb-2 w-12 h-12">
                     <div className={`w-full h-full rounded-full flex items-center justify-center overflow-hidden border-2 transition-colors relative ${p.is_hidden ? 'bg-zinc-800 border-zinc-700' : 'bg-zinc-800 border-rose-500 shadow-glow-rose'}`}>
                         {sUrlBase ? (
@@ -538,7 +506,6 @@ const Settings: React.FC<SettingsProps> = ({ data, trainingTypes, raceGroups, de
                     )}
                 </div>
 
-                {/* 名字區域 */}
                 <div className="flex flex-col items-center w-full">
                     <span className={`text-[9px] font-bold tracking-wider truncate max-w-full ${p.is_hidden ? 'text-zinc-600 line-through' : 'text-zinc-300'}`}>
                         {p.name}
@@ -553,7 +520,7 @@ const Settings: React.FC<SettingsProps> = ({ data, trainingTypes, raceGroups, de
         </div>
       </section>
 
-      {/* 訓練項目管理 */}
+      {/* Rest of the sections (Training Types, Races, CSV) remain unchanged */}
       <section className="glass-card rounded-2xl p-5 border border-white/5">
         <h3 className="text-xs font-bold text-zinc-500 mb-4 flex items-center tracking-widest uppercase gap-2"><Activity size={14} className="text-amber-500" /> 訓練項目管理</h3>
         <div className="flex gap-3 mb-5">
@@ -586,7 +553,6 @@ const Settings: React.FC<SettingsProps> = ({ data, trainingTypes, raceGroups, de
         </div>
       </section>
 
-      {/* 賽事系列管理 */}
       <section className="glass-card rounded-2xl p-5 border border-white/5">
         <h3 className="text-xs font-bold text-zinc-500 mb-4 flex items-center tracking-widest uppercase gap-2"><Flag size={14} className="text-cyan-500" /> 賽事系列管理</h3>
         <div className="flex gap-3 mb-5">
@@ -618,7 +584,6 @@ const Settings: React.FC<SettingsProps> = ({ data, trainingTypes, raceGroups, de
         </div>
       </section>
 
-      {/* 數據導出 CSV */}
       <section className="glass-card rounded-2xl p-5 border border-white/5">
         <h3 className="text-xs font-bold text-zinc-500 mb-4 flex items-center tracking-widest uppercase gap-2"><FileSpreadsheet size={14} className="text-emerald-500" /> 數據導出 (CSV)</h3>
         <div className="flex flex-col gap-3">
@@ -648,7 +613,6 @@ const Settings: React.FC<SettingsProps> = ({ data, trainingTypes, raceGroups, de
         </div>
       </section>
 
-      {/* 編輯選手資料 Modal */}
       {showEditPersonModal && editingPerson && (
         <div className="fixed inset-0 z-[120] flex items-center justify-center p-6 bg-black/85 backdrop-blur-md animate-fade-in" onClick={() => setShowEditPersonModal(false)}>
            <div className="glass-card w-full max-w-xs rounded-3xl p-6 shadow-2xl border-white/10 animate-scale-in max-h-[90vh] overflow-y-auto no-scrollbar" onClick={e => e.stopPropagation()}>
@@ -661,6 +625,19 @@ const Settings: React.FC<SettingsProps> = ({ data, trainingTypes, raceGroups, de
               </div>
 
               <div className="space-y-4 mb-6">
+                 <div className="flex items-center gap-2 mb-2 p-2 rounded-lg border border-zinc-800 bg-zinc-900/50">
+                    <button 
+                         onClick={() => setEditingPerson({...editingPerson, is_hidden: !editingPerson.is_hidden})}
+                         className={`w-8 h-8 flex items-center justify-center rounded-lg transition-all ${editingPerson.is_hidden ? 'bg-zinc-800 text-zinc-400 border border-zinc-700' : 'bg-green-500/10 text-green-500 border border-green-500/20'}`}
+                    >
+                         {editingPerson.is_hidden ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                    <div className="flex flex-col">
+                        <span className="text-xs font-bold text-white">{editingPerson.is_hidden ? '已退役' : '現役選手'}</span>
+                        <span className="text-[9px] text-zinc-500">{editingPerson.is_hidden ? '選手將隱藏於紀錄板' : '正常顯示於所有列表'}</span>
+                    </div>
+                 </div>
+
                  <div className="space-y-1.5">
                     <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1">姓名</label>
                     <input 
@@ -681,39 +658,27 @@ const Settings: React.FC<SettingsProps> = ({ data, trainingTypes, raceGroups, de
                     />
                  </div>
 
-                 {/* 圖片 Croppers - Changed to show Original Image via ImageCropperInput modification */}
-                 {/* Only show Image Editors when editing an existing person */}
                  {editingPerson.id && (
                     <>
                         <ImageCropperInput 
-                            label={`頭像 (${editingPerson.id}_s.jpg)`}
+                            label={`頭像`}
                             urlValue={tempSUrl} 
                             onChange={setTempSUrl} 
-                            ratioClass="aspect-square w-32 mx-auto"
+                            ratioClass="aspect-square w-32 mx-auto rounded-full border-2 border-white/10"
+                            personId={editingPerson.id}
+                            typeSuffix="s"
                         />
                         <ImageCropperInput 
-                            label={`全身照 (${editingPerson.id}_b.jpg)`}
+                            label={`全身照`}
                             urlValue={tempBUrl} 
                             onChange={setTempBUrl} 
-                            ratioClass="aspect-square w-full mx-auto"
+                            ratioClass="aspect-[2/3] w-full mx-auto rounded-xl"
+                            personId={editingPerson.id}
+                            typeSuffix="b"
                         />
                     </>
                  )}
-                 
-                 <div className="flex items-center gap-2 mt-2 p-2 rounded-lg border border-zinc-800 bg-zinc-900/50">
-                    <button 
-                         onClick={() => setEditingPerson({...editingPerson, is_hidden: !editingPerson.is_hidden})}
-                         className={`w-8 h-8 flex items-center justify-center rounded-lg transition-all ${editingPerson.is_hidden ? 'bg-zinc-800 text-zinc-400 border border-zinc-700' : 'bg-green-500/10 text-green-500 border border-green-500/20'}`}
-                    >
-                         {editingPerson.is_hidden ? <EyeOff size={16} /> : <Eye size={16} />}
-                    </button>
-                    <div className="flex flex-col">
-                        <span className="text-xs font-bold text-white">{editingPerson.is_hidden ? '已退役' : '現役選手'}</span>
-                        <span className="text-[9px] text-zinc-500">{editingPerson.is_hidden ? '選手將隱藏於紀錄板' : '正常顯示於所有列表'}</span>
-                    </div>
-                 </div>
 
-                 {/* RESET Password Button */}
                  {editingPerson.id && (
                     <div className="pt-2 border-t border-white/10">
                         <button onClick={handleResetPassword} className="w-full py-2 bg-red-500/10 text-red-500 hover:bg-red-500/20 border border-red-500/20 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all">
@@ -735,7 +700,6 @@ const Settings: React.FC<SettingsProps> = ({ data, trainingTypes, raceGroups, de
         </div>
       )}
 
-      {/* 刪除確認 Modal */}
       {deleteTarget && (
         <div className="fixed inset-0 z-[130] flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm animate-fade-in">
           <div className="glass-card w-full max-w-xs rounded-3xl p-6 shadow-2xl border-rose-500/30 text-center animate-scale-in">

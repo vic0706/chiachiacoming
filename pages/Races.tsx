@@ -2,7 +2,8 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { DataRecord, LookupItem } from '../types';
 import { api } from '../services/api';
-import { Search, Plus, X, Calendar, Trash2, Edit2, Camera, Filter, ChevronDown, Loader2, MapPin, ExternalLink, Maximize, Link as LinkIcon, Users, Trophy, AlertTriangle } from 'lucide-react';
+import { uploadImage } from '../services/supabase';
+import { Search, Plus, X, Calendar, Trash2, Edit2, Camera, Filter, ChevronDown, Loader2, MapPin, ExternalLink, Maximize, Link as LinkIcon, Users, Trophy, AlertTriangle, UploadCloud } from 'lucide-react';
 import { format } from 'date-fns';
 
 interface RacesProps {
@@ -34,7 +35,6 @@ const Races: React.FC<RacesProps> = ({ data, refreshData, people, raceGroups }) 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [expandedRaceKey, setExpandedRaceKey] = useState<string | null>(null);
 
-  // New State: Capture the specific event ID being edited
   const [editingEventId, setEditingEventId] = useState<string | number | undefined>(undefined);
 
   const initialEventForm = {
@@ -67,8 +67,11 @@ const Races: React.FC<RacesProps> = ({ data, refreshData, people, raceGroups }) 
   const [confirmDeleteEvent, setConfirmDeleteEvent] = useState<{key: string, name: string, records: DataRecord[]} | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  // New: Preview Confirmation Modal State
   const [showPreviewConfirm, setShowPreviewConfirm] = useState(false);
+
+  // Upload state
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Grouping Logic
   const groupedRaces = useMemo(() => {
@@ -76,7 +79,6 @@ const Races: React.FC<RacesProps> = ({ data, refreshData, people, raceGroups }) 
     const raceRecords = data.filter(r => r.item === 'race');
 
     raceRecords.forEach(r => {
-        // Group by Date + Name to handle same-day multiple events
         const key = `${r.date}_${r.name}_${r.race_group}`;
         if (!groups[key]) {
             groups[key] = {
@@ -91,7 +93,6 @@ const Races: React.FC<RacesProps> = ({ data, refreshData, people, raceGroups }) 
                 records: []
             };
         }
-        // IMPORTANT: Ensure event_id is captured if the record has it (especially preview records)
         if (r.event_id && !groups[key].event_id) {
             groups[key].event_id = r.event_id;
         }
@@ -139,8 +140,6 @@ const Races: React.FC<RacesProps> = ({ data, refreshData, people, raceGroups }) 
         y = parseFloat(params.get('y') || '50');
       }
 
-      // Fix: Ensure we have a valid series_id (mapped to race_id in local state)
-      // Check if existing ID is in current list, otherwise default to first available
       const defaultGroup = raceGroups.length > 0 ? raceGroups[0] : null;
       let targetRaceId = event.race_id;
       
@@ -162,7 +161,6 @@ const Races: React.FC<RacesProps> = ({ data, refreshData, people, raceGroups }) 
       setPosY(y);
       setEditingEventId(event.event_id);
 
-      // Filter out PREVIEW placeholders when editing
       const realRecords = event.records.filter(r => r.value !== 'PREVIEW');
 
       const rows: ParticipantRow[] = realRecords.map(r => ({
@@ -186,7 +184,6 @@ const Races: React.FC<RacesProps> = ({ data, refreshData, people, raceGroups }) 
           alert("所有選手已在名單中");
           return;
       }
-      // Sort alphabetically for convenience
       availablePeople.sort((a,b) => a.name.localeCompare(b.name));
 
       setParticipantRows(prev => [
@@ -224,7 +221,6 @@ const Races: React.FC<RacesProps> = ({ data, refreshData, people, raceGroups }) 
           return;
       }
 
-      // Check for preview event (0 participants)
       const rowsToProcess = participantRows.filter(r => !r.isDeleted);
       if (rowsToProcess.length === 0 && !isEditMode) {
           setShowPreviewConfirm(true);
@@ -240,32 +236,26 @@ const Races: React.FC<RacesProps> = ({ data, refreshData, people, raceGroups }) 
 
       const finalUrl = eventForm.url ? `${eventForm.url}#z=${zoomScale}&x=${posX}&y=${posY}` : '';
 
-      // 1. Deletions (only possible in Edit Mode)
       const deletedRows = participantRows.filter(r => r.isDeleted && r.originalId);
       for (const row of deletedRows) {
           if (row.originalId) await api.deleteRecord(row.originalId, 'race');
       }
 
-      // 2. Logic Split based on Mode
       let promises = [];
 
-      // A. Creating a NEW Standalone Event (Preview Mode)
       if (!isEditMode && rows.length === 0) {
           const payload = {
               item: 'race' as const,
               date: eventForm.date,
               name: eventForm.name,
-              race_id: eventForm.race_id, // This sends series_id
+              race_id: eventForm.race_id, 
               address: eventForm.address,
               url: finalUrl,
-              value: 'PREVIEW' // Signal for creating Event
+              value: 'PREVIEW'
           };
           promises.push(api.submitRecord(payload));
       }
-      // B. Adding/Updating Participants OR Updating Existing Event Details
       else {
-          // If in Edit Mode, we MUST update the event details (race-events) as well
-          // This is critical if the user changed the date, name, or photo of the event itself
           if (isEditMode && editingEventId) {
               const eventPayload = {
                   id: editingEventId, 
@@ -275,14 +265,10 @@ const Races: React.FC<RacesProps> = ({ data, refreshData, people, raceGroups }) 
                   race_id: eventForm.race_id,
                   address: eventForm.address,
                   url: finalUrl,
-                  value: 'PREVIEW' // Signal `submitRecord` to update race-events
+                  value: 'PREVIEW'
               };
-              // Special handling: if editingEventId is available, we pass it. 
-              // The API submitRecord logic handles 'PREVIEW' value as a switch to update 'race-events'
-              // Passing `id: editingEventId` with `value: 'PREVIEW'` targets `race-events/{id}` via PUT.
               promises.push(api.submitRecord(eventPayload));
           } else if (!isEditMode && rows.length > 0) {
-             // Create event container first to ensure consistency for new events with participants
              await api.submitRecord({
                   item: 'race' as const,
                   date: eventForm.date,
@@ -294,7 +280,6 @@ const Races: React.FC<RacesProps> = ({ data, refreshData, people, raceGroups }) 
              });
           }
 
-          // Use the specific event ID we captured when opening edit mode
           const targetEventId = editingEventId;
 
           const recordPromises = rows.map(row => {
@@ -341,7 +326,31 @@ const Races: React.FC<RacesProps> = ({ data, refreshData, people, raceGroups }) 
       setConfirmDeleteEvent(null);
   };
 
-  // Image Cropper Logic
+  // Image Upload Logic
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+      if (e.target.files && e.target.files[0]) {
+          setIsUploading(true);
+          const file = e.target.files[0];
+          
+          // Naming convention: race_event_[id]_[date].jpg or race_event_[timestamp]_[date].jpg
+          const idPart = editingEventId || Date.now();
+          const customName = `race_event_${idPart}_${eventForm.date}`;
+
+          const result = await uploadImage(file, 'race', customName); 
+          if (result.url) {
+              const timestampUrl = `${result.url}?t=${Date.now()}`;
+              setEventForm({...eventForm, url: timestampUrl});
+              setZoomScale(1);
+              setPosX(50);
+              setPosY(50);
+          } else {
+              alert(`上傳失敗: ${result.error}`);
+          }
+          setIsUploading(false);
+          if (fileInputRef.current) fileInputRef.current.value = '';
+      }
+  };
+
   const handleDragStart = (e: React.MouseEvent | React.TouchEvent) => {
     isDragging.current = true;
     const point = 'touches' in e ? e.touches[0] : (e as React.MouseEvent);
@@ -373,7 +382,6 @@ const Races: React.FC<RacesProps> = ({ data, refreshData, people, raceGroups }) 
 
   return (
     <div className="flex flex-col h-full w-full overflow-hidden animate-fade-in">
-      {/* Header */}
       <div className="flex-none px-4 pt-2 pb-3 space-y-4 bg-background/80 backdrop-blur-md z-30 border-b border-white/5 relative shadow-lg">
           <div className="flex justify-between items-end mt-1">
             <div>
@@ -400,7 +408,6 @@ const Races: React.FC<RacesProps> = ({ data, refreshData, people, raceGroups }) 
           </div>
       </div>
 
-      {/* Race Cards List */}
       <div className="flex-1 overflow-y-auto px-4 pt-4 pb-24 space-y-4 no-scrollbar">
         {groupedRaces.length > 0 ? groupedRaces.map((event) => {
           const isUpcoming = event.date >= todayStr;
@@ -414,9 +421,8 @@ const Races: React.FC<RacesProps> = ({ data, refreshData, people, raceGroups }) 
              y = parseFloat(params.get('y') || '50');
           }
 
-          // Participant List Items for Marquee
           const recordItems = event.records
-            .filter(r => r.value !== 'PREVIEW') // Hide preview placeholders from list
+            .filter(r => r.value !== 'PREVIEW') 
             .map((rec) => {
                const person = people.find(p => String(p.id) === String(rec.people_id));
                const isRetired = person?.is_hidden;
@@ -430,9 +436,9 @@ const Races: React.FC<RacesProps> = ({ data, refreshData, people, raceGroups }) 
                }
 
                return (
-                  <div key={rec.id} className="flex justify-between items-center bg-black/50 border border-white/10 p-2.5 rounded-xl backdrop-blur-md mb-2 shrink-0 h-14">
-                      <div className="flex items-center gap-3">
-                          <div className={`w-9 h-9 rounded-full flex items-center justify-center overflow-hidden border-2 ${isRetired ? 'bg-zinc-800 border-zinc-500' : 'bg-zinc-800 border-sunset-rose shadow-glow-rose'}`}>
+                  <div key={rec.id} className="flex justify-between items-center bg-black/50 border border-white/10 p-2.5 rounded-xl backdrop-blur-md mb-2 shrink-0 h-14 w-full">
+                      <div className="flex items-center gap-2 overflow-hidden">
+                          <div className={`w-8 h-8 rounded-full flex-none flex items-center justify-center overflow-hidden border-2 ${isRetired ? 'bg-zinc-800 border-zinc-500' : 'bg-zinc-800 border-sunset-rose shadow-glow-rose'}`}>
                               {sUrlBase ? (
                                   <img 
                                     src={sUrlBase} 
@@ -441,21 +447,17 @@ const Races: React.FC<RacesProps> = ({ data, refreshData, people, raceGroups }) 
                                     style={{ transform: `translate(${(sx - 50) * 1.5}%, ${(sy - 50) * 1.5}%) scale(${sz})` }}
                                   />
                               ) : (
-                                  <span className={`text-xs font-black ${isRetired ? 'text-zinc-400' : 'text-white'}`}>{rec.person_name.charAt(0)}</span>
+                                  <span className={`text-[10px] font-black ${isRetired ? 'text-zinc-400' : 'text-white'}`}>{rec.person_name.charAt(0)}</span>
                               )}
                           </div>
-                          <div>
-                            <div className="text-sm font-bold text-white">
+                          <div className="min-w-0">
+                            <div className="text-[10px] font-bold text-white truncate">
                                 {rec.person_name}
                             </div>
-                            {isRetired && <span className="text-[8px] bg-zinc-700 px-1 py-0.5 rounded text-zinc-300 font-bold">退役</span>}
                           </div>
                       </div>
                       <div className="flex flex-col items-end">
-                          <div className="flex items-center gap-1.5">
-                              <Trophy size={14} className={rec.value ? 'text-sunset-gold' : 'text-zinc-600'} />
-                              <span className="text-lg font-black font-mono italic text-white">{rec.value || '--'}</span>
-                          </div>
+                          <span className="text-xs font-black font-mono italic text-sunset-gold drop-shadow-[0_0_5px_rgba(251,191,36,0.6)]">{rec.value || '--'}</span>
                       </div>
                   </div>
                );
@@ -482,7 +484,6 @@ const Races: React.FC<RacesProps> = ({ data, refreshData, people, raceGroups }) 
               )}
               
               <div className="relative z-10 p-5">
-                {/* Card Header */}
                 <div className="flex justify-between items-start mb-4">
                   <div className="min-w-0 flex-1">
                     <div className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md border text-[9px] font-black uppercase tracking-tighter mb-2 ${isUpcoming ? 'bg-sunset-gold text-amber-950 border-sunset-gold/50 shadow-glow-gold' : 'bg-white/10 text-white border-white/20 shadow-inner'}`}>
@@ -501,31 +502,24 @@ const Races: React.FC<RacesProps> = ({ data, refreshData, people, raceGroups }) 
                             {event.address.startsWith('http') ? <ExternalLink size={14} /> : <MapPin size={14} />}
                           </button>
                         )}
-                        {event.url && (
-                          <button onClick={(e) => { e.stopPropagation(); window.open(event.url.split('#')[0], '_blank'); }} className="p-2 rounded-xl bg-black/60 text-white border border-white/20 backdrop-blur-md active:scale-90 shadow-lg">
-                            <LinkIcon size={14} />
-                          </button>
-                        )}
                       </div>
                   )}
                 </div>
 
-                {/* Expanded: Vertical Marquee Participants */}
                 {isExpanded && (
                    <div className="mt-4 pt-4 border-t border-white/20 animate-fade-in">
                       <div className="flex items-center gap-2 mb-3 text-sunset-gold/90 drop-shadow-md">
                          <Users size={12} />
                          <span className="text-[10px] font-black uppercase tracking-widest">參賽選手名單</span>
                       </div>
-                      <div className="relative h-[240px] overflow-hidden mask-gradient-vertical">
+                      <div className="relative h-[100px] overflow-hidden mask-gradient-vertical">
                           {recordItems.length > 0 ? (
-                            <div className={`flex flex-col ${recordItems.length > 4 ? 'animate-marquee-vertical hover:pause' : ''}`}>
+                            <div className={`grid grid-cols-2 gap-x-2 ${recordItems.length > 4 ? 'animate-marquee-vertical hover:pause' : ''}`}>
                                 {recordItems}
-                                {/* Duplicate if scrolling needed */}
                                 {recordItems.length > 4 && recordItems}
                             </div>
                           ) : (
-                             <div className="text-white/50 text-xs text-center mt-10">尚無參賽選手</div>
+                             <div className="text-white/50 text-xs text-center mt-8">尚無參賽選手</div>
                           )}
                           <style>{`
                             .animate-marquee-vertical {
@@ -547,7 +541,6 @@ const Races: React.FC<RacesProps> = ({ data, refreshData, people, raceGroups }) 
                    </div>
                 )}
                 
-                {/* Collapsed: Status Indicator */}
                 {!isExpanded && (
                     <div className="flex items-center gap-2 mt-3 pt-3 border-t border-white/10">
                        <div className={`w-1.5 h-1.5 rounded-full ${isUpcoming ? 'bg-sunset-gold animate-pulse' : 'bg-emerald-500'}`}></div>
@@ -566,7 +559,7 @@ const Races: React.FC<RacesProps> = ({ data, refreshData, people, raceGroups }) 
         )}
       </div>
 
-      {/* Edit Modal */}
+      {/* Rest of the component (Modal etc.) remains unchanged */}
       {showModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/95 backdrop-blur-md animate-fade-in">
           <div className="glass-card w-full max-w-sm rounded-[32px] p-0 shadow-2xl relative bg-[#0a0508] border-white/20 animate-slide-up flex flex-col max-h-[95vh]">
@@ -581,7 +574,6 @@ const Races: React.FC<RacesProps> = ({ data, refreshData, people, raceGroups }) 
             </div>
             
             <form onSubmit={handleSave} className="flex-1 overflow-y-auto no-scrollbar px-6 pb-6 space-y-6">
-              {/* Event Details */}
               <div className="space-y-4">
                   <div className="space-y-1.5">
                     <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1">日期</label>
@@ -617,12 +609,22 @@ const Races: React.FC<RacesProps> = ({ data, refreshData, people, raceGroups }) 
                   <div className="space-y-1.5">
                     <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1 flex items-center gap-1"><Camera size={12}/> 照片連結 (URL)</label>
                     <div className="flex gap-2">
-                        <input type="url" placeholder="https://..." value={eventForm.url} onChange={e => setEventForm({...eventForm, url: e.target.value})} className="flex-1 bg-zinc-900 border border-white/10 rounded-xl px-4 py-3 text-white text-xs font-mono outline-none shadow-inner" />
-                        {eventForm.url && (
-                            <button type="button" onClick={() => window.open(eventForm.url, '_blank')} className="px-4 bg-zinc-800 rounded-xl text-sunset-gold active:scale-95 border border-white/5">
-                                <LinkIcon size={14} />
-                            </button>
-                        )}
+                        <input 
+                            type="file" 
+                            ref={fileInputRef} 
+                            className="hidden" 
+                            accept="image/*"
+                            onChange={handleFileSelect}
+                        />
+                        <button 
+                            type="button" 
+                            onClick={() => fileInputRef.current?.click()}
+                            disabled={isUploading}
+                            className="w-full px-3 py-3 bg-zinc-800 rounded-xl text-white active:scale-95 border border-white/5 flex items-center justify-center gap-2 hover:bg-zinc-700 transition-all shadow-lg text-xs font-bold"
+                        >
+                            {isUploading ? <Loader2 size={16} className="animate-spin" /> : <UploadCloud size={16} />}
+                            {isUploading ? '上傳壓縮中...' : '上傳照片'}
+                        </button>
                     </div>
                   </div>
 
@@ -643,7 +645,7 @@ const Races: React.FC<RacesProps> = ({ data, refreshData, people, raceGroups }) 
                     >
                         <img 
                         src={eventForm.url} 
-                        className="w-full h-full object-cover pointer-events-none select-none"
+                        className="w-full h-full object-contain pointer-events-none select-none"
                         style={{ 
                             transform: `translate(${(posX - 50) * 1.5}%, ${(posY - 50) * 1.5}%) scale(${zoomScale})`
                         }}
@@ -654,7 +656,6 @@ const Races: React.FC<RacesProps> = ({ data, refreshData, people, raceGroups }) 
                   )}
               </div>
 
-              {/* Sub-items: Participants */}
               <div className="pt-4 border-t border-white/10">
                   <div className="flex justify-between items-center mb-3">
                       <h4 className="text-sm font-bold text-white flex items-center gap-2"><Users size={14} className="text-sunset-gold"/> 參賽選手管理</h4>
@@ -666,7 +667,6 @@ const Races: React.FC<RacesProps> = ({ data, refreshData, people, raceGroups }) 
                           const person = people.find(p => String(p.id) === String(row.people_id));
                           const isRetired = person?.is_hidden;
                           
-                          // Filter dropdown: Exclude already selected (except self)
                           const selectedIds = participantRows
                               .filter(r => !r.isDeleted && r.key !== row.key)
                               .map(r => String(r.people_id));
@@ -737,7 +737,6 @@ const Races: React.FC<RacesProps> = ({ data, refreshData, people, raceGroups }) 
         </div>
       )}
 
-      {/* Delete Confirmation */}
       {confirmDeleteEvent && (
         <div className="fixed inset-0 z-[110] flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm animate-fade-in">
           <div className="glass-card w-full max-w-xs rounded-3xl p-6 shadow-2xl border-rose-500/30 text-center animate-scale-in">
@@ -753,7 +752,6 @@ const Races: React.FC<RacesProps> = ({ data, refreshData, people, raceGroups }) 
         </div>
       )}
 
-      {/* Preview Confirmation Modal (Replaces browser confirm) */}
       {showPreviewConfirm && (
         <div className="fixed inset-0 z-[110] flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm animate-fade-in">
           <div className="glass-card w-full max-w-xs rounded-3xl p-6 shadow-2xl border-white/10 text-center animate-scale-in">

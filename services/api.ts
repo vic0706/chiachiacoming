@@ -338,10 +338,11 @@ export const api = {
         }
         if (table === 'people' && extra) {
           if (extra.birthday !== undefined) formData.append('birthday', extra.birthday || '');
-          // FIX: explicitly send '1' for true, but send EMPTY STRING for false to avoid Worker treating '0' as true
           if (extra.is_hidden !== undefined) formData.append('is_retired', extra.is_hidden ? '1' : '');
-          if (extra.myword !== undefined) formData.append('myword', extra.myword);
+          if (extra.myword !== undefined) formData.append('myword', extra.myword || '');
           if (extra.password !== undefined) formData.append('password', extra.password);
+          if (extra.s_url !== undefined) formData.append('s_url', extra.s_url || '');
+          if (extra.b_url !== undefined) formData.append('b_url', extra.b_url || '');
         }
       } else {
         formData.append(fieldName, name);
@@ -351,8 +352,10 @@ export const api = {
         if (table === 'people' && extra) {
           if (extra.birthday !== undefined) formData.append('birthday', extra.birthday || '');
           if (extra.is_hidden !== undefined) formData.append('is_retired', extra.is_hidden ? '1' : '');
-          if (extra.myword !== undefined) formData.append('myword', extra.myword);
+          if (extra.myword !== undefined) formData.append('myword', extra.myword || '');
           if (extra.password !== undefined) formData.append('password', extra.password);
+          if (extra.s_url !== undefined) formData.append('s_url', extra.s_url || '');
+          if (extra.b_url !== undefined) formData.append('b_url', extra.b_url || '');
         }
       }
 

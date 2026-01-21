@@ -2,8 +2,9 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { DataRecord, LookupItem } from '../types';
 import { api } from '../services/api';
-import { Trophy, Zap, Calendar, Activity, X, Trash2, Edit2, Check, ArrowRight, ChevronLeft, ChevronRight, Star, Users, Lock, Unlock, KeyRound, Loader2, MessageCircle, ChevronDown, MapPin, Plus, Save, Key, Settings, Camera, Link as LinkIcon, ExternalLink, Maximize, Image as ImageIcon, Filter, LogIn, LogOut } from 'lucide-react';
+import { Trophy, Zap, Calendar, Activity, X, Trash2, Edit2, Check, ArrowRight, ChevronLeft, ChevronRight, Star, Users, Lock, Unlock, KeyRound, Loader2, MessageCircle, ChevronDown, MapPin, Plus, Save, Key, Settings, Camera, Link as LinkIcon, ExternalLink, Maximize, Image as ImageIcon, Filter, LogIn, LogOut, UploadCloud, UserCircle2, AlertTriangle } from 'lucide-react';
 import { format } from 'date-fns';
+import { uploadImage } from '../services/supabase';
 
 interface PersonalProps {
   data: DataRecord[];
@@ -23,7 +24,132 @@ interface RiderListItemProps {
   onClick: () => void;
 }
 
-// Sub-component for List Items
+// Local Helper for Image Cropping in Personal Modal
+const ImageCropperInput = ({ 
+    label, 
+    urlValue, 
+    onChange, 
+    ratioClass = 'h-32 w-full',
+    personId,
+    typeSuffix
+}: { 
+    label: string, 
+    urlValue: string, 
+    onChange: (val: string) => void, 
+    ratioClass?: string,
+    personId?: string | number,
+    typeSuffix: 's' | 'b'
+}) => {
+  const [baseUrl, fragment] = urlValue.split('#');
+  const [z, setZ] = useState(1);
+  const [x, setX] = useState(50);
+  const [y, setY] = useState(50);
+  const [error, setError] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+      const [, frag] = urlValue.split('#');
+      const params = new URLSearchParams(frag || '');
+      setZ(parseFloat(params.get('z') || '1'));
+      setX(parseFloat(params.get('x') || '50'));
+      setY(parseFloat(params.get('y') || '50'));
+  }, [urlValue]);
+
+  useEffect(() => { setError(false); }, [baseUrl]);
+  
+  const cropperRef = useRef<HTMLDivElement>(null);
+  const isDragging = useRef(false);
+  const lastPoint = useRef({ x: 0, y: 0 });
+
+  const updateUrl = (newZ: number, newX: number, newY: number) => {
+      if (!baseUrl) return;
+      onChange(`${baseUrl}#z=${newZ}&x=${newX}&y=${newY}`);
+  };
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+      if (e.target.files && e.target.files[0]) {
+          setIsUploading(true);
+          const file = e.target.files[0];
+          const customName = personId ? `${personId}_${typeSuffix}` : undefined;
+          
+          const result = await uploadImage(file, 'people', customName);
+          
+          if (result.url) {
+              const timestampUrl = `${result.url}?t=${Date.now()}`;
+              onChange(`${timestampUrl}#z=1&x=50&y=50`); 
+          } else {
+              alert(`上傳失敗: ${result.error}`);
+          }
+          setIsUploading(false);
+          if (fileInputRef.current) fileInputRef.current.value = '';
+      }
+  };
+
+  const handleDragStart = (e: React.MouseEvent | React.TouchEvent) => {
+      isDragging.current = true;
+      const point = 'touches' in e ? e.touches[0] : (e as React.MouseEvent);
+      lastPoint.current = { x: point.clientX, y: point.clientY };
+  };
+  
+  const handleDragMove = (e: React.MouseEvent | React.TouchEvent) => {
+      if (!isDragging.current || !cropperRef.current) return;
+      if(e.cancelable) e.preventDefault();
+      
+      const point = 'touches' in e ? e.touches[0] : (e as React.MouseEvent);
+      const dx = point.clientX - lastPoint.current.x;
+      const dy = point.clientY - lastPoint.current.y;
+      
+      const rect = cropperRef.current.getBoundingClientRect();
+      if (rect.width > 0 && rect.height > 0) {
+          const sensitivity = 0.8; 
+          const deltaX = (dx / rect.width) * 100 * sensitivity;
+          const deltaY = (dy / rect.height) * 100 * sensitivity;
+          const newX = Math.min(100, Math.max(0, x + deltaX));
+          const newY = Math.min(100, Math.max(0, y + deltaY));
+          
+          setX(newX);
+          setY(newY);
+          updateUrl(z, newX, newY);
+      }
+      lastPoint.current = { x: point.clientX, y: point.clientY };
+  };
+  const handleDragEnd = () => isDragging.current = false;
+
+  return (
+      <div className="space-y-2">
+          <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1 flex items-center gap-1"><ImageIcon size={12}/> {label}</label>
+          <div className="flex gap-2">
+            <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileSelect}/>
+            <button onClick={() => fileInputRef.current?.click()} disabled={isUploading} className="w-full px-4 py-3 bg-zinc-800 rounded-xl text-white active:scale-95 border border-white/5 flex items-center justify-center gap-2 hover:bg-zinc-700 transition-all shadow-lg text-xs font-bold tracking-wider">
+                {isUploading ? <Loader2 size={16} className="animate-spin" /> : <UploadCloud size={16} />}
+                {isUploading ? '選擇照片並上傳' : '選擇照片並上傳'}
+            </button>
+          </div>
+
+          {baseUrl && (
+               <div className="space-y-3 bg-white/5 p-4 rounded-2xl border border-white/10 shadow-lg mt-2 animate-fade-in">
+                  <div className="text-[9px] font-black text-zinc-500 uppercase tracking-widest flex items-center gap-1"><Maximize size={10}/> 縮放與位置調整</div>
+                  <div className="flex justify-center bg-black rounded-xl border border-white/5 p-2">
+                    <div ref={cropperRef} className={`relative overflow-hidden bg-zinc-900 border border-white/10 shadow-inner group cursor-move touch-none ${ratioClass}`} style={{ touchAction: 'none' }} onMouseDown={handleDragStart} onMouseMove={handleDragMove} onMouseUp={handleDragEnd} onMouseLeave={handleDragEnd} onTouchStart={handleDragStart} onTouchMove={handleDragMove} onTouchEnd={handleDragEnd}>
+                        {!error ? (
+                            <img src={baseUrl} className="w-full h-full object-contain pointer-events-none select-none" style={{ transform: `translate(${(x - 50) * 1.5}%, ${(y - 50) * 1.5}%) scale(${z})` }} onError={() => setError(true)} />
+                        ) : (
+                            <div className="w-full h-full flex flex-col items-center justify-center bg-zinc-950 text-zinc-600 space-y-2"><ImageIcon size={24} className="opacity-30"/></div>
+                        )}
+                        <div className="absolute inset-0 pointer-events-none opacity-20"><div className="w-full h-full border border-white/30 flex"><div className="flex-1 border-r border-white/30"></div><div className="flex-1 border-r border-white/30"></div><div className="flex-1"></div></div><div className="absolute inset-0 flex flex-col"><div className="flex-1 border-b border-white/30"></div><div className="flex-1 border-b border-white/30"></div><div className="flex-1"></div></div></div>
+                    </div>
+                  </div>
+                  <div className="px-1">
+                      <div className="flex justify-between text-[8px] text-zinc-500 font-mono mb-1"><span>ZOOM: {z.toFixed(2)}x</span><span>POS: {x.toFixed(0)},{y.toFixed(0)}</span></div>
+                      <input type="range" min="0.1" max="5" step="0.01" value={z} onChange={e => { const val = parseFloat(e.target.value); setZ(val); updateUrl(val, x, y); }} className="w-full accent-sunset-rose h-1.5 bg-zinc-800 rounded-full appearance-none shadow-inner" />
+                  </div>
+              </div>
+          )}
+      </div>
+  );
+};
+
 const RiderListItem: React.FC<RiderListItemProps> = ({ person, isActive, onClick }) => {
     const [error, setError] = useState(false);
     const dbUrl = person.s_url || '';
@@ -67,26 +193,20 @@ const RiderListItem: React.FC<RiderListItemProps> = ({ person, isActive, onClick
 const Personal: React.FC<PersonalProps> = ({ data, people, trainingTypes, refreshData, activePersonId, onSelectPerson, raceGroups, targetDate, onClearTargetDate }) => {
   const [selectedType, setSelectedType] = useState<string>(trainingTypes[0]?.name || '');
   
-  // Race Filters (Now used inside the Modal)
   const [raceFilterStatus, setRaceFilterStatus] = useState<'all' | 'registered' | 'available' | 'finished'>('registered');
   const [raceFilterSeries, setRaceFilterSeries] = useState<string>('');
 
-  // Expanded Race State
   const [expandedRaceId, setExpandedRaceId] = useState<string | number | null>(null);
 
-  // Detail Modal State
   const [detailDate, setDetailDate] = useState<string | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [editingRecordId, setEditingRecordId] = useState<string | number | null>(null);
   const [editValue, setEditValue] = useState('');
   
-  // New State: Unlock Edit Mode for Detail Modal
   const [isEditUnlocked, setIsEditUnlocked] = useState(false);
 
-  // Player Selection Modal State
   const [showPlayerList, setShowPlayerList] = useState(false);
 
-  // Auth Modal State
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authInput, setAuthInput] = useState('');
   const [isVerifying, setIsVerifying] = useState(false);
@@ -94,22 +214,19 @@ const Personal: React.FC<PersonalProps> = ({ data, people, trainingTypes, refres
   const [authTitle, setAuthTitle] = useState('權限驗證');
   const [authPlaceholder, setAuthPlaceholder] = useState('Password / OTP');
 
-  // Personal Info Modal State
   const [showPersonalInfoModal, setShowPersonalInfoModal] = useState(false);
   const [showSettingsMode, setShowSettingsMode] = useState(false); 
   
-  // Feedback State for Settings (Separated)
   const [wordFeedback, setWordFeedback] = useState<{msg: string, type: 'success' | 'error'} | null>(null);
   const [passFeedback, setPassFeedback] = useState<{msg: string, type: 'success' | 'error'} | null>(null);
 
-  const [isAddingRace, setIsAddingRace] = useState(false); // Used for "Edit/Join" modal now
+  const [isAddingRace, setIsAddingRace] = useState(false); 
   const [editingRaceId, setEditingRaceId] = useState<string | number | null>(null); 
   
-  // Editing MyWord and Password
   const [editMyWord, setEditMyWord] = useState('');
-  const [editPassword, setEditPassword] = useState('');
+  const [tempSUrl, setTempSUrl] = useState('');
+  const [tempBUrl, setTempBUrl] = useState('');
   
-  // Race Form (Now mostly for Join/Edit Note)
   const [raceForm, setRaceForm] = useState({
       id: '' as string | number,
       date: format(new Date(), 'yyyy-MM-dd'),
@@ -122,7 +239,6 @@ const Personal: React.FC<PersonalProps> = ({ data, people, trainingTypes, refres
       event_id: '' as string | number
   });
 
-  // Image Cropper State for Personal Race
   const [zoomScale, setZoomScale] = useState(1);
   const [posX, setPosX] = useState(50); 
   const [posY, setPosY] = useState(50); 
@@ -130,12 +246,12 @@ const Personal: React.FC<PersonalProps> = ({ data, people, trainingTypes, refres
   const isDragging = useRef(false);
   const lastPoint = useRef({ x: 0, y: 0 });
 
-  // MyWord Button Image Error State
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const [myWordImgError, setMyWordImgError] = useState(false);
-  // Hero Image Error State
   const [imgError, setImgError] = useState(false);
 
-  // Handle incoming navigation to specific date
   useEffect(() => {
       if (targetDate) {
           setDetailDate(targetDate);
@@ -144,7 +260,6 @@ const Personal: React.FC<PersonalProps> = ({ data, people, trainingTypes, refres
       }
   }, [targetDate, onClearTargetDate]);
 
-  // Reset unlock state when modal closes
   useEffect(() => {
     if (!showDetailModal) {
         setIsEditUnlocked(false);
@@ -173,7 +288,6 @@ const Personal: React.FC<PersonalProps> = ({ data, people, trainingTypes, refres
     return list.sort((a, b) => a.name.localeCompare(b.name));
   }, [people]);
 
-  // Ensure valid selection when data loads
   useEffect(() => {
     if (activePeople.length > 0) {
         const exists = activePeople.find(p => String(p.id) === String(activePersonId));
@@ -186,7 +300,6 @@ const Personal: React.FC<PersonalProps> = ({ data, people, trainingTypes, refres
   const currentIndex = activePeople.findIndex(p => String(p.id) === String(activePersonId));
   const person = activePeople[currentIndex >= 0 ? currentIndex : 0] || activePeople[0];
 
-  // Randomize player on page enter (mount)
   useEffect(() => {
     if (activePeople.length > 0) {
         const randomIndex = Math.floor(Math.random() * activePeople.length);
@@ -198,9 +311,10 @@ const Personal: React.FC<PersonalProps> = ({ data, people, trainingTypes, refres
       setImgError(false);
       setMyWordImgError(false);
       setEditMyWord(person?.myword || '');
-  }, [person?.id, person?.myword]);
+      setTempSUrl(person?.s_url || '');
+      setTempBUrl(person?.b_url || '');
+  }, [person?.id, person?.myword, person?.s_url, person?.b_url]);
 
-  // Hero Image (Big)
   const [bUrlBase, bUrlFragment] = useMemo(() => {
       if (!person) return ['', ''];
       const dbUrl = person.b_url || '';
@@ -217,7 +331,6 @@ const Personal: React.FC<PersonalProps> = ({ data, people, trainingTypes, refres
      by = parseFloat(sp.get('y')||'50');
   }
 
-  // Small Image (Avatar)
   const [sUrlBase, sUrlFragment] = useMemo(() => {
       if (!person) return ['', ''];
       const dbUrl = person.s_url || '';
@@ -233,9 +346,15 @@ const Personal: React.FC<PersonalProps> = ({ data, people, trainingTypes, refres
       sy = parseFloat(sp.get('y')||'50');
   }
 
-  // Disabled Navigation Handlers (Removed from UI)
-  const handlePrevPerson = () => {};
-  const handleNextPerson = () => {};
+  // Navigation Logic
+  const handlePrevPerson = () => {
+      const newIndex = currentIndex > 0 ? currentIndex - 1 : activePeople.length - 1;
+      onSelectPerson(activePeople[newIndex].id);
+  };
+  const handleNextPerson = () => {
+      const newIndex = currentIndex < activePeople.length - 1 ? currentIndex + 1 : 0;
+      onSelectPerson(activePeople[newIndex].id);
+  };
 
   const personRecords = useMemo(() => {
     if (!person) return [];
@@ -246,42 +365,34 @@ const Personal: React.FC<PersonalProps> = ({ data, people, trainingTypes, refres
     );
   }, [data, person, selectedType]);
 
-  // Enhanced Race List Logic for Filters
   const displayedRaces = useMemo(() => {
       if (!person) return [];
       const todayStr = format(new Date(), 'yyyy-MM-dd');
       
-      // 1. All races related to this person (Registered or Finished)
       const myRaces = data.filter(d => d.item === 'race' && String(d.people_id) === String(person.id) && d.value !== 'PREVIEW');
       const myEventIds = new Set(myRaces.map(r => String(r.event_id)));
 
-      // 2. All available races (Preview records that this person has NOT joined)
       const availablePreviews = data.filter(d => 
           d.item === 'race' && 
           d.value === 'PREVIEW' && 
           !myEventIds.has(String(d.event_id)) &&
-          d.date >= todayStr // Only future events are "Available" to join
+          d.date >= todayStr 
       );
 
       let result: DataRecord[] = [];
 
       if (raceFilterStatus === 'registered') {
-          // Future events I'm in
           result = myRaces.filter(r => r.date >= todayStr);
       } else if (raceFilterStatus === 'finished') {
-          // Past events I was in
           result = myRaces.filter(r => r.date < todayStr);
       } else if (raceFilterStatus === 'available') {
-          // Future events I'm NOT in
           result = availablePreviews;
       } else {
-          // All: My Races + Available (Future)
           result = [...myRaces, ...availablePreviews];
       }
 
-      // Series Filter
       if (raceFilterSeries) {
-          result = result.filter(r => r.race_group === raceFilterSeries || r.race_id === raceFilterSeries); // check both just in case
+          result = result.filter(r => r.race_group === raceFilterSeries || r.race_id === raceFilterSeries); 
       }
 
       return result.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
@@ -393,7 +504,7 @@ const Personal: React.FC<PersonalProps> = ({ data, people, trainingTypes, refres
           id: race.id || '',
           date: race.date,
           name: race.name,
-          race_id: race.race_group, // Display series name
+          race_id: race.race_group, 
           address: race.address,
           rank: race.value === 'PREVIEW' ? '' : race.value,
           note: race.note,
@@ -408,20 +519,18 @@ const Personal: React.FC<PersonalProps> = ({ data, people, trainingTypes, refres
   };
 
   const handleJoinRace = (race: DataRecord) => {
-      // Joining a preview event
-      // Extract URL from the race preview (it's the public URL)
       const [baseUrl] = (race.url || '').split('#');
       
       setRaceForm({
-          id: '', // New record
+          id: '', 
           date: race.date,
           name: race.name,
           race_id: race.race_group,
           address: race.address,
-          rank: '', // Reset rank for new entry
+          rank: '', 
           note: '',
-          url: baseUrl, // Default to public URL, but user can change it
-          event_id: race.event_id || '' // Must have event_id
+          url: baseUrl, 
+          event_id: race.event_id || '' 
       });
       setZoomScale(1);
       setPosX(50);
@@ -449,17 +558,14 @@ const Personal: React.FC<PersonalProps> = ({ data, people, trainingTypes, refres
 
       const finalUrl = raceForm.url ? `${raceForm.url}#z=${zoomScale}&x=${posX}&y=${posY}` : '';
 
-      // If it's a join/edit, we primarily send score/note. 
-      // The worker for Personal Race flow only allows updating Score/Note/Url or inserting with event_id
       const success = await api.submitRecord({
           id: editingRaceId ? editingRaceId : undefined,
           item: 'race',
           people_id: person.id,
-          event_id: raceForm.event_id, // Vital for JOIN
+          event_id: raceForm.event_id, 
           value: raceForm.rank,
           note: raceForm.note,
-          url: finalUrl, // User can add their own photo url if they want
-          // We don't send date/name/series_id updates here as per requirement to only Edit Note/Join
+          url: finalUrl, 
       });
 
       if (success) {
@@ -472,15 +578,14 @@ const Personal: React.FC<PersonalProps> = ({ data, people, trainingTypes, refres
       }
   };
 
-  const handleUpdateMyWord = async () => {
-      // Only send myword
+  const handleUpdateProfile = async () => {
+      // Updates My Word AND Photos
       const success = await api.manageLookup('people', person.name, person.id, false, false, {
           birthday: person.birthday,
           is_hidden: person.is_hidden, 
-          s_url: person.s_url,
-          b_url: person.b_url,
+          s_url: tempSUrl,
+          b_url: tempBUrl,
           myword: editMyWord
-          // No password field here
       });
       if (success) {
           setWordFeedback({ msg: '更新成功', type: 'success' });
@@ -492,21 +597,24 @@ const Personal: React.FC<PersonalProps> = ({ data, people, trainingTypes, refres
   };
 
   const handleChangePassword = async () => {
-      if (!editPassword) return;
-      if (editPassword.length < 4) { alert('密碼太短'); return; }
+      const p1 = prompt("請輸入新密碼");
+      if (p1 === null) return;
+      if (!p1 || p1.length < 4) { alert("密碼長度不足"); return; }
       
-      // Explicitly include password
+      const p2 = prompt("請再次輸入新密碼以確認");
+      if (p2 === null) return;
+      if (p1 !== p2) { alert("兩次輸入的密碼不一致"); return; }
+      
       const success = await api.manageLookup('people', person.name, person.id, false, false, {
           birthday: person.birthday,
           is_hidden: person.is_hidden, 
-          s_url: person.s_url,
-          b_url: person.b_url,
+          s_url: tempSUrl,
+          b_url: tempBUrl,
           myword: person.myword,
-          password: editPassword
+          password: p1
       });
       if (success) {
           setPassFeedback({ msg: '密碼更新成功', type: 'success' });
-          setEditPassword('');
       } else {
           setPassFeedback({ msg: '密碼更新失敗', type: 'error' });
       }
@@ -556,7 +664,28 @@ const Personal: React.FC<PersonalProps> = ({ data, people, trainingTypes, refres
     return `${age} Years`;
   };
 
-  // Image Cropper Logic
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+      if (e.target.files && e.target.files[0]) {
+          setIsUploading(true);
+          const file = e.target.files[0];
+          
+          const customName = `race_record_${person.id}_${raceForm.event_id}`;
+
+          const result = await uploadImage(file, 'race', customName); 
+          if (result.url) {
+              const timestampUrl = `${result.url}?t=${Date.now()}`;
+              setRaceForm({...raceForm, url: timestampUrl});
+              setZoomScale(1);
+              setPosX(50);
+              setPosY(50);
+          } else {
+              alert(`上傳失敗: ${result.error}`);
+          }
+          setIsUploading(false);
+          if (fileInputRef.current) fileInputRef.current.value = '';
+      }
+  };
+
   const handleDragStart = (e: React.MouseEvent | React.TouchEvent) => {
     isDragging.current = true;
     const point = 'touches' in e ? e.touches[0] : (e as React.MouseEvent);
@@ -597,13 +726,13 @@ const Personal: React.FC<PersonalProps> = ({ data, people, trainingTypes, refres
   return (
     <div className="h-full overflow-y-auto animate-fade-in no-scrollbar pb-24 relative bg-[#0a0508] overflow-x-hidden">
         
-        {/* Hero Image Area */}
         <div className="relative w-full h-[80vh] z-0 overflow-hidden">
             <div className="absolute inset-0 bg-gradient-to-b from-zinc-900 via-[#1c1016] to-[#0a0508] z-0"></div>
 
             <div className="absolute inset-0 z-10 w-full h-full flex justify-center">
                {!imgError && bUrlBase ? (
                    <img 
+                   key={person.id}
                    src={bUrlBase} 
                    onError={() => setImgError(true)}
                    className="h-full w-auto max-w-none object-cover" 
@@ -625,11 +754,13 @@ const Personal: React.FC<PersonalProps> = ({ data, people, trainingTypes, refres
             <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[140%] h-[60%] bg-gradient-to-t from-sunset-gold/30 via-sunset-rose/10 to-transparent blur-3xl z-20 pointer-events-none mix-blend-screen"></div>
             <div className="absolute bottom-[-10%] left-1/2 -translate-x-1/2 w-[80%] h-[40%] bg-radial-gradient from-sunset-gold/40 to-transparent blur-2xl z-20 pointer-events-none"></div>
 
-            {/* Navigation & Name Overlay - REMOVED INTERACTIONS */}
-            <div className="absolute top-0 left-0 right-0 p-4 pt-safe-top z-30 flex items-center justify-center mt-4 pointer-events-none">
-                {/* Previous/Next buttons removed */}
+            <div className="absolute top-0 left-0 right-0 p-4 pt-safe-top z-30 flex items-center justify-between mt-4 pointer-events-none">
+                <button onClick={handlePrevPerson} className="w-12 h-12 flex items-center justify-center pointer-events-auto active:scale-90 transition-transform opacity-50 hover:opacity-100"><ChevronLeft size={24} className="text-white drop-shadow-md" /></button>
                 
-                <div className="flex-1 flex flex-col items-center justify-center relative select-none z-40 px-2 min-w-0">
+                <div 
+                    onClick={() => setShowPlayerList(true)}
+                    className="flex-1 flex flex-col items-center justify-center relative select-none z-40 px-2 min-w-0 cursor-pointer pointer-events-auto active:scale-95 transition-transform"
+                >
                     <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[200%] h-[200%] bg-sunset-gold/50 blur-3xl rounded-full pointer-events-none mix-blend-screen animate-pulse-slow"></div>
                     <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[150%] h-[150%] bg-black/20 blur-xl rounded-full pointer-events-none"></div>
                     
@@ -645,6 +776,8 @@ const Personal: React.FC<PersonalProps> = ({ data, people, trainingTypes, refres
                         <Star size={10} className="text-sunset-gold fill-sunset-gold animate-pulse" />
                     </div>
                 </div>
+
+                <button onClick={handleNextPerson} className="w-12 h-12 flex items-center justify-center pointer-events-auto active:scale-90 transition-transform opacity-50 hover:opacity-100"><ChevronRight size={24} className="text-white drop-shadow-md" /></button>
             </div>
         </div>
 
@@ -652,12 +785,12 @@ const Personal: React.FC<PersonalProps> = ({ data, people, trainingTypes, refres
         <div className="relative z-30 -mt-24 space-y-0">
             
             <div className="px-4 mb-6">
-                {/* Top Row: Personal Info Button & Best Record */}
                 <div className="grid grid-cols-5 gap-3 mb-6">
-                    {/* Personal Info Button (Span 3) */}
                     <button 
                         onClick={() => checkAuth(() => { 
                             setEditMyWord(person.myword || ''); 
+                            setTempSUrl(person.s_url || '');
+                            setTempBUrl(person.b_url || '');
                             setShowPersonalInfoModal(true); 
                         }, true)}
                         className="col-span-3 flex items-center gap-3 bg-zinc-900/60 backdrop-blur-lg border border-white/5 rounded-2xl p-2 active:scale-[0.98] transition-all hover:bg-zinc-800/60 shadow-lg group overflow-hidden relative"
@@ -677,11 +810,15 @@ const Personal: React.FC<PersonalProps> = ({ data, people, trainingTypes, refres
                             )}
                         </div>
                         <div className="flex-1 min-w-0 flex flex-col justify-center text-left z-10 overflow-hidden relative h-full">
+                            <div className="flex items-center gap-1.5 mb-0.5">
+                                <span className="text-[10px] font-black text-zinc-400 bg-white/5 px-1.5 py-0.5 rounded border border-white/5">個人中心</span>
+                                <Edit2 size={10} className="text-zinc-500" />
+                            </div>
                             <div className="text-sm font-medium text-white/90 whitespace-nowrap overflow-hidden">
                                 <div className={`${(person.myword || '').length > 8 ? 'animate-marquee-infinite inline-block' : ''}`}>
-                                    {person.myword || "..."}
+                                    {person.myword || "編輯個人檔案..."}
                                     {(person.myword || '').length > 8 && <span className="inline-block w-8"></span>}
-                                    {(person.myword || '').length > 8 && (person.myword || "...")}
+                                    {(person.myword || '').length > 8 && (person.myword || "編輯個人檔案...")}
                                 </div>
                             </div>
                         </div>
@@ -696,7 +833,6 @@ const Personal: React.FC<PersonalProps> = ({ data, people, trainingTypes, refres
                         `}</style>
                     </button>
 
-                    {/* Best Record (Span 2) */}
                     <div className="col-span-2 glass-card-gold rounded-2xl p-3 flex flex-col justify-center relative overflow-hidden shadow-[0_0_30px_rgba(251,191,36,0.2)]">
                         <div className="absolute -top-2 -right-2 p-2 opacity-20 rotate-12"><Trophy size={60} /></div>
                         <div className="absolute inset-0 bg-gradient-to-t from-sunset-gold/10 to-transparent"></div>
@@ -708,11 +844,9 @@ const Personal: React.FC<PersonalProps> = ({ data, people, trainingTypes, refres
                 </div>
             </div>
 
-            {/* STICKY HEADER AREA (Training Selector Only) - MODIFIED */}
             <div className="sticky top-0 z-40 py-3 px-4 -mx-4 bg-[#0a0508]/85 backdrop-blur-xl border-b border-white/5 shadow-2xl transition-all">
                 <div className="relative h-12 group flex items-center justify-center">
                     <div className="absolute inset-0 bg-black/60 rounded-2xl border border-sunset-gold/20 shadow-glow-gold pointer-events-none z-0"></div>
-                    {/* Hidden Select covering the area for interaction */}
                     <select 
                         value={selectedType}
                         onChange={(e) => setSelectedType(e.target.value)}
@@ -720,7 +854,6 @@ const Personal: React.FC<PersonalProps> = ({ data, people, trainingTypes, refres
                     >
                         {trainingTypes.map(t => <option key={t.id} value={t.name}>{t.name}</option>)}
                     </select>
-                    {/* Visual Label (Static) -> Changed to Dynamic selectedType */}
                     <div className="relative z-10 flex items-center gap-2 pointer-events-none">
                         <span className="text-white font-black text-base tracking-wide">{selectedType}</span>
                         <ChevronDown size={14} className="text-sunset-gold" />
@@ -729,7 +862,6 @@ const Personal: React.FC<PersonalProps> = ({ data, people, trainingTypes, refres
             </div>
 
             <div className="px-4 space-y-3 pt-6">
-                {/* Stats Cards - Added Count */}
                 {dailyStats.map((stat, idx) => (
                     <div 
                         key={idx} 
@@ -786,7 +918,6 @@ const Personal: React.FC<PersonalProps> = ({ data, people, trainingTypes, refres
             </div>
         </div>
 
-        {/* Detail Modal */}
         {showDetailModal && (
             <div className="fixed inset-0 z-[100] flex items-end justify-center bg-black/85 backdrop-blur-md animate-fade-in" onClick={() => setShowDetailModal(false)}>
                 <div className="glass-card w-full max-w-md rounded-t-[32px] p-6 shadow-2xl animate-slide-up bg-[#0f0508] border-white/10 flex flex-col max-h-[85vh]" onClick={e => e.stopPropagation()}>
@@ -796,7 +927,6 @@ const Personal: React.FC<PersonalProps> = ({ data, people, trainingTypes, refres
                                 <h3 className="text-xl font-black text-white tracking-tight">{detailDate}</h3>
                                 <p className="text-[9px] text-zinc-500 font-black uppercase tracking-[0.3em] mt-0.5">Detailed Records</p>
                             </div>
-                            {/* Header Edit Button for Unlocking Row Actions */}
                             <button 
                                 onClick={() => {
                                     if(isEditUnlocked) {
@@ -858,45 +988,64 @@ const Personal: React.FC<PersonalProps> = ({ data, people, trainingTypes, refres
             </div>
         )}
 
-        {/* Personal Management Modal (睿睿) - DARK CARD FULL SCREEN MODIFICATION */}
         {showPersonalInfoModal && (
             <div 
                 className="fixed inset-0 z-[100] animate-fade-in flex flex-col bg-[#0a0508] backdrop-blur-xl"
                 onClick={() => { setShowPersonalInfoModal(false); }}
             >
-                {/* Safe Area Spacer for Top */}
                 <div className="h-[env(safe-area-inset-top)] bg-transparent shrink-0" />
                 
                 <div className="flex-1 flex flex-col p-6 overflow-hidden max-w-md mx-auto w-full animate-slide-up" onClick={e => e.stopPropagation()}>
                     
-                    {/* Header */}
                     <div className="flex justify-between items-center mb-6 shrink-0 pt-2">
                         <div>
                             <h3 className="text-xl font-black text-white tracking-tight flex items-center gap-2">{person.name}</h3>
                             <p className="text-[9px] text-rose-500 font-black uppercase tracking-[0.3em] mt-0.5">Personal Space</p>
                         </div>
                         <div className="flex gap-3">
-                            {/* Settings Button */}
                             <button onClick={() => setShowSettingsMode(!showSettingsMode)} className={`w-10 h-10 flex items-center justify-center rounded-full border transition-all active:scale-95 ${showSettingsMode ? 'bg-rose-500 text-white border-rose-500' : 'bg-white/5 text-zinc-400 border-white/10'}`}>
                                 <Settings size={20} />
                             </button>
-                            {/* Close Button */}
                             <button onClick={() => { setShowPersonalInfoModal(false); }} className="w-10 h-10 flex items-center justify-center bg-white/10 rounded-full text-zinc-400 active:scale-95"><X size={20} /></button>
                         </div>
                     </div>
 
-                    {/* Content Area: Swaps between Settings and Race List */}
                     <div className="flex-1 overflow-y-auto no-scrollbar pb-[env(safe-area-inset-bottom)] space-y-3">
                         
                         {showSettingsMode ? (
                             <div className="space-y-4 animate-fade-in">
-                                <div className="space-y-1.5">
-                                    <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1 flex items-center gap-1"><MessageCircle size={10}/> 我想說的話</label>
-                                    <div className="flex gap-2">
+                                
+                                <div className="space-y-4 p-4 bg-zinc-900/50 rounded-2xl border border-white/5">
+                                    {/* 1. My Word */}
+                                    <div className="space-y-1.5">
+                                        <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1 flex items-center gap-1"><MessageCircle size={10}/> 我想說的話</label>
                                         <textarea value={editMyWord} onChange={e => setEditMyWord(e.target.value)} className="w-full bg-zinc-900 border border-white/10 rounded-xl px-4 py-3 text-white text-xs outline-none resize-none h-20 shadow-inner" />
                                     </div>
-                                    <button onClick={handleUpdateMyWord} className="w-full py-3 bg-gradient-to-r from-rose-600 to-rose-800 text-white font-bold text-xs rounded-xl shadow-glow active:scale-95 transition-all">
-                                        更新留言
+
+                                    {/* 2. Profile Photos */}
+                                    <h4 className="text-[10px] font-black text-zinc-500 uppercase tracking-widest flex items-center gap-1 pt-2 border-t border-white/5"><UserCircle2 size={12}/> 選手照片管理</h4>
+                                    
+                                    <ImageCropperInput 
+                                        label="更換頭像" 
+                                        urlValue={tempSUrl} 
+                                        onChange={setTempSUrl} 
+                                        personId={person.id}
+                                        typeSuffix="s"
+                                        ratioClass="aspect-square w-32 mx-auto rounded-full border-2 border-white/10"
+                                    />
+                                    
+                                    <ImageCropperInput 
+                                        label="更換全身照" 
+                                        urlValue={tempBUrl} 
+                                        onChange={setTempBUrl} 
+                                        personId={person.id}
+                                        typeSuffix="b"
+                                        ratioClass="aspect-[2/3] w-full mx-auto rounded-xl"
+                                    />
+
+                                    {/* 3. Save Button */}
+                                    <button onClick={handleUpdateProfile} className="w-full py-3 bg-gradient-to-r from-rose-600 to-rose-800 text-white font-bold text-xs rounded-xl shadow-glow active:scale-95 transition-all mt-2">
+                                        儲存個人檔案
                                     </button>
                                     {wordFeedback && (
                                         <div className={`text-center text-[10px] font-bold animate-fade-in ${wordFeedback.type === 'success' ? 'text-green-500' : 'text-rose-500'}`}>
@@ -906,12 +1055,9 @@ const Personal: React.FC<PersonalProps> = ({ data, people, trainingTypes, refres
                                 </div>
                                 
                                 <div className="pt-4 border-t border-white/10 space-y-1.5">
-                                    <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1 flex items-center gap-1"><Key size={10}/> 更改密碼</label>
-                                    <div className="flex gap-2">
-                                        <input type="password" value={editPassword} onChange={e => setEditPassword(e.target.value)} placeholder="新密碼" className="w-full bg-zinc-900 border border-white/10 rounded-xl px-4 py-3 text-white text-xs outline-none shadow-inner" />
-                                    </div>
-                                    <button onClick={handleChangePassword} className="w-full py-3 bg-zinc-800 text-white font-bold text-xs rounded-xl border border-white/5 active:scale-95 transition-all">
-                                        儲存密碼
+                                    <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1 flex items-center gap-1"><Key size={10}/> 安全設定</label>
+                                    <button onClick={handleChangePassword} className="w-full py-3 bg-rose-600 text-white font-bold text-xs rounded-xl border border-white/5 active:scale-95 transition-all shadow-lg hover:bg-rose-700">
+                                        重設密碼
                                     </button>
                                     {passFeedback && (
                                         <div className={`text-center text-[10px] font-bold animate-fade-in ${passFeedback.type === 'success' ? 'text-green-500' : 'text-rose-500'}`}>
@@ -922,17 +1068,14 @@ const Personal: React.FC<PersonalProps> = ({ data, people, trainingTypes, refres
                             </div>
                         ) : (
                             <>
-                                {/* Race List Header with Filters (Now inside Modal) - REMOVED ADD BUTTON */}
                                 <div className="space-y-3 mb-2">
                                     <div className="flex justify-between items-center">
                                         <h4 className="text-sm font-bold text-white flex items-center gap-2">
                                             <Trophy size={14} className="text-rose-500"/> 
                                             賽事列表
                                         </h4>
-                                        {/* Button Removed */}
                                     </div>
 
-                                    {/* Filters inside Modal */}
                                     <div className="flex gap-2 h-9">
                                         <div className="flex-1 bg-zinc-900 rounded-xl p-1 flex relative border border-white/5">
                                             {(['registered', 'available', 'finished'] as const).map((status) => (
@@ -959,7 +1102,6 @@ const Personal: React.FC<PersonalProps> = ({ data, people, trainingTypes, refres
                                     </div>
                                 </div>
 
-                                {/* Add / Edit Form */}
                                 {isAddingRace && (
                                     <div className="bg-zinc-900/50 p-4 rounded-2xl border border-white/10 mb-4 animate-fade-in relative">
                                         <button onClick={() => setIsAddingRace(false)} className="absolute top-2 right-2 text-zinc-500 p-2"><X size={16}/></button>
@@ -973,20 +1115,28 @@ const Personal: React.FC<PersonalProps> = ({ data, people, trainingTypes, refres
                                                 <span className="block text-[9px] text-zinc-500 mt-1 font-mono">{raceForm.date}</span>
                                             </div>
                                             
-                                            {/* Photo URL Input */}
                                             <div className="space-y-1.5">
                                                 <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1 flex items-center gap-1"><Camera size={12}/> 照片連結 (URL)</label>
                                                 <div className="flex gap-2">
-                                                    <input type="url" placeholder="https://..." value={raceForm.url} onChange={e => setRaceForm({...raceForm, url: e.target.value})} className="flex-1 bg-zinc-900 border border-white/10 rounded-xl px-3 py-2 text-white text-xs font-mono outline-none shadow-inner" />
-                                                    {raceForm.url && (
-                                                        <button type="button" onClick={() => window.open(raceForm.url, '_blank')} className="px-3 bg-zinc-800 rounded-xl text-rose-500 active:scale-95 border border-white/5 flex items-center justify-center">
-                                                            <LinkIcon size={14} />
-                                                        </button>
-                                                    )}
+                                                    <input 
+                                                        type="file" 
+                                                        ref={fileInputRef} 
+                                                        className="hidden" 
+                                                        accept="image/*"
+                                                        onChange={handleFileSelect}
+                                                    />
+                                                    <button 
+                                                        type="button" 
+                                                        onClick={() => fileInputRef.current?.click()}
+                                                        disabled={isUploading}
+                                                        className="w-full px-3 py-3 bg-zinc-800 rounded-xl text-white active:scale-95 border border-white/5 flex items-center justify-center gap-2 hover:bg-zinc-700 transition-all shadow-lg text-xs font-bold"
+                                                    >
+                                                        {isUploading ? <Loader2 size={16} className="animate-spin" /> : <UploadCloud size={16} />}
+                                                        {isUploading ? '上傳壓縮中...' : '上傳照片'}
+                                                    </button>
                                                 </div>
                                             </div>
 
-                                            {/* Image Cropper */}
                                             {raceForm.url && (
                                                 <div className="space-y-2 bg-white/5 p-3 rounded-2xl border border-white/10 shadow-lg">
                                                     <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest flex items-center gap-1"><Maximize size={10}/> 照片校準</label>
@@ -1004,7 +1154,7 @@ const Personal: React.FC<PersonalProps> = ({ data, people, trainingTypes, refres
                                                     >
                                                         <img 
                                                         src={raceForm.url} 
-                                                        className="w-full h-full object-cover pointer-events-none select-none"
+                                                        className="w-full h-full object-contain pointer-events-none select-none"
                                                         style={{ 
                                                             transform: `translate(${(posX - 50) * 1.5}%, ${(posY - 50) * 1.5}%) scale(${zoomScale})`
                                                         }}
@@ -1014,7 +1164,6 @@ const Personal: React.FC<PersonalProps> = ({ data, people, trainingTypes, refres
                                                 </div>
                                             )}
                                             
-                                            {/* Rank Input with Label */}
                                             {(raceFilterStatus === 'finished' || editingRaceId) && (
                                                 <div className="space-y-1.5">
                                                     <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1">成績 / 名次</label>
@@ -1035,7 +1184,6 @@ const Personal: React.FC<PersonalProps> = ({ data, people, trainingTypes, refres
                                     const isUpcoming = race.date >= format(new Date(), 'yyyy-MM-dd');
                                     const isPreview = race.value === 'PREVIEW';
                                     
-                                    // Parse image URL
                                     const [imgUrl, fragment] = (race.url || '').split('#');
                                     let z = 1, x = 50, y = 50;
                                     if (fragment) {
@@ -1066,7 +1214,6 @@ const Personal: React.FC<PersonalProps> = ({ data, people, trainingTypes, refres
                                             )}
                                             
                                             <div className="relative z-10 p-5">
-                                                {/* Card Header */}
                                                 <div className="flex justify-between items-start mb-2">
                                                     <div className="min-w-0 flex-1">
                                                         <div className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md border text-[9px] font-black uppercase tracking-tighter mb-2 ${isUpcoming ? 'bg-sunset-gold text-amber-950 border-sunset-gold/50 shadow-glow-gold' : 'bg-white/10 text-white border-white/20 shadow-inner'}`}>
@@ -1078,7 +1225,6 @@ const Personal: React.FC<PersonalProps> = ({ data, people, trainingTypes, refres
                                                     </div>
                                                     
                                                     <div className="flex flex-col items-end gap-1">
-                                                        {/* Action Buttons Row */}
                                                         <div className="flex gap-2 mb-2 animate-fade-in" onClick={e => e.stopPropagation()}>
                                                             {isExpanded && !isPreview && <button onClick={() => handleEditRace(race)} className="p-2 rounded-xl bg-white/10 text-white border border-white/20 backdrop-blur-md active:scale-90 shadow-lg hover:bg-white/20"><Edit2 size={14} /></button>}
                                                             
@@ -1089,7 +1235,6 @@ const Personal: React.FC<PersonalProps> = ({ data, people, trainingTypes, refres
                                                             )}
                                                         </div>
 
-                                                        {/* Status / Rank / Big Action Column */}
                                                         <div className="flex flex-col items-end">
                                                             {isPreview ? (
                                                                 <button 
@@ -1100,7 +1245,6 @@ const Personal: React.FC<PersonalProps> = ({ data, people, trainingTypes, refres
                                                                     <span className="text-[9px] font-black text-white uppercase tracking-widest">加入</span>
                                                                 </button>
                                                             ) : isUpcoming ? (
-                                                                // Future Race: Show Withdraw Button
                                                                 <button 
                                                                     onClick={(e) => { e.stopPropagation(); handleWithdrawRace(race.id!); }}
                                                                     className="flex flex-col items-center justify-center gap-1 bg-rose-600 hover:bg-rose-700 rounded-xl p-2.5 transition-all active:scale-95 group/withdraw shadow-lg shadow-rose-900/50 border border-white/10"
@@ -1109,7 +1253,6 @@ const Personal: React.FC<PersonalProps> = ({ data, people, trainingTypes, refres
                                                                     <span className="text-[9px] font-black text-white uppercase tracking-widest">退出</span>
                                                                 </button>
                                                             ) : (
-                                                                // Finished Race: Show Rank
                                                                 <>
                                                                     <span className="text-[8px] text-zinc-300 font-bold uppercase mb-0.5 drop-shadow-md">Rank</span>
                                                                     <span className="text-2xl font-black text-sunset-gold italic font-mono drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">{race.value || '--'}</span>
@@ -1119,7 +1262,6 @@ const Personal: React.FC<PersonalProps> = ({ data, people, trainingTypes, refres
                                                     </div>
                                                 </div>
 
-                                                {/* Expanded: Note */}
                                                 {isExpanded && !isPreview && (
                                                     <div className="mt-3 pt-3 border-t border-white/20 animate-fade-in relative">
                                                         <p className="text-xs text-zinc-200 leading-relaxed whitespace-pre-wrap drop-shadow-md font-medium">{race.note || '無詳細內容'}</p>
@@ -1145,35 +1287,6 @@ const Personal: React.FC<PersonalProps> = ({ data, people, trainingTypes, refres
             </div>
         )}
 
-        {/* Player Selection Modal */}
-        {showPlayerList && (
-          <div className="fixed inset-0 z-[110] flex items-end justify-center bg-black/90 backdrop-blur-md animate-fade-in" onClick={() => setShowPlayerList(false)}>
-             <div className="glass-card w-full max-w-md rounded-t-[32px] p-6 shadow-2xl animate-slide-up bg-[#0f0508] border-white/10 flex flex-col max-h-[70vh]" onClick={e => e.stopPropagation()}>
-                <div className="flex justify-between items-center mb-6 shrink-0">
-                  <div>
-                    <h3 className="text-xl font-black text-white tracking-tight flex items-center gap-2"><Users size={20} className="text-sunset-rose"/> 切換檢視選手</h3>
-                    <p className="text-[9px] text-zinc-500 font-black uppercase tracking-[0.3em] mt-0.5">Select Rider</p>
-                  </div>
-                  <button onClick={() => setShowPlayerList(false)} className="w-10 h-10 flex items-center justify-center bg-white/5 rounded-full text-zinc-500 active:scale-95"><X size={20} /></button>
-                </div>
-
-                <div className="flex-1 overflow-y-auto no-scrollbar pb-6">
-                   <div className="grid grid-cols-2 gap-3">
-                      {people.filter(p => !p.is_hidden).map(p => (
-                          <RiderListItem 
-                              key={p.id}
-                              person={p}
-                              isActive={String(p.id) === String(person.id)}
-                              onClick={() => { onSelectPerson(p.id); setShowPlayerList(false); }}
-                          />
-                      ))}
-                   </div>
-                </div>
-             </div>
-          </div>
-        )}
-
-        {/* Auth Modal for Protected Actions */}
         {showAuthModal && (
             <div className="fixed inset-0 z-[120] flex items-center justify-center p-6 bg-black/85 backdrop-blur-md animate-fade-in" onClick={() => setShowAuthModal(false)}>
                 <div className="glass-card w-full max-w-xs rounded-3xl p-8 shadow-2xl border-white/10 text-center" onClick={e => e.stopPropagation()}>
