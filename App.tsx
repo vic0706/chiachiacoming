@@ -7,7 +7,7 @@ import Training from './pages/Training';
 import Settings from './pages/Settings';
 import Personal from './pages/Personal';
 import { api } from './services/api';
-import { DataRecord, LookupItem } from './types';
+import { DataRecord, LookupItem, TeamInfo } from './types';
 
 const DEFAULT_NAME = '睿睿';
 
@@ -20,6 +20,7 @@ const App: React.FC = () => {
   const [trainingTypes, setTrainingTypes] = useState<LookupItem[]>([]);
   const [raceGroups, setRaceGroups] = useState<LookupItem[]>([]);
   const [people, setPeople] = useState<LookupItem[]>([]);
+  const [teamInfo, setTeamInfo] = useState<TeamInfo | null>(null);
   
   const [defaultTrainingType, setDefaultTrainingType] = useState<string>('');
   const [selectedPersonId, setSelectedPersonId] = useState<string | number>(() => {
@@ -35,17 +36,19 @@ const App: React.FC = () => {
   const fetchData = useCallback(async () => {
     if (!hasInitialized.current) setIsLoading(true);
     
-    const { records, trainingTypes: tTypes, races: rGroups, people: pList } = await api.fetchAppData();
+    // fetchAppData now fetches teamInfo as well
+    const { records, trainingTypes: tTypes, races: rGroups, people: pList, teamInfo: tInfo } = await api.fetchAppData();
     
     setData(records);
     setTrainingTypes(tTypes);
     setRaceGroups(rGroups);
     setPeople(pList);
+    setTeamInfo(tInfo);
     
     // 確保 selectedPersonId 在名單內，否則預設為第一個
     if (pList.length > 0) {
       const savedId = localStorage.getItem('louie_active_person_id');
-      // 檢查 savedId 是否有效且該選手未被隱藏 (如果系統剛啟動不知道是否隱藏，這裡先簡單判斷是否存在)
+      // 檢查 savedId 是否有效且該選手未被隱藏
       const visiblePerson = pList.find(p => String(p.id) === savedId && !p.is_hidden);
       
       if (!savedId || !visiblePerson) {
@@ -152,6 +155,7 @@ const App: React.FC = () => {
             data={activeData}
             people={people} 
             trainingTypes={trainingTypes}
+            raceGroups={raceGroups}
             refreshData={fetchData}
             activePersonId={selectedPersonId}
             onSelectPerson={handleUpdateActivePerson}
@@ -203,7 +207,12 @@ const App: React.FC = () => {
   };
 
   return (
-    <Layout currentPage={currentPage} onNavigate={setCurrentPage}>
+    <Layout 
+      currentPage={currentPage} 
+      onNavigate={setCurrentPage}
+      title={teamInfo?.team_name}
+      subtitle={teamInfo?.team_en_name}
+    >
       {renderPage()}
     </Layout>
   );

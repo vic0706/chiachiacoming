@@ -2,7 +2,7 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { DataRecord, LookupItem } from '../types';
 import { api } from '../services/api';
-import { Search, Plus, X, Calendar, Trash2, Edit2, Camera, Filter, ChevronDown, Loader2, MapPin, ExternalLink, Maximize, Link as LinkIcon, Users, Trophy } from 'lucide-react';
+import { Search, Plus, X, Calendar, Trash2, Edit2, Camera, Filter, ChevronDown, Loader2, MapPin, ExternalLink, Maximize, Link as LinkIcon, Users, Trophy, AlertTriangle } from 'lucide-react';
 import { format } from 'date-fns';
 
 interface RacesProps {
@@ -18,6 +18,7 @@ interface RaceEvent {
     name: string;
     series_name: string;
     race_id: string | number;
+    event_id?: string | number;
     address: string;
     url: string;
     records: DataRecord[]; // Sub-items (Participants)
@@ -32,6 +33,9 @@ const Races: React.FC<RacesProps> = ({ data, refreshData, people, raceGroups }) 
   const [isEditMode, setIsEditMode] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [expandedRaceKey, setExpandedRaceKey] = useState<string | null>(null);
+
+  // New State: Capture the specific event ID being edited
+  const [editingEventId, setEditingEventId] = useState<string | number | undefined>(undefined);
 
   const initialEventForm = {
     date: format(new Date(), 'yyyy-MM-dd'),
@@ -63,12 +67,16 @@ const Races: React.FC<RacesProps> = ({ data, refreshData, people, raceGroups }) 
   const [confirmDeleteEvent, setConfirmDeleteEvent] = useState<{key: string, name: string, records: DataRecord[]} | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
+  // New: Preview Confirmation Modal State
+  const [showPreviewConfirm, setShowPreviewConfirm] = useState(false);
+
   // Grouping Logic
   const groupedRaces = useMemo(() => {
     const groups: { [key: string]: RaceEvent } = {};
     const raceRecords = data.filter(r => r.item === 'race');
 
     raceRecords.forEach(r => {
+        // Group by Date + Name to handle same-day multiple events
         const key = `${r.date}_${r.name}_${r.race_group}`;
         if (!groups[key]) {
             groups[key] = {
@@ -76,11 +84,16 @@ const Races: React.FC<RacesProps> = ({ data, refreshData, people, raceGroups }) 
                 date: r.date,
                 name: r.name,
                 series_name: r.race_group,
-                race_id: r.race_id || '',
+                race_id: r.series_id || r.race_id || '', // Maintain compatibility
+                event_id: r.event_id,
                 address: r.address,
                 url: r.url,
                 records: []
             };
+        }
+        // IMPORTANT: Ensure event_id is captured if the record has it (especially preview records)
+        if (r.event_id && !groups[key].event_id) {
+            groups[key].event_id = r.event_id;
         }
         groups[key].records.push(r);
     });
@@ -108,6 +121,7 @@ const Races: React.FC<RacesProps> = ({ data, refreshData, people, raceGroups }) 
       setEventForm({ ...initialEventForm, race_id: raceGroups[0]?.id || '' });
       setParticipantRows([]);
       setOriginalRecords([]);
+      setEditingEventId(undefined);
       setZoomScale(1);
       setPosX(50);
       setPosY(50);
@@ -125,25 +139,40 @@ const Races: React.FC<RacesProps> = ({ data, refreshData, people, raceGroups }) 
         y = parseFloat(params.get('y') || '50');
       }
 
+      // Fix: Ensure we have a valid series_id (mapped to race_id in local state)
+      // Check if existing ID is in current list, otherwise default to first available
+      const defaultGroup = raceGroups.length > 0 ? raceGroups[0] : null;
+      let targetRaceId = event.race_id;
+      
+      const isValidGroup = raceGroups.some(g => String(g.id) === String(targetRaceId));
+      
+      if (!targetRaceId || !isValidGroup) {
+          targetRaceId = defaultGroup ? defaultGroup.id : '';
+      }
+
       setEventForm({
           date: event.date,
           name: event.name,
-          race_id: event.race_id,
+          race_id: targetRaceId, 
           address: event.address,
           url: baseUrl
       });
       setZoomScale(z);
       setPosX(x);
       setPosY(y);
+      setEditingEventId(event.event_id);
 
-      const rows: ParticipantRow[] = event.records.map(r => ({
+      // Filter out PREVIEW placeholders when editing
+      const realRecords = event.records.filter(r => r.value !== 'PREVIEW');
+
+      const rows: ParticipantRow[] = realRecords.map(r => ({
           key: String(r.id),
           originalId: r.id,
           people_id: r.people_id || '',
           value: r.value
       }));
       setParticipantRows(rows);
-      setOriginalRecords(event.records);
+      setOriginalRecords(realRecords);
 
       setIsEditMode(true);
       setShowModal(true);
@@ -184,33 +213,108 @@ const Races: React.FC<RacesProps> = ({ data, refreshData, people, raceGroups }) 
 
   const handleSave = async (e: React.FormEvent) => {
       e.preventDefault();
+      
+      if (!eventForm.name.trim()) {
+          alert("請輸入比賽名稱");
+          return;
+      }
+
+      if (!eventForm.race_id) {
+          alert("請選擇賽事系列");
+          return;
+      }
+
+      // Check for preview event (0 participants)
+      const rowsToProcess = participantRows.filter(r => !r.isDeleted);
+      if (rowsToProcess.length === 0 && !isEditMode) {
+          setShowPreviewConfirm(true);
+          return;
+      }
+
+      await executeSave(rowsToProcess);
+  };
+
+  const executeSave = async (rows: ParticipantRow[]) => {
       setIsSubmitting(true);
+      setShowPreviewConfirm(false);
 
       const finalUrl = eventForm.url ? `${eventForm.url}#z=${zoomScale}&x=${posX}&y=${posY}` : '';
 
-      // Deletions
+      // 1. Deletions (only possible in Edit Mode)
       const deletedRows = participantRows.filter(r => r.isDeleted && r.originalId);
       for (const row of deletedRows) {
           if (row.originalId) await api.deleteRecord(row.originalId, 'race');
       }
 
-      // Create / Updates (Batch)
-      const activeRows = participantRows.filter(r => !r.isDeleted);
-      const promises = activeRows.map(row => {
+      // 2. Logic Split based on Mode
+      let promises = [];
+
+      // A. Creating a NEW Standalone Event (Preview Mode)
+      if (!isEditMode && rows.length === 0) {
           const payload = {
-              id: row.originalId,
               item: 'race' as const,
               date: eventForm.date,
               name: eventForm.name,
-              race_id: eventForm.race_id,
+              race_id: eventForm.race_id, // This sends series_id
               address: eventForm.address,
               url: finalUrl,
-              people_id: row.people_id,
-              value: row.value,
-              note: ''
+              value: 'PREVIEW' // Signal for creating Event
           };
-          return api.submitRecord(payload);
-      });
+          promises.push(api.submitRecord(payload));
+      }
+      // B. Adding/Updating Participants OR Updating Existing Event Details
+      else {
+          // If in Edit Mode, we MUST update the event details (race-events) as well
+          // This is critical if the user changed the date, name, or photo of the event itself
+          if (isEditMode && editingEventId) {
+              const eventPayload = {
+                  id: editingEventId, 
+                  item: 'race' as const,
+                  date: eventForm.date,
+                  name: eventForm.name,
+                  race_id: eventForm.race_id,
+                  address: eventForm.address,
+                  url: finalUrl,
+                  value: 'PREVIEW' // Signal `submitRecord` to update race-events
+              };
+              // Special handling: if editingEventId is available, we pass it. 
+              // The API submitRecord logic handles 'PREVIEW' value as a switch to update 'race-events'
+              // Passing `id: editingEventId` with `value: 'PREVIEW'` targets `race-events/{id}` via PUT.
+              promises.push(api.submitRecord(eventPayload));
+          } else if (!isEditMode && rows.length > 0) {
+             // Create event container first to ensure consistency for new events with participants
+             await api.submitRecord({
+                  item: 'race' as const,
+                  date: eventForm.date,
+                  name: eventForm.name,
+                  race_id: eventForm.race_id,
+                  address: eventForm.address,
+                  url: finalUrl,
+                  value: 'PREVIEW'
+             });
+          }
+
+          // Use the specific event ID we captured when opening edit mode
+          const targetEventId = editingEventId;
+
+          const recordPromises = rows.map(row => {
+              const payload = {
+                  id: row.originalId,
+                  item: 'race' as const,
+                  date: eventForm.date,
+                  name: eventForm.name, 
+                  race_id: eventForm.race_id, 
+                  event_id: targetEventId, 
+                  address: eventForm.address,
+                  url: finalUrl,
+                  people_id: row.people_id,
+                  value: row.value,
+                  note: ''
+              };
+              return api.submitRecord(payload);
+          });
+          promises = [...promises, ...recordPromises];
+      }
 
       await Promise.all(promises);
       
@@ -222,8 +326,15 @@ const Races: React.FC<RacesProps> = ({ data, refreshData, people, raceGroups }) 
   const handleDeleteEvent = async () => {
       if (!confirmDeleteEvent) return;
       setIsDeleting(true);
-      const promises = confirmDeleteEvent.records.map(r => api.deleteRecord(r.id!, 'race'));
-      await Promise.all(promises);
+      
+      const recordsToDelete = confirmDeleteEvent.records;
+      
+      if (recordsToDelete.length === 1 && String(recordsToDelete[0].id).startsWith('preview_')) {
+          await api.deleteRecord(recordsToDelete[0].id!, 'race');
+      } else {
+          const promises = recordsToDelete.map(r => api.deleteRecord(r.id!, 'race'));
+          await Promise.all(promises);
+      }
       
       await refreshData();
       setIsDeleting(false);
@@ -304,7 +415,9 @@ const Races: React.FC<RacesProps> = ({ data, refreshData, people, raceGroups }) 
           }
 
           // Participant List Items for Marquee
-          const recordItems = event.records.map((rec) => {
+          const recordItems = event.records
+            .filter(r => r.value !== 'PREVIEW') // Hide preview placeholders from list
+            .map((rec) => {
                const person = people.find(p => String(p.id) === String(rec.people_id));
                const isRetired = person?.is_hidden;
                const [sUrlBase, sUrlFragment] = (person?.s_url || '').split('#');
@@ -405,11 +518,15 @@ const Races: React.FC<RacesProps> = ({ data, refreshData, people, raceGroups }) 
                          <span className="text-[10px] font-black uppercase tracking-widest">參賽選手名單</span>
                       </div>
                       <div className="relative h-[240px] overflow-hidden mask-gradient-vertical">
-                          <div className={`flex flex-col ${recordItems.length > 4 ? 'animate-marquee-vertical hover:pause' : ''}`}>
-                              {recordItems}
-                              {/* Duplicate if scrolling needed */}
-                              {recordItems.length > 4 && recordItems}
-                          </div>
+                          {recordItems.length > 0 ? (
+                            <div className={`flex flex-col ${recordItems.length > 4 ? 'animate-marquee-vertical hover:pause' : ''}`}>
+                                {recordItems}
+                                {/* Duplicate if scrolling needed */}
+                                {recordItems.length > 4 && recordItems}
+                            </div>
+                          ) : (
+                             <div className="text-white/50 text-xs text-center mt-10">尚無參賽選手</div>
+                          )}
                           <style>{`
                             .animate-marquee-vertical {
                                 animation: marqueeVertical 15s linear infinite;
@@ -426,7 +543,6 @@ const Races: React.FC<RacesProps> = ({ data, refreshData, people, raceGroups }) 
                                 -webkit-mask-image: linear-gradient(to bottom, transparent, black 10%, black 90%, transparent);
                             }
                           `}</style>
-                          {recordItems.length === 0 && <div className="text-white/50 text-xs text-center mt-10">無參賽選手紀錄</div>}
                       </div>
                    </div>
                 )}
@@ -436,7 +552,7 @@ const Races: React.FC<RacesProps> = ({ data, refreshData, people, raceGroups }) 
                     <div className="flex items-center gap-2 mt-3 pt-3 border-t border-white/10">
                        <div className={`w-1.5 h-1.5 rounded-full ${isUpcoming ? 'bg-sunset-gold animate-pulse' : 'bg-emerald-500'}`}></div>
                        <span className="text-[10px] font-black text-white/80 uppercase tracking-widest drop-shadow-sm">{isUpcoming ? '戰備預定' : '完賽紀錄'}</span>
-                       <span className="text-[10px] text-zinc-400 font-bold ml-auto">{event.records.length} 名選手參賽</span>
+                       <span className="text-[10px] text-zinc-400 font-bold ml-auto">{recordItems.length} 名選手參賽</span>
                     </div>
                 )}
               </div>
@@ -631,6 +747,28 @@ const Races: React.FC<RacesProps> = ({ data, refreshData, people, raceGroups }) 
               <button onClick={() => setConfirmDeleteEvent(null)} className="py-3 bg-zinc-900 text-zinc-400 font-bold text-xs rounded-xl active:bg-zinc-800 transition-colors border border-white/5">取消</button>
               <button onClick={handleDeleteEvent} disabled={isDeleting} className="py-3 bg-rose-600 text-white font-bold text-xs rounded-xl active:scale-95 transition-all shadow-glow-rose">
                 {isDeleting ? '正在移除...' : '確定刪除'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Preview Confirmation Modal (Replaces browser confirm) */}
+      {showPreviewConfirm && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm animate-fade-in">
+          <div className="glass-card w-full max-w-xs rounded-3xl p-6 shadow-2xl border-white/10 text-center animate-scale-in">
+            <div className="w-12 h-12 bg-sunset-gold/20 rounded-full flex items-center justify-center mx-auto mb-4">
+               <AlertTriangle size={24} className="text-sunset-gold" />
+            </div>
+            <h3 className="text-lg font-black text-white mb-2">建立預告賽事？</h3>
+            <p className="text-xs text-zinc-400 mb-6 leading-relaxed">
+              您尚未新增任何參賽選手。<br/>
+              系統將自動建立一筆隱藏的佔位紀錄 (PREVIEW) 以確保賽事能顯示於列表中。
+            </p>
+            <div className="grid grid-cols-2 gap-3 mt-6">
+              <button onClick={() => setShowPreviewConfirm(false)} className="py-3 bg-zinc-900 text-zinc-400 font-bold text-xs rounded-xl active:bg-zinc-800 transition-colors border border-white/5">取消</button>
+              <button onClick={() => executeSave([])} disabled={isSubmitting} className="py-3 bg-gradient-to-r from-sunset-gold to-orange-500 text-black font-black text-xs rounded-xl active:scale-95 transition-all shadow-glow-gold">
+                {isSubmitting ? <Loader2 size={16} className="animate-spin" /> : '確認建立'}
               </button>
             </div>
           </div>

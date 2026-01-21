@@ -9,6 +9,7 @@ export interface LookupItem {
   is_hidden?: boolean;
   s_url?: string;
   b_url?: string;
+  myword?: string; // 新增：我想說的話
 }
 
 export interface DataRecord {
@@ -29,7 +30,11 @@ export interface DataRecord {
   // D1 Relation IDs
   people_id?: number | string;
   training_type_id?: number | string;
-  race_id?: number | string;
+  
+  // New Race Architecture
+  race_id?: number | string; // Legacy compatibility (series_id in form)
+  series_id?: number | string; // New Series ID
+  event_id?: number | string; // Specific Race Event ID
 }
 
 export interface TrainingStat {
@@ -40,4 +45,11 @@ export interface TrainingStat {
   count: number;
   records: { id: string | number; value: number }[];
   stabilityScore: number;
+}
+
+export interface TeamInfo {
+  id: string | number;
+  team_name: string;
+  team_en_name: string;
+  team_code?: string;
 }

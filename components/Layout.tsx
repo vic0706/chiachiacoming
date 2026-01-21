@@ -6,9 +6,11 @@ interface LayoutProps {
   children: React.ReactNode;
   currentPage: string;
   onNavigate: (page: string) => void;
+  title?: string;
+  subtitle?: string;
 }
 
-const Layout: React.FC<LayoutProps> = ({ children, currentPage, onNavigate }) => {
+const Layout: React.FC<LayoutProps> = ({ children, currentPage, onNavigate, title = "睿睿滑步車", subtitle = "LOUIE RUNBIKE" }) => {
   return (
     <div className="flex flex-col h-[100dvh] w-full relative font-sans text-zinc-200 bg-transparent overflow-hidden">
       
@@ -34,11 +36,11 @@ const Layout: React.FC<LayoutProps> = ({ children, currentPage, onNavigate }) =>
             
             <div className="flex flex-col justify-center flex-1">
               <h1 className="text-xl font-black italic tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-white via-zinc-200 to-zinc-400 leading-none transform -skew-x-6 drop-shadow-sm">
-                睿睿滑步車
+                {title}
               </h1>
               <div className="flex items-center gap-2 mt-1.5">
                 <div className="h-0.5 w-6 rounded-full bg-gradient-to-r from-sunset-rose to-sunset-gold"></div>
-                <span className="text-[10px] text-zinc-400 font-bold tracking-[0.25em] uppercase leading-none">LOUIE RUNBIKE</span>
+                <span className="text-[10px] text-zinc-400 font-bold tracking-[0.25em] uppercase leading-none">{subtitle}</span>
               </div>
             </div>
           </div>

@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { api } from '../services/api';
 import { DataRecord, LookupItem } from '../types';
-import { ChevronDown, Settings2, Check, X } from 'lucide-react';
+import { ChevronDown, Settings2, Check, X, Lock, Unlock, KeyRound, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 
 interface TrainingProps {
@@ -35,6 +35,30 @@ const Training: React.FC<TrainingProps> = ({
   const [lastRecord, setLastRecord] = useState<string | null>(null);
   const [showPeopleModal, setShowPeopleModal] = useState(false);
 
+  // OTP Lock State
+  const [isOtpUnlocked, setIsOtpUnlocked] = useState(false);
+  const [otpInput, setOtpInput] = useState('');
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [initialCheckDone, setInitialCheckDone] = useState(false);
+
+  // Check for existing OTP on mount and VERIFY it
+  useEffect(() => {
+    const checkAuth = async () => {
+        const savedOtp = api.getOtp();
+        if (savedOtp) {
+            const isValid = await api.verifyOtp(savedOtp);
+            if (isValid) {
+                setIsOtpUnlocked(true);
+            } else {
+                // If invalid/expired, clear it
+                api.setOtp('');
+            }
+        }
+        setInitialCheckDone(true);
+    };
+    checkAuth();
+  }, []);
+
   useEffect(() => {
     if (defaultType && trainingTypes.length > 0) {
         const found = trainingTypes.find(t => t.name === defaultType);
@@ -43,6 +67,33 @@ const Training: React.FC<TrainingProps> = ({
         setSelectedTypeId(String(trainingTypes[0].id));
     }
   }, [defaultType, trainingTypes]);
+
+  const handleLogin = async () => {
+      if (!otpInput) {
+          alert('請輸入密碼');
+          return;
+      }
+      setIsVerifying(true);
+
+      // 1. Try Admin Password first
+      const adminResult = await api.authenticate(otpInput);
+      
+      if (adminResult.success && adminResult.otp) {
+          // Success: User entered Admin Password
+          api.setOtp(adminResult.otp); // Store the generated OTP
+          setIsOtpUnlocked(true);
+      } else {
+          // 2. Try verifying as Guest OTP
+          const isValidOtp = await api.verifyOtp(otpInput);
+          if (isValidOtp) {
+             api.setOtp(otpInput); // Store the valid OTP
+             setIsOtpUnlocked(true);
+          } else {
+             alert('密碼錯誤');
+          }
+      }
+      setIsVerifying(false);
+  };
 
   const selectedTypeName = useMemo(() => {
     return trainingTypes.find(t => String(t.id) === selectedTypeId)?.name || '';
@@ -146,7 +197,7 @@ const Training: React.FC<TrainingProps> = ({
       setTimeout(() => setStatus('idle'), 1500);
     } else {
       setStatus('error');
-      alert('上傳失敗');
+      alert('上傳失敗，請確認密碼是否正確或已過期');
       setTimeout(() => setStatus('idle'), 1500);
     }
   };
@@ -163,6 +214,42 @@ const Training: React.FC<TrainingProps> = ({
     .slice(0, 5);
   
   const todayCount = todayRecords.length;
+
+  // Don't render until we've checked local storage
+  if (!initialCheckDone) return null;
+
+  if (!isOtpUnlocked) {
+      return (
+        <div className="h-full flex flex-col items-center justify-center p-6 animate-fade-in relative">
+           <div className="glass-card w-full max-w-xs rounded-3xl p-8 shadow-2xl border-white/10 text-center">
+               <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
+                 <KeyRound size={32} className="text-white opacity-80" />
+               </div>
+               <h3 className="text-xl font-black text-white tracking-tight mb-2">紀錄功能鎖定</h3>
+               <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mb-6">Enter OTP or Admin Password</p>
+               
+               <input 
+                  autoFocus
+                  type="password" 
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  value={otpInput}
+                  onChange={(e) => setOtpInput(e.target.value)}
+                  placeholder="Password / OTP"
+                  className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-white text-center tracking-widest mb-4 outline-none focus:border-rose-500/50 shadow-inner"
+               />
+               <button 
+                  onClick={handleLogin}
+                  disabled={!otpInput || isVerifying}
+                  className="w-full py-3 bg-gradient-to-r from-rose-600 to-amber-500 text-white font-bold text-xs rounded-xl shadow-glow active:scale-95 transition-all flex items-center justify-center gap-2"
+               >
+                  {isVerifying ? <Loader2 size={16} className="animate-spin" /> : <Unlock size={16} />} 
+                  驗證並進入
+               </button>
+           </div>
+        </div>
+      );
+  }
 
   return (
     <div className="flex flex-col h-full px-3 pt-3 pb-1 relative animate-fade-in overflow-hidden">
