@@ -18,7 +18,6 @@ interface SettingsProps {
   onUpdateName: (name: string) => void;
 }
 
-// Helper Component for Image Cropper with Upload (Updated to match Personal.tsx version)
 const ImageCropperInput = ({ 
     label, 
     urlValue, 
@@ -40,6 +39,7 @@ const ImageCropperInput = ({
   const [y, setY] = useState(50);
   const [error, setError] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [isLocked, setIsLocked] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -72,6 +72,7 @@ const ImageCropperInput = ({
           if (result.url) {
               const timestampUrl = `${result.url}?t=${Date.now()}`;
               onChange(`${timestampUrl}#z=1&x=50&y=50`); 
+              setIsLocked(false);
           } else {
               alert(`上傳失敗: ${result.error}`);
           }
@@ -81,13 +82,14 @@ const ImageCropperInput = ({
   };
 
   const handleDragStart = (e: React.MouseEvent | React.TouchEvent) => {
+      if (isLocked) return;
       isDragging.current = true;
       const point = 'touches' in e ? e.touches[0] : (e as React.MouseEvent);
       lastPoint.current = { x: point.clientX, y: point.clientY };
   };
   
   const handleDragMove = (e: React.MouseEvent | React.TouchEvent) => {
-      if (!isDragging.current || !cropperRef.current) return;
+      if (!isDragging.current || !cropperRef.current || isLocked) return;
       if(e.cancelable) e.preventDefault();
       
       const point = 'touches' in e ? e.touches[0] : (e as React.MouseEvent);
@@ -122,19 +124,26 @@ const ImageCropperInput = ({
           </div>
 
           {baseUrl && (
-               <div className="space-y-3 bg-white/5 p-4 rounded-2xl border border-white/10 shadow-lg mt-2">
-                  <div className="text-[9px] font-black text-zinc-500 uppercase tracking-widest flex items-center gap-1"><Maximize size={10}/> 縮放與位置調整</div>
+               <div className="space-y-3 bg-white/5 p-4 rounded-2xl border border-white/10 shadow-lg mt-2 relative">
+                  <div className="flex justify-between items-center text-[9px] font-black text-zinc-500 uppercase tracking-widest mb-1">
+                      <span className="flex items-center gap-1"><Maximize size={10}/> 縮放與位置調整</span>
+                      <button type="button" onClick={() => setIsLocked(!isLocked)} className={`flex items-center gap-1 px-2 py-1 rounded-lg border ${isLocked ? 'border-zinc-700 bg-zinc-800 text-zinc-400' : 'border-rose-500/50 bg-rose-500/10 text-rose-500'}`}>
+                          {isLocked ? <Lock size={10} /> : <Unlock size={10} />}
+                          {isLocked ? '鎖定' : '編輯中'}
+                      </button>
+                  </div>
                   <div className="flex justify-center bg-black rounded-xl border border-white/5 p-2">
-                    <div ref={cropperRef} className={`relative overflow-hidden bg-zinc-900 border border-white/10 shadow-inner group cursor-move touch-none ${ratioClass}`} style={{ touchAction: 'none' }} onMouseDown={handleDragStart} onMouseMove={handleDragMove} onMouseUp={handleDragEnd} onMouseLeave={handleDragEnd} onTouchStart={handleDragStart} onTouchMove={handleDragMove} onTouchEnd={handleDragEnd}>
+                    <div ref={cropperRef} className={`relative overflow-hidden bg-zinc-900 border border-white/10 shadow-inner group touch-none ${ratioClass}`} style={{ touchAction: 'none' }} onMouseDown={handleDragStart} onMouseMove={handleDragMove} onMouseUp={handleDragEnd} onMouseLeave={handleDragEnd} onTouchStart={handleDragStart} onTouchMove={handleDragMove} onTouchEnd={handleDragEnd}>
                         {!error ? (
-                            <img src={baseUrl} className="w-full h-full object-contain pointer-events-none select-none" style={{ transform: `translate(${(x - 50) * 1.5}%, ${(y - 50) * 1.5}%) scale(${z})` }} onError={() => setError(true)} />
+                            <img src={baseUrl} className={`w-full h-full object-cover pointer-events-none select-none ${isLocked ? 'opacity-80' : ''}`} style={{ transform: `translate(${(x - 50) * 1.5}%, ${(y - 50) * 1.5}%) scale(${z})` }} onError={() => setError(true)} />
                         ) : (
                             <div className="w-full h-full flex flex-col items-center justify-center bg-zinc-950 text-zinc-600 space-y-2"><ImageIcon size={24} className="opacity-30"/></div>
                         )}
-                        <div className="absolute inset-0 pointer-events-none opacity-20"><div className="w-full h-full border border-white/30 flex"><div className="flex-1 border-r border-white/30"></div><div className="flex-1 border-r border-white/30"></div><div className="flex-1"></div></div><div className="absolute inset-0 flex flex-col"><div className="flex-1 border-b border-white/30"></div><div className="flex-1 border-b border-white/30"></div><div className="flex-1"></div></div></div>
+                        <div className={`absolute inset-0 pointer-events-none transition-opacity ${isLocked ? 'opacity-0' : 'opacity-20'}`}><div className="w-full h-full border border-white/30 flex"><div className="flex-1 border-r border-white/30"></div><div className="flex-1 border-r border-white/30"></div><div className="flex-1"></div></div><div className="absolute inset-0 flex flex-col"><div className="flex-1 border-b border-white/30"></div><div className="flex-1 border-b border-white/30"></div><div className="flex-1"></div></div></div>
+                        {isLocked && <div className="absolute inset-0 flex items-center justify-center pointer-events-none"><Lock size={24} className="text-white/20" /></div>}
                     </div>
                   </div>
-                  <div className="px-1">
+                  <div className={`px-1 transition-opacity ${isLocked ? 'opacity-50 pointer-events-none' : 'opacity-100'}`}>
                       <div className="flex justify-between text-[8px] text-zinc-500 font-mono mb-1"><span>ZOOM: {z.toFixed(2)}x</span><span>POS: {x.toFixed(0)},{y.toFixed(0)}</span></div>
                       <input type="range" min="0.1" max="5" step="0.01" value={z} onChange={e => { const val = parseFloat(e.target.value); setZ(val); updateUrl(val, x, y); }} className="w-full accent-sunset-rose h-1.5 bg-zinc-800 rounded-full appearance-none shadow-inner" />
                   </div>
@@ -171,6 +180,12 @@ const Settings: React.FC<SettingsProps> = ({ data, trainingTypes, raceGroups, de
   const [exportType, setExportType] = useState(defaultType || (trainingTypes[0]?.name || ''));
 
   useEffect(() => {
+    // Check for cached admin auth (Global 5 mins)
+    const cachedAuth = localStorage.getItem('louie_admin_auth_ts');
+    if (cachedAuth && Date.now() < Number(cachedAuth)) {
+        setIsAdminUnlocked(true);
+    }
+
     const savedOtpJson = localStorage.getItem('louie_admin_generated_otp');
     if (savedOtpJson) {
       try {
@@ -204,6 +219,11 @@ const Settings: React.FC<SettingsProps> = ({ data, trainingTypes, raceGroups, de
           setIsAdminUnlocked(true);
           setCachedAdminPassword(adminPasswordInput);
           setAdminPasswordInput('');
+          // Cache for 5 minutes (Global Admin Key)
+          localStorage.setItem('louie_admin_auth_ts', String(Date.now() + 5 * 60 * 1000));
+          if(result.otp) {
+              api.setOtp(result.otp);
+          }
       } else {
           alert('密碼錯誤');
       }
@@ -411,6 +431,7 @@ const Settings: React.FC<SettingsProps> = ({ data, trainingTypes, raceGroups, de
 
   return (
     <div className="h-full overflow-y-auto px-3 pt-4 pb-20 space-y-6 animate-fade-in no-scrollbar relative">
+      {/* ... (Existing Settings UI) ... */}
       <div className="mb-6 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-zinc-900 flex items-center justify-center border border-white/5 shadow-inner">
@@ -486,7 +507,7 @@ const Settings: React.FC<SettingsProps> = ({ data, trainingTypes, raceGroups, de
             return (
                 <div key={p.id} onClick={() => handleOpenEditPerson(p)} className={`flex flex-col items-center justify-center p-2 rounded-xl border transition-all relative overflow-hidden active:scale-95 cursor-pointer ${p.is_hidden ? 'bg-zinc-950/40 border-zinc-800 opacity-70' : 'bg-zinc-900/40 border-white/10 hover:bg-zinc-800'}`}>
                 
-                <div className="relative mb-2 w-12 h-12">
+                <div className="relative mb-2 w-16 h-16">
                     <div className={`w-full h-full rounded-full flex items-center justify-center overflow-hidden border-2 transition-colors relative ${p.is_hidden ? 'bg-zinc-800 border-zinc-700' : 'bg-zinc-800 border-rose-500 shadow-glow-rose'}`}>
                         {sUrlBase ? (
                             <img 
@@ -520,7 +541,7 @@ const Settings: React.FC<SettingsProps> = ({ data, trainingTypes, raceGroups, de
         </div>
       </section>
 
-      {/* Rest of the sections (Training Types, Races, CSV) remain unchanged */}
+      {/* Rest of the sections (Training Types, Races, CSV) ... */}
       <section className="glass-card rounded-2xl p-5 border border-white/5">
         <h3 className="text-xs font-bold text-zinc-500 mb-4 flex items-center tracking-widest uppercase gap-2"><Activity size={14} className="text-amber-500" /> 訓練項目管理</h3>
         <div className="flex gap-3 mb-5">
@@ -651,10 +672,12 @@ const Settings: React.FC<SettingsProps> = ({ data, trainingTypes, raceGroups, de
                  <div className="space-y-1.5">
                     <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1 flex items-center gap-1"><CalendarDays size={12}/> 生日</label>
                     <input 
-                       type="date" 
+                       type="date"
+                       lang="en-US"
                        value={editingPerson.birthday || ''}
                        onChange={(e) => setEditingPerson({...editingPerson, birthday: e.target.value})}
-                       className="w-full bg-zinc-900 border border-white/10 rounded-xl px-4 py-3 text-white text-sm font-mono outline-none focus:border-rose-500/50 transition-colors shadow-inner"
+                       className="w-full bg-zinc-900 border border-white/10 rounded-xl px-4 py-3 text-white text-sm font-mono outline-none focus:border-rose-500/50 transition-colors shadow-inner block appearance-none"
+                       style={{colorScheme: 'dark'}}
                     />
                  </div>
 
@@ -664,7 +687,7 @@ const Settings: React.FC<SettingsProps> = ({ data, trainingTypes, raceGroups, de
                             label={`頭像`}
                             urlValue={tempSUrl} 
                             onChange={setTempSUrl} 
-                            ratioClass="aspect-square w-32 mx-auto rounded-full border-2 border-white/10"
+                            ratioClass="aspect-square w-44 mx-auto rounded-full border-2 border-white/10"
                             personId={editingPerson.id}
                             typeSuffix="s"
                         />

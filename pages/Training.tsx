@@ -44,11 +44,30 @@ const Training: React.FC<TrainingProps> = ({
   // Check for existing OTP on mount and VERIFY it
   useEffect(() => {
     const checkAuth = async () => {
+        // 1. First check Global Admin Cache
+        const adminAuth = localStorage.getItem('louie_admin_auth_ts');
+        if (adminAuth && Date.now() < Number(adminAuth)) {
+            setIsOtpUnlocked(true);
+            setInitialCheckDone(true);
+            return;
+        }
+
+        // 2. Then check local Training Cache
+        const cachedAuth = localStorage.getItem('louie_training_auth_ts');
+        if (cachedAuth && Date.now() < Number(cachedAuth)) {
+            setIsOtpUnlocked(true);
+            setInitialCheckDone(true);
+            return;
+        }
+
+        // 3. Finally check stored OTP (Legacy)
         const savedOtp = api.getOtp();
         if (savedOtp) {
             const isValid = await api.verifyOtp(savedOtp);
             if (isValid) {
                 setIsOtpUnlocked(true);
+                // Refresh cache
+                localStorage.setItem('louie_training_auth_ts', String(Date.now() + 5 * 60 * 1000));
             } else {
                 // If invalid/expired, clear it
                 api.setOtp('');
@@ -82,12 +101,16 @@ const Training: React.FC<TrainingProps> = ({
           // Success: User entered Admin Password
           api.setOtp(adminResult.otp); // Store the generated OTP
           setIsOtpUnlocked(true);
+          // Cache Global Admin Auth for 5 mins
+          localStorage.setItem('louie_admin_auth_ts', String(Date.now() + 5 * 60 * 1000));
       } else {
           // 2. Try verifying as Guest OTP
           const isValidOtp = await api.verifyOtp(otpInput);
           if (isValidOtp) {
              api.setOtp(otpInput); // Store the valid OTP
              setIsOtpUnlocked(true);
+             // Cache auth for 5 mins
+             localStorage.setItem('louie_training_auth_ts', String(Date.now() + 5 * 60 * 1000));
           } else {
              alert('密碼錯誤');
           }
@@ -115,50 +138,39 @@ const Training: React.FC<TrainingProps> = ({
     let textSize = 'text-2xl';
     let radius = 'rounded-2xl';
 
-    // 依照人數決定網格切割方式 (Grid Template)
     if (count <= 1) {
-       // 1人: 滿版
-       cols = 1; rows = 1; 
-       textSize = 'text-[80px]'; radius = 'rounded-[40px]';
+       cols = 1; rows = 1; textSize = 'text-[80px]'; radius = 'rounded-[40px]';
     } else if (count === 2) {
-       // 2人: 上下兩塊
-       cols = 1; rows = 2; 
-       textSize = 'text-6xl'; radius = 'rounded-[32px]';
+       cols = 1; rows = 2; textSize = 'text-6xl'; radius = 'rounded-[32px]';
     } else if (count === 3) {
-       // 3人: 上下三塊
-       cols = 1; rows = 3; 
-       textSize = 'text-5xl'; radius = 'rounded-3xl';
+       cols = 1; rows = 3; textSize = 'text-5xl'; radius = 'rounded-3xl';
     } else if (count === 4) {
-       // 4人: 2x2
-       cols = 2; rows = 2; 
-       textSize = 'text-4xl'; radius = 'rounded-3xl';
+       cols = 2; rows = 2; textSize = 'text-4xl'; radius = 'rounded-3xl';
     } else if (count <= 6) {
-       // 5-6人: 2x3
-       cols = 2; rows = 3; 
-       textSize = 'text-3xl'; radius = 'rounded-2xl';
+       cols = 2; rows = 3; textSize = 'text-3xl'; radius = 'rounded-2xl';
     } else if (count <= 8) {
-       // 7-8人: 2x4
-       cols = 2; rows = 4; 
-       textSize = 'text-2xl'; radius = 'rounded-2xl';
+       cols = 2; rows = 4; textSize = 'text-2xl'; radius = 'rounded-2xl';
     } else if (count <= 9) {
-       // 9人: 3x3
-       cols = 3; rows = 3; 
-       textSize = 'text-2xl'; radius = 'rounded-xl';
+       cols = 3; rows = 3; textSize = 'text-2xl'; radius = 'rounded-xl';
     } else {
-       // 10-12人: 3x4
-       cols = 3; rows = 4; 
-       textSize = 'text-xl'; radius = 'rounded-xl';
+       cols = 3; rows = 4; textSize = 'text-xl'; radius = 'rounded-xl';
     }
 
     return { cols, rows, textSize, radius };
   }, [pinnedPeople.length]);
 
   const handleNumberClick = (num: string) => {
+    // 4-2 & 4-3: Strict check for active person selection
+    if (!activePersonId) {
+        alert('請先點選人物 (Please select a rider first)');
+        return;
+    }
+
     if (inputValue.length > 10) return;
     if (num === '.' && inputValue.includes('.')) return;
     if (inputValue.includes('.')) {
         const parts = inputValue.split('.');
-        if (parts[1].length >= 3) return; // Limit to 3 decimal places
+        if (parts[1].length >= 3) return; 
     }
     setInputValue(prev => prev + num);
   };
@@ -169,6 +181,11 @@ const Training: React.FC<TrainingProps> = ({
   const handleSubmit = async () => {
     if (!selectedTypeId) {
         alert('請先在設定中新增訓練項目');
+        return;
+    }
+
+    if (!activePersonId) {
+        alert('請先點選人物 (Please select a rider first)');
         return;
     }
     
@@ -185,7 +202,7 @@ const Training: React.FC<TrainingProps> = ({
       item: 'training',
       training_type_id: selectedTypeId,
       people_id: activePersonId,
-      value: val.toFixed(3) // Change to 3 decimals
+      value: val.toFixed(3)
     };
 
     const success = await api.submitRecord(record);
@@ -215,7 +232,6 @@ const Training: React.FC<TrainingProps> = ({
   
   const todayCount = todayRecords.length;
 
-  // Don't render until we've checked local storage
   if (!initialCheckDone) return null;
 
   if (!isOtpUnlocked) {
@@ -254,11 +270,8 @@ const Training: React.FC<TrainingProps> = ({
   return (
     <div className="flex flex-col h-full px-3 pt-3 pb-1 relative animate-fade-in overflow-hidden">
       
-      {/* 1. TOP BAR: [Select] [Display] [Settings] */}
-      {/* 固定高度 flex-none，確保不會被壓縮或拉伸 */}
+      {/* 1. TOP BAR */}
       <div className="flex-none flex items-stretch gap-2 mb-2 h-16 z-20">
-        
-        {/* Left: Selector */}
         <div className="w-[30%] relative group">
           <div className="absolute inset-0 bg-gradient-to-r from-amber-500/10 to-transparent rounded-xl blur-sm opacity-50 group-hover:opacity-100 transition-all"></div>
           <select 
@@ -275,7 +288,6 @@ const Training: React.FC<TrainingProps> = ({
           </div>
         </div>
 
-        {/* Center: Main Display */}
         <div className="flex-1 glass-card rounded-2xl px-4 flex flex-col justify-center text-right relative overflow-hidden border-t border-t-white/10 shadow-xl">
            <div className="absolute top-2 left-3 flex items-center gap-2">
             {status === 'saving' && <span className="text-rose-500 text-[9px] font-black flex items-center animate-pulse tracking-widest">SAVING...</span>}
@@ -289,7 +301,6 @@ const Training: React.FC<TrainingProps> = ({
           </span>
         </div>
 
-        {/* Right: Settings Button */}
         <button 
           onClick={() => setShowPeopleModal(true)}
           className="flex-none w-16 h-full bg-zinc-900 border border-white/10 text-zinc-400 rounded-2xl flex items-center justify-center active:scale-95 transition-all shadow-lg hover:text-white hover:border-white/20 group"
@@ -299,11 +310,6 @@ const Training: React.FC<TrainingProps> = ({
       </div>
 
       {/* 2. MIDDLE: Player Grid */}
-      {/* 
-         關鍵修正：
-         1. 父層 `flex-1 relative min-h-0`：佔據剩餘空間，但不強制撐開，避免跑版到下方計算機背面。
-         2. 子層 `absolute inset-0`：強制填滿父層空間，無論內容多大都被限制住。
-      */}
       <div className="flex-1 relative min-h-0 mb-2 z-10">
           <div className="absolute inset-0 rounded-2xl p-0.5">
              <div 
@@ -338,10 +344,7 @@ const Training: React.FC<TrainingProps> = ({
       </div>
 
       {/* 3. BOTTOM: Keypad */}
-      {/* 固定高度 flex-none，確保計算機永遠在底部，且有足夠空間 */}
       <div className="flex-none flex flex-col pb-1 z-20">
-        
-        {/* Today's History Row */}
         <div className="h-5 mb-1 px-1 flex items-center justify-between">
            {todayHistory.length > 0 && (
              <>
@@ -358,7 +361,6 @@ const Training: React.FC<TrainingProps> = ({
            )}
         </div>
 
-        {/* Keypad Grid (4 rows: 1-9 + . 0 DEL) */}
         <div className="grid grid-cols-3 gap-1.5 mb-1.5">
           {[1, 2, 3, 4, 5, 6, 7, 8, 9, '.', 0].map(val => (
             <button key={val} onClick={() => typeof val === 'number' || val === '.' ? handleNumberClick(String(val)) : null} 
@@ -369,7 +371,6 @@ const Training: React.FC<TrainingProps> = ({
           <button onClick={handleBackspace} className="glass-card bg-[#111]/90 text-rose-500 flex items-center justify-center active:scale-95 rounded-xl border border-white/5 font-black text-xl h-14 hover:bg-rose-500/10 transition-colors">DEL</button>
         </div>
 
-        {/* Action Buttons */}
         <div className="grid grid-cols-4 gap-1.5 h-14 shrink-0">
            <button onClick={handleClear} className="bg-zinc-900 text-zinc-500 font-black rounded-xl active:scale-95 border border-white/5 text-[10px] uppercase tracking-widest hover:text-white transition-colors">Clear</button>
            <button onClick={handleSubmit} disabled={!inputValue || status === 'saving'}
@@ -379,7 +380,6 @@ const Training: React.FC<TrainingProps> = ({
         </div>
       </div>
 
-      {/* 選手管理 Modal */}
       {showPeopleModal && (
         <div className="fixed inset-0 z-[100] flex items-end justify-center bg-black/85 backdrop-blur-md animate-fade-in" onClick={() => setShowPeopleModal(false)}>
            <div className="glass-card w-full max-w-md rounded-t-[32px] p-6 shadow-2xl animate-slide-up bg-[#0f0508] border-white/10 flex flex-col max-h-[85vh]" onClick={e => e.stopPropagation()}>

@@ -40,7 +40,7 @@ export const api = {
 
       if (res.ok) {
         const data = await res.json();
-        if (data.success) {
+        if (data.success === true) {
           return { success: true, otp: data.otp };
         }
       }
@@ -64,7 +64,7 @@ export const api = {
 
       if (res.ok) {
           const data = await res.json();
-          return !!data.success;
+          return data.success === true;
       }
       return false;
     } catch (e) {
@@ -76,19 +76,23 @@ export const api = {
   // 隊員個人登入驗證
   loginPerson: async (id: string | number, password: string): Promise<boolean> => {
     try {
-        const res = await fetch(`${WORKER_URL}/login`, {
+        const loginUrl = WORKER_URL.replace('/api', '') + '/login';
+        
+        const res = await fetch(loginUrl, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 team_id: TEAM_ID,
                 id: String(id),
                 password: password
-            })
+            }),
+            headers: { 
+                'Content-Type': 'application/json'
+            }
         });
         
         if (res.ok) {
             const data = await res.json();
-            return data.success;
+            return data.success === true;
         }
         return false;
     } catch (e) {
@@ -102,18 +106,16 @@ export const api = {
   setOtp: (otp: string) => localStorage.setItem(OTP_STORAGE_KEY, otp),
 
   fetchAppData: async () => {
-    // 根據 Worker 的新架構，分別取得 賽事事件(Events) 與 個人紀錄(Records)
     const [trainRecs, raceEvents, raceRecords, trainTypes, races, people, teamInfoRes] = await Promise.all([
       safeFetchJson(`${WORKER_URL}/training-records?team_id=${TEAM_ID}`),
-      safeFetchJson(`${WORKER_URL}/race-events?team_id=${TEAM_ID}`),  // 取得賽事列表 (含人數統計)
-      safeFetchJson(`${WORKER_URL}/race-records?team_id=${TEAM_ID}`), // 取得個人詳細成績
+      safeFetchJson(`${WORKER_URL}/race-events?team_id=${TEAM_ID}`),  
+      safeFetchJson(`${WORKER_URL}/race-records?team_id=${TEAM_ID}`), 
       safeFetchJson(`${WORKER_URL}/training-types`),
       safeFetchJson(`${WORKER_URL}/race-series`),
       safeFetchJson(`${WORKER_URL}/people?team_id=${TEAM_ID}`),
       safeFetchJson(`${WORKER_URL}/team-info?team_id=${TEAM_ID}`)
     ]);
 
-    // 1. 處理訓練紀錄
     const formattedTraining = (trainRecs || []).map((r: any) => ({
       id: r.id,
       date: r.date,
@@ -130,11 +132,8 @@ export const api = {
       create_at: r.date
     }));
 
-    // 2. 處理賽事紀錄 (合併 Events 與 Records)
     const formattedRaces: DataRecord[] = [];
-
-    // Map existing detailed records
-    const eventHasRecordsMap = new Set<string>(); // Keep track of events that have records loaded
+    const eventHasRecordsMap = new Set<string>(); 
 
     if (raceRecords && Array.isArray(raceRecords)) {
         raceRecords.forEach((r: any) => {
@@ -159,7 +158,6 @@ export const api = {
         });
     }
 
-    // Map "Preview" or Empty Events (Events with 0 participants)
     if (raceEvents && Array.isArray(raceEvents)) {
         raceEvents.forEach((e: any) => {
             if (!eventHasRecordsMap.has(String(e.id))) {
@@ -184,7 +182,6 @@ export const api = {
         });
     }
 
-    // 處理 Team Info
     let teamInfo: TeamInfo | null = null;
     if (teamInfoRes && Array.isArray(teamInfoRes) && teamInfoRes.length > 0) {
         teamInfo = teamInfoRes[0];
@@ -205,7 +202,7 @@ export const api = {
         is_hidden: p.is_retired === 1,
         s_url: p.s_url || '',
         b_url: p.b_url || '',
-        myword: p.myword || '' // Map new field
+        myword: p.myword || ''
       })),
       teamInfo
     };
@@ -214,30 +211,32 @@ export const api = {
   submitRecord: async (record: Partial<DataRecord>): Promise<boolean> => {
     try {
       const isUpdate = !!record.id && !String(record.id).startsWith('preview_');
+      
       const formData = new FormData();
       const peopleId = record.people_id || ''; 
+      const otp = localStorage.getItem(OTP_STORAGE_KEY) || '';
 
+      // Base fields
       formData.append('team_id', TEAM_ID);
-      formData.append('guest_otp', localStorage.getItem(OTP_STORAGE_KEY) || '');
+      formData.append('guest_otp', otp);
 
       let table = '';
-      let url = '';
+      let url = WORKER_URL;
 
       if (record.item === 'training') {
         table = 'training-records';
-        url = `${WORKER_URL}/${table}`;
+        url += `/${table}`;
         formData.append('date', record.date || '');
         formData.append('people_id', String(peopleId));
         formData.append('training_type_id', String(record.training_type_id));
         formData.append('score', record.value || '0');
-      
       } else {
         // Race Logic
         const isEventUpdate = record.value === 'PREVIEW' || (!peopleId && record.item === 'race');
 
         if (isEventUpdate) {
             table = 'race-events';
-            url = `${WORKER_URL}/${table}`;
+            url += `/${table}`;
             formData.append('series_id', String(record.race_id)); 
             formData.append('date', record.date || '');
             formData.append('name', record.name || ''); 
@@ -246,7 +245,7 @@ export const api = {
         } 
         else {
             table = 'race-records';
-            url = `${WORKER_URL}/${table}`;
+            url += `/${table}`;
             
             formData.append('people_id', String(peopleId));
             formData.append('score', record.value || '');
@@ -254,7 +253,6 @@ export const api = {
             formData.append('note', record.note || '');
             formData.append('personal_url', record.url || '');
             
-            // For Personal Add flow creating event on the fly
             formData.append('race_name', record.name || ''); 
             formData.append('date', record.date || '');
             formData.append('series_id', String(record.race_id));
@@ -266,13 +264,16 @@ export const api = {
         }
       }
 
+      // Important: Use POST for everything, and spoof method for updates
+      let method = 'POST';
       if (isUpdate) {
         url += `/${record.id}`;
+        // Add _method field to trick the backend/router into treating this POST as a PUT
         formData.append('_method', 'PUT');
       }
 
       const response = await fetch(url, {
-        method: 'POST',
+        method: method,
         body: formData,
       });
 
@@ -285,24 +286,28 @@ export const api = {
 
   deleteRecord: async (id: number | string, item: 'training' | 'race'): Promise<boolean> => {
     try {
+      const otp = localStorage.getItem(OTP_STORAGE_KEY) || '';
+      const formData = new FormData();
+      
+      // Use FormData for auth in POST requests
+      formData.append('team_id', TEAM_ID);
+      formData.append('guest_otp', otp);
+      // Spoof DELETE method
+      formData.append('_method', 'DELETE');
+
       if (String(id).startsWith('preview_')) {
           const realId = String(id).replace('preview_', '');
-          const formData = new FormData();
-          formData.append('_method', 'DELETE');
-          formData.append('team_id', TEAM_ID);
-          const response = await fetch(`${WORKER_URL}/race-events/${realId}`, { method: 'POST', body: formData });
+          const response = await fetch(`${WORKER_URL}/race-events/${realId}`, { 
+            method: 'POST', // Force POST
+            body: formData
+          });
           return response.ok;
       }
 
       const table = item === 'training' ? 'training-records' : 'race-records';
-      const formData = new FormData();
-      formData.append('_method', 'DELETE');
-      formData.append('team_id', TEAM_ID);
-      formData.append('guest_otp', localStorage.getItem(OTP_STORAGE_KEY) || '');
-
       const response = await fetch(`${WORKER_URL}/${table}/${id}`, {
-        method: 'POST',
-        body: formData,
+        method: 'POST', // Force POST
+        body: formData
       });
 
       return response.ok;
@@ -326,12 +331,16 @@ export const api = {
       if (table === 'races') fieldName = 'series_name';
       if (table === 'people') fieldName = 'name';
 
+      // Use POST for everything
+      let method = 'POST';
+
       if (isDelete && id) {
         url += `/${id}`;
         formData.append('_method', 'DELETE');
       } else if (id) {
         url += `/${id}`;
         formData.append('_method', 'PUT');
+        
         formData.append(fieldName, name);
         if (table === 'training-types') {
           formData.append('is_default', isDefault ? '1' : '0');
@@ -345,6 +354,7 @@ export const api = {
           if (extra.b_url !== undefined) formData.append('b_url', extra.b_url || '');
         }
       } else {
+        // Create (Standard POST)
         formData.append(fieldName, name);
         if (table === 'training-types') {
           formData.append('is_default', isDefault ? '1' : '0');
@@ -360,7 +370,7 @@ export const api = {
       }
 
       const response = await fetch(url, {
-        method: 'POST',
+        method: method,
         body: formData,
       });
       return response.ok;

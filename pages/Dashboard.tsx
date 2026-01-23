@@ -1,10 +1,9 @@
 
 import React, { useState, useMemo } from 'react';
 import { DataRecord, LookupItem } from '../types';
-import { api } from '../services/api';
-import { Calendar, ChevronRight, X, ChevronDown, Activity, Clock, Award, BarChart3, MapPin, ExternalLink, Trophy, Trash2, Edit2, Check, Loader2, AlertTriangle, Info, Zap } from 'lucide-react';
-import { ComposedChart, Line, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, Legend, CartesianGrid } from 'recharts';
-import { format, differenceInYears } from 'date-fns';
+import { Calendar, ChevronRight, X, ChevronDown, Activity, BarChart3, MapPin, ExternalLink, Trophy, Filter } from 'lucide-react';
+import { ComposedChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, CartesianGrid } from 'recharts';
+import { format, differenceInYears, subMonths, subWeeks } from 'date-fns';
 
 interface DashboardProps {
   data: DataRecord[];
@@ -32,6 +31,14 @@ interface DailySummary {
 const Dashboard: React.FC<DashboardProps> = ({ data, refreshData, onNavigateToRaces, onNavigateToPerson, defaultTrainingType, people = [] }) => {
   const [selectedChartType, setSelectedChartType] = useState<string>(defaultTrainingType || '');
   
+  // Date Filters (Default 1 Week)
+  const [startDate, setStartDate] = useState(format(subWeeks(new Date(), 1), 'yyyy-MM-dd'));
+  const [endDate, setEndDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+  
+  // Date Filter UI State
+  const [activeRange, setActiveRange] = useState<'1W' | '1M' | '3M' | 'custom'>('1W');
+  const [showCustomDate, setShowCustomDate] = useState(false);
+
   // State for Expanded Chart View
   const [expandedChart, setExpandedChart] = useState<{data: any[], title: string, date: string, itemName: string} | null>(null);
   
@@ -62,10 +69,43 @@ const Dashboard: React.FC<DashboardProps> = ({ data, refreshData, onNavigateToRa
     }
   };
 
+  // Date Range Helper
+  const setQuickRange = (range: '1W' | '1M' | '3M') => {
+      setActiveRange(range);
+      setShowCustomDate(false);
+      
+      const end = new Date();
+      let start = new Date();
+      
+      if (range === '1W') start = subWeeks(end, 1);
+      if (range === '1M') start = subMonths(end, 1);
+      if (range === '3M') start = subMonths(end, 3);
+      
+      setStartDate(format(start, 'yyyy-MM-dd'));
+      setEndDate(format(end, 'yyyy-MM-dd'));
+  };
+
+  const toggleCustomDate = () => {
+      if (activeRange !== 'custom') {
+          setActiveRange('custom');
+          setShowCustomDate(true);
+      } else {
+          setShowCustomDate(!showCustomDate);
+      }
+  };
+
   // Complex Stats Logic
   const trainingStats = useMemo(() => {
     const grouped = new Map<string, DataRecord[]>();
-    data.filter(r => r.item === 'training').forEach(r => {
+    
+    // Filter by Date Range
+    const filteredData = data.filter(r => 
+        r.item === 'training' && 
+        r.date >= startDate && 
+        r.date <= endDate
+    );
+
+    filteredData.forEach(r => {
         const key = `${r.date}_${r.name}`;
         if (!grouped.has(key)) grouped.set(key, []);
         grouped.get(key)!.push(r);
@@ -114,9 +154,14 @@ const Dashboard: React.FC<DashboardProps> = ({ data, refreshData, onNavigateToRa
     });
 
     return summaries.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }, [data, startDate, endDate]);
+
+  const trainingTypesList = useMemo(() => {
+      // Get types from ALL data, not just filtered, so selector isn't empty if date range is small
+      const allTraining = data.filter(r => r.item === 'training');
+      return Array.from(new Set(allTraining.map(s => s.name)));
   }, [data]);
 
-  const trainingTypesList = useMemo(() => Array.from(new Set(trainingStats.map(s => s.itemName))), [trainingStats]);
   const currentTypeSummaries = useMemo(() => trainingStats.filter(s => s.itemName === selectedChartType), [trainingStats, selectedChartType]);
 
   // Helper to calculate age at record date
@@ -125,7 +170,7 @@ const Dashboard: React.FC<DashboardProps> = ({ data, refreshData, onNavigateToRa
       return differenceInYears(new Date(recordDate), new Date(birthday));
   };
 
-  // Logic for Age Group Bests (3yo - 6yo)
+  // Logic for Age Group Bests (3yo - 6yo) - Based on ALL data for "Legend", not filtered by date
   const ageBests = useMemo(() => {
       if (!selectedChartType) return { 3: null, 4: null, 5: null, 6: null };
       
@@ -188,7 +233,7 @@ const Dashboard: React.FC<DashboardProps> = ({ data, refreshData, onNavigateToRa
       : [];
 
   return (
-    <div className="h-full overflow-y-auto px-4 py-6 space-y-8 animate-fade-in no-scrollbar pb-10">
+    <div className="h-full overflow-y-auto px-4 py-6 space-y-8 animate-fade-in no-scrollbar pb-24">
       <section>
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-[10px] font-black text-zinc-500 tracking-[0.2em] uppercase flex items-center gap-1.5">
@@ -233,29 +278,9 @@ const Dashboard: React.FC<DashboardProps> = ({ data, refreshData, onNavigateToRa
         </div>
       </section>
 
-      <section>
-        {/* Header with Selector on the Right */}
-        <div className="flex justify-between items-center mb-4 h-10">
-          <h2 className="text-[10px] font-black text-zinc-500 tracking-[0.2em] uppercase flex items-center gap-1.5 shrink-0">
-             <Activity size={12} className="text-sunset-rose" /> 近期表現
-          </h2>
-          
-          <div className="relative group min-w-[120px]">
-             <div className="absolute inset-0 bg-white/5 rounded-full border border-white/10 pointer-events-none group-hover:bg-white/10 transition-colors"></div>
-             <select 
-                value={selectedChartType}
-                onChange={(e) => setSelectedChartType(e.target.value)}
-                className="w-full h-full appearance-none bg-transparent text-white font-black text-xs rounded-full pl-3 pr-8 py-2 outline-none text-right"
-             >
-                {trainingTypesList.map(t => <option key={t} value={t} className="text-black">{t}</option>)}
-             </select>
-             <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
-          </div>
-        </div>
-
-        {/* Age Group Bests Marquee - Legend of Speed Style */}
-        {selectedChartType && activeAges.length > 0 && (
-            <div className="w-full relative overflow-hidden mb-6 h-20">
+      {/* Age Group Bests Marquee - Adjusted Margin */}
+      {selectedChartType && activeAges.length > 0 && (
+            <div className="w-full relative overflow-hidden h-16 -mt-3 mb-[-30px]">
                  {/* Left/Right Gradient Masks */}
                 <div className="absolute inset-y-0 left-0 w-8 bg-gradient-to-r from-[#0a0508] to-transparent z-10 pointer-events-none"></div>
                 <div className="absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-[#0a0508] to-transparent z-10 pointer-events-none"></div>
@@ -308,15 +333,79 @@ const Dashboard: React.FC<DashboardProps> = ({ data, refreshData, onNavigateToRa
                     }
                     @keyframes marqueeH {
                         0% { transform: translateX(0); }
-                        100% { transform: translateX(-25%); } /* Assuming 4 repeats, shift 1/4 */
+                        100% { transform: translateX(-25%); } 
                     }
                 `}</style>
             </div>
-        )}
+      )}
+
+      <section>
+        {/* Header - Separate Row */}
+        <div className="mb-3">
+            <h2 className="text-[10px] font-black text-zinc-500 tracking-[0.2em] uppercase flex items-center gap-1.5">
+                <Activity size={12} className="text-sunset-rose" /> 近期表現
+            </h2>
+        </div>
+
+        {/* Filters - Separate Row */}
+        <div className="flex flex-col gap-3 mb-4">
+            <div className="flex justify-between items-center h-9">
+                <div className="relative group min-w-[120px]">
+                    <div className="absolute inset-0 bg-white/5 rounded-full border border-white/10 pointer-events-none group-hover:bg-white/10 transition-colors"></div>
+                    <select 
+                        value={selectedChartType}
+                        onChange={(e) => setSelectedChartType(e.target.value)}
+                        className="w-full h-full appearance-none bg-transparent text-white font-black text-xs rounded-full pl-3 pr-8 py-1.5 outline-none text-left"
+                    >
+                        {trainingTypesList.map(t => <option key={t} value={t} className="text-black">{t}</option>)}
+                    </select>
+                    <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
+                </div>
+                
+                <div className="flex items-center bg-zinc-900/50 p-1 rounded-xl border border-white/5 gap-1">
+                    {(['1W', '1M', '3M'] as const).map(range => (
+                        <button 
+                            key={range}
+                            onClick={() => setQuickRange(range)} 
+                            className={`text-[9px] font-bold px-2 py-1 rounded-lg transition-all ${activeRange === range ? 'bg-white/10 text-white shadow-inner' : 'text-zinc-500 hover:text-zinc-300'}`}
+                        >
+                            {range}
+                        </button>
+                    ))}
+                    <div className="w-[1px] h-3 bg-white/10 mx-0.5"></div>
+                    <button 
+                        onClick={toggleCustomDate} 
+                        className={`p-1 rounded-lg transition-all ${activeRange === 'custom' ? 'bg-sunset-rose/20 text-sunset-rose' : 'text-zinc-500 hover:text-zinc-300'}`}
+                    >
+                        <Calendar size={14} />
+                    </button>
+                </div>
+            </div>
+
+            {/* Custom Date Inputs (Conditional) */}
+            {showCustomDate && (
+                <div className="flex items-center justify-end gap-2 animate-fade-in bg-zinc-900/30 p-2 rounded-xl border border-white/5 border-dashed">
+                    <span className="text-[9px] text-zinc-500 font-bold uppercase tracking-wider mr-1">Range</span>
+                    <input 
+                        type="date" 
+                        value={startDate} 
+                        onChange={(e) => { setStartDate(e.target.value); setActiveRange('custom'); }} 
+                        className="bg-zinc-950 text-[10px] font-mono text-zinc-300 outline-none w-auto min-w-[80px] text-center p-1 rounded border border-white/10" 
+                    />
+                    <span className="text-zinc-600 text-[10px]">-</span>
+                    <input 
+                        type="date" 
+                        value={endDate} 
+                        onChange={(e) => { setEndDate(e.target.value); setActiveRange('custom'); }} 
+                        className="bg-zinc-950 text-[10px] font-mono text-zinc-300 outline-none w-auto min-w-[80px] text-center p-1 rounded border border-white/10" 
+                    />
+                </div>
+            )}
+        </div>
 
         {selectedChartType ? (
             <div className="space-y-6 pb-4">
-               {currentTypeSummaries.map((summary, idx) => {
+               {currentTypeSummaries.length > 0 ? currentTypeSummaries.map((summary, idx) => {
                  // Prepare Data for Recharts
                  const chartData = summary.players.map(p => ({
                     name: p.name,
@@ -347,7 +436,6 @@ const Dashboard: React.FC<DashboardProps> = ({ data, refreshData, onNavigateToRa
                                 tickLine={false}
                                 interval={0}
                             />
-                            {/* Left Axis for Speed */}
                             <YAxis 
                                 yAxisId="left"
                                 tick={{fontSize: 9, fill: '#71717a', fontFamily: 'monospace'}} 
@@ -355,7 +443,6 @@ const Dashboard: React.FC<DashboardProps> = ({ data, refreshData, onNavigateToRa
                                 tickLine={false} 
                                 domain={['auto', 'auto']}
                             />
-                            {/* Right Axis for Stability */}
                             <YAxis 
                                 yAxisId="right"
                                 orientation="right"
@@ -370,7 +457,6 @@ const Dashboard: React.FC<DashboardProps> = ({ data, refreshData, onNavigateToRa
                                 contentStyle={{backgroundColor: '#09090b', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', fontSize: '10px', boxShadow: '0 4px 20px rgba(0,0,0,0.5)'}}
                                 itemStyle={{padding: 0}}
                                 formatter={(value: number, name: string) => {
-                                    // Handle 'stability' key or localized name '穩定度'
                                     if (name === 'stability' || name === '穩定度') return [`${value}%`, '穩定度'];
                                     return [`${value.toFixed(3)}s`, name];
                                 }}
@@ -378,17 +464,18 @@ const Dashboard: React.FC<DashboardProps> = ({ data, refreshData, onNavigateToRa
                             />
                             <Legend iconSize={8} wrapperStyle={{fontSize: '9px', opacity: 0.7, marginTop: '5px'}} />
                             
-                            {/* Lines for Speed metrics */}
                             <Line yAxisId="left" type="monotone" dataKey="平均" stroke="#71717a" strokeWidth={2} dot={{r: 2, fill:'#71717a'}} />
                             <Line yAxisId="left" type="monotone" dataKey="最快" stroke="#fbbf24" strokeWidth={3} dot={{r: 3, fill:'#fbbf24'}} />
-                            
-                            {/* Line for Stability (Style Changed to Purple & Different Dash) */}
                             <Line yAxisId="right" type="monotone" dataKey="stability" name="穩定度" stroke="#8b5cf6" strokeWidth={2} dot={{r: 2, fill: '#8b5cf6', stroke: '#8b5cf6'}} activeDot={{r: 4}} strokeDasharray="1 3" />
                          </ComposedChart>
                       </ResponsiveContainer>
                    </div>
                  </div>
-               )})}
+               )}) : (
+                   <div className="text-center py-10 opacity-50">
+                       <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500">此日期區間無數據</p>
+                   </div>
+               )}
             </div>
         ) : (
            <div className="text-center py-20 opacity-30">

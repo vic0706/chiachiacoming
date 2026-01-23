@@ -23,20 +23,18 @@ const App: React.FC = () => {
   const [teamInfo, setTeamInfo] = useState<TeamInfo | null>(null);
   
   const [defaultTrainingType, setDefaultTrainingType] = useState<string>('');
-  const [selectedPersonId, setSelectedPersonId] = useState<string | number>(() => {
-    return localStorage.getItem('louie_active_person_id') || '1';
-  });
+  
+  // Requirement 4-2: Force empty selection on init.
+  // We do NOT read from localStorage to ensure the user must select a person every time the app reloads.
+  const [selectedPersonId, setSelectedPersonId] = useState<string | number>('');
 
-  // 紀錄頁面要顯示的選手 ID 列表
-  const [pinnedPeopleIds, setPinnedPeopleIds] = useState<string[]>(() => {
-    const saved = localStorage.getItem('louie_pinned_people_ids');
-    return saved ? JSON.parse(saved) : ['1'];
-  });
+  // Requirement 4-1: Default pinned list to empty array.
+  // We do NOT read from localStorage for the pinned list to ensure it starts clean.
+  const [pinnedPeopleIds, setPinnedPeopleIds] = useState<string[]>([]);
 
   const fetchData = useCallback(async () => {
     if (!hasInitialized.current) setIsLoading(true);
     
-    // fetchAppData now fetches teamInfo as well
     const { records, trainingTypes: tTypes, races: rGroups, people: pList, teamInfo: tInfo } = await api.fetchAppData();
     
     setData(records);
@@ -45,32 +43,7 @@ const App: React.FC = () => {
     setPeople(pList);
     setTeamInfo(tInfo);
     
-    // 確保 selectedPersonId 在名單內，否則預設為第一個
-    if (pList.length > 0) {
-      const savedId = localStorage.getItem('louie_active_person_id');
-      // 檢查 savedId 是否有效且該選手未被隱藏
-      const visiblePerson = pList.find(p => String(p.id) === savedId && !p.is_hidden);
-      
-      if (!savedId || !visiblePerson) {
-        // 優先選擇第一個未隱藏的選手
-        const firstVisible = pList.find(p => !p.is_hidden);
-        if (firstVisible) {
-           const firstId = String(firstVisible.id);
-           setSelectedPersonId(firstId);
-           localStorage.setItem('louie_active_person_id', firstId);
-        }
-      }
-      
-      // 如果沒有釘選任何選手，預設釘選第一個未隱藏的
-      if (pinnedPeopleIds.length === 0) {
-        const firstVisible = pList.find(p => !p.is_hidden);
-        if (firstVisible) {
-           const firstId = String(firstVisible.id);
-           setPinnedPeopleIds([firstId]);
-           localStorage.setItem('louie_pinned_people_ids', JSON.stringify([firstId]));
-        }
-      }
-    }
+    // Explicitly do NOT auto-select a person or populate pinned list here.
 
     const serverDefault = tTypes.find(t => t.is_default)?.name;
     if (serverDefault) {
@@ -86,7 +59,7 @@ const App: React.FC = () => {
 
     hasInitialized.current = true;
     setIsLoading(false);
-  }, [pinnedPeopleIds.length]);
+  }, []);
 
   useEffect(() => {
     if (!hasInitialized.current || currentPage === 'dashboard' || currentPage === 'races' || currentPage === 'personal') {
@@ -96,7 +69,6 @@ const App: React.FC = () => {
 
   const handleUpdateActivePerson = (id: string | number) => {
     setSelectedPersonId(id);
-    localStorage.setItem('louie_active_person_id', String(id));
   };
 
   const handleTogglePinnedPerson = (id: string) => {
@@ -104,7 +76,7 @@ const App: React.FC = () => {
       const next = prev.includes(id) 
         ? prev.filter(pId => pId !== id) 
         : [...prev, id];
-      localStorage.setItem('louie_pinned_people_ids', JSON.stringify(next));
+      // Do not save to localStorage to ensure reset on reload
       return next;
     });
   };
@@ -117,7 +89,6 @@ const App: React.FC = () => {
     }
   };
 
-  // 過濾掉隱藏的選手和其相關數據 (用於 Dashboard 和 Training)
   const activePeople = useMemo(() => people.filter(p => !p.is_hidden), [people]);
   const activeData = useMemo(() => {
     const hiddenIds = people.filter(p => p.is_hidden).map(p => String(p.id));
@@ -155,7 +126,7 @@ const App: React.FC = () => {
             onNavigateToRaces={() => setCurrentPage('races')} 
             onNavigateToPerson={handleNavigateToPerson}
             defaultTrainingType={defaultTrainingType}
-            people={people} // Pass people for avatar lookup
+            people={people} 
           />
         );
       case 'personal':
@@ -173,8 +144,8 @@ const App: React.FC = () => {
       case 'races':
         return (
           <Races 
-            data={data} // 賽事頁面顯示所有數據 (包含隱藏選手)
-            people={people} // 賽事頁面需要完整選手名單
+            data={data} 
+            people={people} 
             refreshData={fetchData} 
             raceGroups={raceGroups} 
           />
