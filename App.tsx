@@ -106,11 +106,11 @@ const App: React.FC = () => {
             <div className="relative z-10 w-full h-full border-4 border-white/5 rounded-full"></div>
             <div className="absolute inset-0 z-10 border-4 border-rose-500 rounded-full border-t-transparent animate-spin"></div>
             <div className="absolute inset-0 z-10 flex items-center justify-center">
-               <span className="text-sm font-black text-rose-500 tracking-tighter animate-pulse">L.R</span>
+               <span className="text-sm font-black text-rose-500 tracking-tighter animate-pulse">C.C</span>
             </div>
           </div>
           <div className="flex flex-col items-center">
-             <div className="text-sm font-black italic tracking-[0.25em] text-white uppercase mb-2 drop-shadow-lg">LOUIE RUNBIKE</div>
+             <div className="text-sm font-black italic tracking-[0.25em] text-white uppercase mb-2 drop-shadow-lg">CHIA CHIA COMING</div>
              <div className="text-[9px] text-zinc-500 font-mono tracking-widest border border-white/5 px-2 py-1 rounded-md bg-white/5">Loading Data...</div>
           </div>
         </div>
