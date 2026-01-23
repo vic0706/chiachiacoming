@@ -4,7 +4,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-    <title>睿睿滑步車 | LOUIE RACING</title>
+    <title>CHIA CHIA | KIDS RUN BIKE</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       tailwind.config = {
@@ -12,18 +12,28 @@
         theme: {
           extend: {
             colors: {
-              background: '#0a0508', // Darker, warmer black base
-              surface: '#1c1016',
+              background: '#000000', // Pure Black
+              surface: '#111111',
               glass: {
-                DEFAULT: 'rgba(255, 255, 255, 0.03)',
-                active: 'rgba(255, 255, 255, 0.08)',
-                border: 'rgba(255, 255, 255, 0.08)',
+                DEFAULT: 'rgba(255, 255, 255, 0.05)',
+                active: 'rgba(57, 231, 95, 0.1)', // Neon Green tint
+                border: 'rgba(255, 255, 255, 0.1)',
               },
+              chiachia: {
+                green: '#39e75f', // Neon Green (Primary)
+                light: '#86efac', // Light Green
+                dark: '#14532d',  // Dark Green
+              },
+              glory: {
+                gold: '#fbbf24', // Amber 400
+                shine: '#fef08a', // Yellow 200
+                dark: '#b45309',  // Amber 700
+              },
+              // Map sunset rose to Green for quick theme swap
               sunset: {
-                rose: '#f43f5e',
-                orange: '#f97316',
-                gold: '#fbbf24',
-                purple: '#8b5cf6', // Adds depth to the sunset
+                rose: '#39e75f',   // Map Red to Neon Green
+                orange: '#34d399', // Map Orange to Emerald
+                gold: '#fbbf24',   // Keep Gold for Glory
               }
             },
             fontFamily: {
@@ -31,15 +41,17 @@
               mono: ['JetBrains Mono', 'Menlo', 'Monaco', 'Courier New', 'monospace'],
             },
             boxShadow: {
-              'glass': '0 8px 32px 0 rgba(0, 0, 0, 0.4)',
-              'glow-rose': '0 0 25px rgba(244, 63, 94, 0.3)',
-              'glow-gold': '0 0 25px rgba(251, 191, 36, 0.2)',
-              'liquid': 'inset 0 1px 1px rgba(255, 255, 255, 0.2), 0 4px 15px rgba(0, 0, 0, 0.3)',
+              'glass': '0 8px 32px 0 rgba(0, 0, 0, 0.8)',
+              'glow-green': '0 0 20px rgba(57, 231, 95, 0.4)',
+              'glow-rose': '0 0 20px rgba(57, 231, 95, 0.4)', // Remap to green
+              'glow-gold': '0 0 15px rgba(251, 191, 36, 0.5)', 
+              'liquid': 'inset 0 1px 1px rgba(255, 255, 255, 0.2), 0 4px 15px rgba(0, 0, 0, 0.5)',
             },
             animation: {
               'fade-in': 'fadeIn 0.6s cubic-bezier(0.2, 0.8, 0.2, 1)',
               'slide-up': 'slideUp 0.5s cubic-bezier(0.2, 0.8, 0.2, 1)',
               'pulse-slow': 'pulseSlow 4s ease-in-out infinite',
+              'shimmer-text': 'shimmerText 3s linear infinite',
             },
             keyframes: {
               fadeIn: {
@@ -53,6 +65,10 @@
               pulseSlow: {
                 '0%, 100%': { opacity: '0.4' },
                 '50%': { opacity: '0.7' },
+              },
+              shimmerText: {
+                '0%': { backgroundPosition: '200% center' },
+                '100%': { backgroundPosition: '-200% center' },
               }
             }
           }
@@ -61,12 +77,11 @@
     </script>
     <style>
       body {
-        background-color: #050203;
-        /* Sunset Liquid Background */
+        background-color: #000000;
+        /* Cyber/Street Style Background - Black with subtle green glow */
         background-image: 
-          radial-gradient(circle at 10% 0%, rgba(244, 63, 94, 0.15) 0%, transparent 40%),
-          radial-gradient(circle at 90% 10%, rgba(251, 191, 36, 0.1) 0%, transparent 40%),
-          radial-gradient(circle at 50% 100%, rgba(139, 92, 246, 0.1) 0%, transparent 50%);
+          radial-gradient(circle at 50% 0%, rgba(57, 231, 95, 0.08) 0%, transparent 60%),
+          radial-gradient(circle at 85% 90%, rgba(255, 255, 255, 0.03) 0%, transparent 30%);
         background-attachment: fixed;
         background-size: cover;
         min-height: 100vh;
@@ -81,37 +96,24 @@
       
       /* Liquid Glass Card */
       .glass-card {
-        background: rgba(30, 20, 25, 0.4);
+        background: rgba(18, 18, 18, 0.7);
         backdrop-filter: blur(24px);
         -webkit-backdrop-filter: blur(24px);
-        border: 1px solid rgba(255, 255, 255, 0.06);
-        border-top: 1px solid rgba(255, 255, 255, 0.12); /* Top light reflection */
-        border-left: 1px solid rgba(255, 255, 255, 0.08); /* Left light reflection */
-        box-shadow: 0 4px 24px -1px rgba(0, 0, 0, 0.3);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-top: 1px solid rgba(255, 255, 255, 0.12); 
+        box-shadow: 0 4px 24px -1px rgba(0, 0, 0, 0.5);
         position: relative;
         overflow: hidden;
       }
-
-      /* Inner shine effect */
-      .glass-card::after {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        height: 40%;
-        background: linear-gradient(180deg, rgba(255,255,255,0.03) 0%, transparent 100%);
-        pointer-events: none;
-      }
       
-      /* Golden Sunset Card Variant */
+      /* Highlight Card - Green/Gold Tint */
       .glass-card-gold {
-        background: linear-gradient(135deg, rgba(60, 40, 10, 0.5) 0%, rgba(30, 20, 25, 0.6) 100%);
+        background: linear-gradient(135deg, rgba(20, 35, 20, 0.9) 0%, rgba(10, 10, 10, 0.95) 100%);
         backdrop-filter: blur(20px);
         -webkit-backdrop-filter: blur(20px);
-        border: 1px solid rgba(251, 191, 36, 0.25);
-        border-top: 1px solid rgba(251, 191, 36, 0.4);
-        box-shadow: 0 8px 32px -4px rgba(251, 191, 36, 0.1);
+        border: 1px solid rgba(57, 231, 95, 0.3);
+        border-top: 1px solid rgba(57, 231, 95, 0.5);
+        box-shadow: 0 8px 32px -4px rgba(57, 231, 95, 0.15);
       }
 
       /* Clean Scrollbar */
@@ -128,12 +130,23 @@
         font-size: 16px !important;
       }
       
-      /* Navigation Bar Glass */
+      /* Navigation Bar Glass - Jet Black */
       .nav-glass {
-        background: rgba(10, 5, 8, 0.85);
+        background: rgba(0, 0, 0, 0.95);
         backdrop-filter: blur(20px);
         -webkit-backdrop-filter: blur(20px);
-        border-top: 1px solid rgba(255, 255, 255, 0.08);
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+      }
+
+      /* Logo Glow */
+      .logo-text-glow {
+        text-shadow: 0 0 15px rgba(57, 231, 95, 0.6);
+      }
+      
+      /* Gold Text Effect */
+      .text-gold-glory {
+        color: #fbbf24;
+        text-shadow: 0 0 10px rgba(251, 191, 36, 0.6);
       }
     </style>
   <script type="importmap">

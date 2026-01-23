@@ -145,7 +145,7 @@ const ImageCropperInput = ({
                   </div>
                   <div className={`px-1 transition-opacity ${isLocked ? 'opacity-50 pointer-events-none' : 'opacity-100'}`}>
                       <div className="flex justify-between text-[8px] text-zinc-500 font-mono mb-1"><span>ZOOM: {z.toFixed(2)}x</span><span>POS: {x.toFixed(0)},{y.toFixed(0)}</span></div>
-                      <input type="range" min="0.1" max="5" step="0.01" value={z} onChange={e => { const val = parseFloat(e.target.value); setZ(val); updateUrl(val, x, y); }} className="w-full accent-sunset-rose h-1.5 bg-zinc-800 rounded-full appearance-none shadow-inner" />
+                      <input type="range" min="0.1" max="10" step="0.01" value={z} onChange={e => { const val = parseFloat(e.target.value); setZ(val); updateUrl(val, x, y); }} className="w-full accent-chiachia-green h-1.5 bg-zinc-800 rounded-full appearance-none shadow-inner" />
                   </div>
               </div>
           )}
@@ -414,12 +414,12 @@ const Settings: React.FC<SettingsProps> = ({ data, trainingTypes, raceGroups, de
                   value={adminPasswordInput}
                   onChange={(e) => setAdminPasswordInput(e.target.value)}
                   placeholder="Admin Password"
-                  className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-white text-center tracking-widest mb-4 outline-none focus:border-rose-500/50 shadow-inner"
+                  className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-white text-center tracking-widest mb-4 outline-none focus:border-chiachia-green/50 shadow-inner"
                />
                <button 
                   onClick={handleAdminLogin}
                   disabled={!adminPasswordInput || isSyncing}
-                  className="w-full py-3 bg-gradient-to-r from-rose-600 to-amber-500 text-white font-bold text-xs rounded-xl shadow-glow active:scale-95 transition-all flex items-center justify-center gap-2"
+                  className="w-full py-3 bg-gradient-to-r from-green-600 to-emerald-500 text-white font-bold text-xs rounded-xl shadow-glow-green active:scale-95 transition-all flex items-center justify-center gap-2"
                >
                   {isSyncing ? <Loader2 size={16} className="animate-spin" /> : <Unlock size={16} />} 
                   驗證並登入
@@ -442,17 +442,17 @@ const Settings: React.FC<SettingsProps> = ({ data, trainingTypes, raceGroups, de
             <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">SYSTEM CONFIGURATION</p>
           </div>
         </div>
-        {isSyncing && <Loader2 size={16} className="animate-spin text-rose-500" />}
+        {isSyncing && <Loader2 size={16} className="animate-spin text-chiachia-green" />}
       </div>
 
-      <div className="glass-card-gold rounded-2xl p-4 animate-slide-up border-sunset-gold/30">
+      <div className="glass-card-gold rounded-2xl p-4 animate-slide-up border-chiachia-green/30">
           <div className="flex justify-between items-center">
               <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-black/40 flex items-center justify-center text-sunset-gold">
+                  <div className="w-10 h-10 rounded-full bg-black/40 flex items-center justify-center text-chiachia-green">
                       <KeyRound size={20} />
                   </div>
                   <div>
-                      <div className="text-[9px] text-sunset-gold font-black uppercase tracking-widest">Guest OTP</div>
+                      <div className="text-[9px] text-chiachia-green font-black uppercase tracking-widest">Guest OTP</div>
                       {otpInfo ? (
                           <div className="text-2xl font-mono font-black text-white tracking-widest">{otpInfo.code}</div>
                       ) : (
@@ -483,11 +483,11 @@ const Settings: React.FC<SettingsProps> = ({ data, trainingTypes, raceGroups, de
       <section className="glass-card rounded-2xl p-5 border border-white/5">
         <div className="flex items-center justify-between mb-4">
            <h3 className="text-xs font-bold text-zinc-500 flex items-center tracking-widest uppercase gap-2">
-             <User size={14} className="text-rose-500" /> 選手名單管理
+             <User size={14} className="text-chiachia-green" /> 選手名單管理
            </h3>
            <button 
                 onClick={handleAddPersonClick}
-                className="text-[10px] font-black bg-rose-600/10 text-rose-500 px-3 py-1.5 rounded-lg border border-rose-500/20 active:scale-95 transition-all flex items-center gap-1 hover:bg-rose-500/20"
+                className="text-[10px] font-black bg-chiachia-green/10 text-chiachia-green px-3 py-1.5 rounded-lg border border-chiachia-green/20 active:scale-95 transition-all flex items-center gap-1 hover:bg-chiachia-green/20"
            >
                <Plus size={12} /> 新增選手
            </button>
@@ -508,7 +508,7 @@ const Settings: React.FC<SettingsProps> = ({ data, trainingTypes, raceGroups, de
                 <div key={p.id} onClick={() => handleOpenEditPerson(p)} className={`flex flex-col items-center justify-center p-2 rounded-xl border transition-all relative overflow-hidden active:scale-95 cursor-pointer ${p.is_hidden ? 'bg-zinc-950/40 border-zinc-800 opacity-70' : 'bg-zinc-900/40 border-white/10 hover:bg-zinc-800'}`}>
                 
                 <div className="relative mb-2 w-16 h-16">
-                    <div className={`w-full h-full rounded-full flex items-center justify-center overflow-hidden border-2 transition-colors relative ${p.is_hidden ? 'bg-zinc-800 border-zinc-700' : 'bg-zinc-800 border-rose-500 shadow-glow-rose'}`}>
+                    <div className={`w-full h-full rounded-full flex items-center justify-center overflow-hidden border-2 transition-colors relative ${p.is_hidden ? 'bg-zinc-800 border-zinc-700' : 'bg-zinc-800 border-chiachia-green shadow-glow-green'}`}>
                         {sUrlBase ? (
                             <img 
                                 src={sUrlBase} 
@@ -663,90 +663,60 @@ const Settings: React.FC<SettingsProps> = ({ data, trainingTypes, raceGroups, de
                     <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1">姓名</label>
                     <input 
                        autoFocus
-                       type="text" 
+                       type="text"
                        value={editingPerson.name}
-                       onChange={(e) => setEditingPerson({...editingPerson, name: e.target.value})}
-                       className="w-full bg-zinc-900 border border-white/10 rounded-xl px-4 py-3 text-white text-sm outline-none focus:border-rose-500/50 transition-colors shadow-inner"
+                       onChange={e => setEditingPerson({...editingPerson, name: e.target.value})}
+                       className="w-full bg-black/60 border border-white/10 rounded-xl px-4 py-3 text-white text-xs outline-none"
                     />
                  </div>
                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1 flex items-center gap-1"><CalendarDays size={12}/> 生日</label>
+                    <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1">生日</label>
                     <input 
                        type="date"
-                       lang="en-US"
-                       value={editingPerson.birthday || ''}
-                       onChange={(e) => setEditingPerson({...editingPerson, birthday: e.target.value})}
-                       className="w-full bg-zinc-900 border border-white/10 rounded-xl px-4 py-3 text-white text-sm font-mono outline-none focus:border-rose-500/50 transition-colors shadow-inner block appearance-none"
-                       style={{colorScheme: 'dark'}}
+                       value={editingPerson.birthday}
+                       onChange={e => setEditingPerson({...editingPerson, birthday: e.target.value})}
+                       className="w-full bg-black/60 border border-white/10 rounded-xl px-4 py-3 text-white text-xs outline-none font-mono"
                     />
                  </div>
 
-                 {editingPerson.id && (
-                    <>
-                        <ImageCropperInput 
-                            label={`頭像`}
-                            urlValue={tempSUrl} 
-                            onChange={setTempSUrl} 
-                            ratioClass="aspect-square w-44 mx-auto rounded-full border-2 border-white/10"
-                            personId={editingPerson.id}
-                            typeSuffix="s"
-                        />
-                        <ImageCropperInput 
-                            label={`全身照`}
-                            urlValue={tempBUrl} 
-                            onChange={setTempBUrl} 
-                            ratioClass="aspect-[2/3] w-full mx-auto rounded-xl"
-                            personId={editingPerson.id}
-                            typeSuffix="b"
-                        />
-                    </>
-                 )}
+                 {/* RESTORED: Image Upload Inputs for both New and Existing Players */}
+                 <ImageCropperInput 
+                    label={`頭像`}
+                    urlValue={tempSUrl} 
+                    onChange={setTempSUrl} 
+                    ratioClass="aspect-square w-44 mx-auto rounded-full border-2 border-white/10"
+                    personId={editingPerson.id}
+                    typeSuffix="s"
+                 />
+                 <ImageCropperInput 
+                    label={`全身照`}
+                    urlValue={tempBUrl} 
+                    onChange={setTempBUrl} 
+                    ratioClass="aspect-[2/3] w-full mx-auto rounded-xl"
+                    personId={editingPerson.id}
+                    typeSuffix="b"
+                 />
 
-                 {editingPerson.id && (
-                    <div className="pt-2 border-t border-white/10">
-                        <button onClick={handleResetPassword} className="w-full py-2 bg-red-500/10 text-red-500 hover:bg-red-500/20 border border-red-500/20 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all">
-                            <RefreshCcw size={12} /> 重置密碼 (123456)
-                        </button>
-                    </div>
-                 )}
-              </div>
-
-              <div className="flex gap-3">
-                 <button 
-                    onClick={handleSavePerson}
-                    className="w-full py-3 bg-gradient-to-r from-rose-600 to-amber-500 text-white font-bold text-xs rounded-xl shadow-glow active:scale-95 transition-all flex items-center justify-center gap-2"
-                 >
-                    <Save size={16} /> 儲存變更
-                 </button>
+                 <div className="pt-2 flex gap-3">
+                     {editingPerson.id && (
+                         <button 
+                            onClick={handleResetPassword}
+                            className="flex-1 py-3 bg-zinc-800 text-zinc-400 font-bold text-xs rounded-xl border border-white/5 active:scale-95 transition-all"
+                         >
+                            重置密碼
+                         </button>
+                     )}
+                     <button 
+                        onClick={handleSavePerson}
+                        className="flex-[2] py-3 bg-gradient-to-r from-chiachia-green to-emerald-600 text-white font-bold text-xs rounded-xl shadow-glow active:scale-95 transition-all"
+                     >
+                        {editingPerson.id ? '儲存變更' : '確認新增'}
+                     </button>
+                 </div>
               </div>
            </div>
         </div>
       )}
-
-      {deleteTarget && (
-        <div className="fixed inset-0 z-[130] flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm animate-fade-in">
-          <div className="glass-card w-full max-w-xs rounded-3xl p-6 shadow-2xl border-rose-500/30 text-center animate-scale-in">
-            <div className="w-16 h-16 bg-rose-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-               <AlertTriangle size={32} className="text-rose-500" />
-            </div>
-            <h3 className="text-lg font-black text-white mb-2">確認移除項目？</h3>
-            <p className="text-[10px] text-zinc-400 mb-6 leading-relaxed uppercase tracking-wider font-bold">
-              項目「{deleteTarget.name}」的所有相關數據與關聯將會失效。
-            </p>
-            <div className="grid grid-cols-2 gap-3 mt-6">
-              <button onClick={() => setDeleteTarget(null)} className="py-3 bg-zinc-900 text-zinc-400 font-bold text-xs rounded-xl active:bg-zinc-800 transition-colors border border-white/5">取消</button>
-              <button onClick={executeDelete} className="py-3 bg-rose-600 text-white font-bold text-xs rounded-xl active:scale-95 transition-all shadow-glow-rose">
-                確定刪除
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      <section className="text-center pt-8 opacity-30">
-        <div className="text-[10px] font-black text-zinc-500 tracking-[0.4em] uppercase">Louie Professional</div>
-        <div className="text-[8px] text-zinc-600 mt-2 font-mono italic">Performance Core v3.3 (D1 Engine)</div>
-      </section>
     </div>
   );
 };

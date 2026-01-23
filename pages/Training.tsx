@@ -252,12 +252,12 @@ const Training: React.FC<TrainingProps> = ({
                   value={otpInput}
                   onChange={(e) => setOtpInput(e.target.value)}
                   placeholder="Password / OTP"
-                  className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-white text-center tracking-widest mb-4 outline-none focus:border-rose-500/50 shadow-inner"
+                  className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-white text-center tracking-widest mb-4 outline-none focus:border-chiachia-green/50 shadow-inner"
                />
                <button 
                   onClick={handleLogin}
                   disabled={!otpInput || isVerifying}
-                  className="w-full py-3 bg-gradient-to-r from-rose-600 to-amber-500 text-white font-bold text-xs rounded-xl shadow-glow active:scale-95 transition-all flex items-center justify-center gap-2"
+                  className="w-full py-3 bg-gradient-to-r from-green-600 to-emerald-500 text-white font-bold text-xs rounded-xl shadow-glow active:scale-95 transition-all flex items-center justify-center gap-2"
                >
                   {isVerifying ? <Loader2 size={16} className="animate-spin" /> : <Unlock size={16} />} 
                   驗證並進入
@@ -273,11 +273,11 @@ const Training: React.FC<TrainingProps> = ({
       {/* 1. TOP BAR */}
       <div className="flex-none flex items-stretch gap-2 mb-2 h-16 z-20">
         <div className="w-[30%] relative group">
-          <div className="absolute inset-0 bg-gradient-to-r from-amber-500/10 to-transparent rounded-xl blur-sm opacity-50 group-hover:opacity-100 transition-all"></div>
+          <div className="absolute inset-0 bg-gradient-to-r from-chiachia-green/10 to-transparent rounded-xl blur-sm opacity-50 group-hover:opacity-100 transition-all"></div>
           <select 
             value={selectedTypeId}
             onChange={(e) => setSelectedTypeId(e.target.value)}
-            className="relative w-full h-full appearance-none bg-zinc-900 border border-white/10 text-white rounded-2xl pl-3 pr-6 text-xs font-black shadow-lg focus:border-sunset-rose/50 outline-none transition-all"
+            className="relative w-full h-full appearance-none bg-zinc-900 border border-white/10 text-white rounded-2xl pl-3 pr-6 text-xs font-black shadow-lg focus:border-chiachia-green/50 outline-none transition-all"
           >
             {trainingTypes.map(t => (
               <option key={t.id} value={t.id}>{t.name}</option>
@@ -290,7 +290,7 @@ const Training: React.FC<TrainingProps> = ({
 
         <div className="flex-1 glass-card rounded-2xl px-4 flex flex-col justify-center text-right relative overflow-hidden border-t border-t-white/10 shadow-xl">
            <div className="absolute top-2 left-3 flex items-center gap-2">
-            {status === 'saving' && <span className="text-rose-500 text-[9px] font-black flex items-center animate-pulse tracking-widest">SAVING...</span>}
+            {status === 'saving' && <span className="text-chiachia-green text-[9px] font-black flex items-center animate-pulse tracking-widest">SAVING...</span>}
             {status === 'success' && <span className="text-emerald-500 text-[9px] font-black flex items-center tracking-widest">SUCCESS</span>}
             {lastRecord && !status.includes('s') && (
                <div className="text-[9px] text-zinc-500 font-mono font-bold tracking-wider">L: {lastRecord}</div>
@@ -322,21 +322,35 @@ const Training: React.FC<TrainingProps> = ({
                 {pinnedPeople.length > 0 ? (
                   pinnedPeople.map((p) => {
                     const isActive = String(p.id) === String(activePersonId);
+                    const [sUrlBase, sUrlFragment] = (p.s_url || '').split('#');
+                    let sz=1, sx=50, sy=50;
+                    if(sUrlFragment) {
+                        const sp = new URLSearchParams(sUrlFragment);
+                        sz = parseFloat(sp.get('z')||'1');
+                        sx = parseFloat(sp.get('x')||'50');
+                        sy = parseFloat(sp.get('y')||'50');
+                    }
+
                     return (
                       <button
                         key={p.id}
                         onClick={() => onSelectPerson(p.id)}
-                        className={`h-full w-full ${gridConfig.radius} border transition-all duration-200 active:scale-[0.98] flex items-center justify-center relative overflow-hidden shrink-0 ${isActive ? 'bg-gradient-to-b from-sunset-rose/30 to-black border-sunset-rose/60 shadow-glow-rose z-10' : 'bg-zinc-900/60 border-white/5 text-zinc-500 hover:bg-zinc-800'}`}
+                        className={`h-full w-full ${gridConfig.radius} border transition-all duration-200 active:scale-[0.98] flex items-center justify-center relative overflow-hidden shrink-0 ${isActive ? 'bg-gradient-to-b from-chiachia-green/20 to-black border-chiachia-green/60 shadow-glow-green z-10' : 'bg-zinc-900/60 border-white/5 text-zinc-500 hover:bg-zinc-800'}`}
                       >
-                        <span className={`${gridConfig.textSize} font-black tracking-wide truncate w-full px-2 transition-all duration-300 ${isActive ? 'text-white scale-110 drop-shadow-[0_0_10px_rgba(255,255,255,0.5)]' : 'text-zinc-600'}`}>
-                            {p.name}
+                        <span className={`${gridConfig.textSize} font-black tracking-wide truncate w-full px-2 transition-all duration-300 ${isActive ? 'text-white scale-110 drop-shadow-[0_0_10px_rgba(57,231,95,0.4)]' : 'text-zinc-600'}`}>
+                            {sUrlBase ? (
+                                <div className="absolute inset-0 opacity-40 mix-blend-screen">
+                                    <img src={sUrlBase} alt={p.name} className="w-full h-full object-cover" style={{transform: `translate(${(sx - 50) * 1.5}%, ${(sy - 50) * 1.5}%) scale(${sz})`}} />
+                                </div>
+                            ) : null}
+                            <span className="relative z-10">{p.name}</span>
                         </span>
                       </button>
                     );
                   })
                 ) : (
                   <div className="col-span-full row-span-full flex items-center justify-center h-full">
-                     <button onClick={() => setShowPeopleModal(true)} className="text-xs text-zinc-500 font-black uppercase tracking-widest underline italic hover:text-sunset-gold transition-colors p-4 border border-dashed border-zinc-700 rounded-2xl w-full h-full flex items-center justify-center">點此設定常駐選手</button>
+                     <button onClick={() => setShowPeopleModal(true)} className="text-xs text-zinc-500 font-black uppercase tracking-widest underline italic hover:text-chiachia-green transition-colors p-4 border border-dashed border-zinc-700 rounded-2xl w-full h-full flex items-center justify-center">點此設定常駐選手</button>
                   </div>
                 )}
              </div>
@@ -374,7 +388,7 @@ const Training: React.FC<TrainingProps> = ({
         <div className="grid grid-cols-4 gap-1.5 h-14 shrink-0">
            <button onClick={handleClear} className="bg-zinc-900 text-zinc-500 font-black rounded-xl active:scale-95 border border-white/5 text-[10px] uppercase tracking-widest hover:text-white transition-colors">Clear</button>
            <button onClick={handleSubmit} disabled={!inputValue || status === 'saving'}
-             className={`col-span-3 font-black rounded-xl text-sm tracking-[0.3em] uppercase transition-all active:scale-[0.98] shadow-lg ${!inputValue || status === 'saving' ? 'bg-zinc-900 text-zinc-800' : 'bg-gradient-to-r from-rose-600 to-amber-500 text-white shadow-glow'}`}>
+             className={`col-span-3 font-black rounded-xl text-sm tracking-[0.3em] uppercase transition-all active:scale-[0.98] shadow-lg ${!inputValue || status === 'saving' ? 'bg-zinc-900 text-zinc-800' : 'bg-gradient-to-r from-green-600 to-emerald-500 text-white shadow-glow-green'}`}>
              {status === 'saving' ? 'Saving...' : 'Record Data'}
            </button>
         </div>
@@ -386,38 +400,49 @@ const Training: React.FC<TrainingProps> = ({
               <div className="flex justify-between items-center mb-6 shrink-0">
                 <div>
                   <h3 className="text-xl font-black text-white tracking-tight italic">設定快速切換選手</h3>
-                  <p className="text-[9px] text-sunset-rose font-black uppercase tracking-[0.3em] mt-0.5 italic underline">已選中的選手會出現在紀錄板</p>
+                  <p className="text-[9px] text-chiachia-green font-black uppercase tracking-[0.3em] mt-0.5 italic underline">已選中的選手會出現在紀錄板</p>
                 </div>
                 <button onClick={() => setShowPeopleModal(false)} className="w-10 h-10 flex items-center justify-center bg-white/5 rounded-full text-zinc-500"><X size={20} /></button>
               </div>
 
               <div className="flex-1 overflow-y-auto no-scrollbar pb-6 px-1">
-                <div className="grid grid-cols-1 gap-2">
+                <div className="grid grid-cols-4 gap-2">
                   {people.length > 0 ? (
                     people.map((p) => {
                       const isPinned = pinnedPeopleIds.includes(String(p.id));
+                      const [sUrlBase, sUrlFragment] = (p.s_url || '').split('#');
+                      let sz=1, sx=50, sy=50;
+                      if(sUrlFragment) {
+                          const sp = new URLSearchParams(sUrlFragment);
+                          sz = parseFloat(sp.get('z')||'1');
+                          sx = parseFloat(sp.get('x')||'50');
+                          sy = parseFloat(sp.get('y')||'50');
+                      }
+
                       return (
                         <button 
                           key={p.id}
                           onClick={() => onTogglePinned(String(p.id))}
-                          className={`flex items-center gap-4 p-4 rounded-2xl border transition-all active:scale-[0.98] ${isPinned ? 'bg-gradient-to-r from-sunset-gold/10 to-transparent border-sunset-gold/30' : 'bg-white/5 border-white/5'}`}
+                          className={`flex flex-col items-center justify-start py-2.5 px-1 rounded-xl transition-all active:scale-[0.95] border aspect-[3/4] relative overflow-hidden group ${isPinned ? 'bg-gradient-to-b from-chiachia-green/20 to-black border-chiachia-green shadow-glow-green' : 'bg-zinc-900/40 border-white/10 hover:bg-zinc-800'}`}
                         >
-                          <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-black border ${isPinned ? 'bg-sunset-gold text-black border-sunset-gold/50 shadow-glow-gold' : 'bg-zinc-800 text-zinc-500 border-white/5'}`}>
-                            {p.name.charAt(0)}
+                          <div className={`w-12 h-12 rounded-full flex-none overflow-hidden flex items-center justify-center border-2 shadow-lg relative z-10 shrink-0 ${isPinned ? 'border-white bg-zinc-950' : 'border-white/10 bg-zinc-950'}`}>
+                            {sUrlBase ? (
+                                <img src={sUrlBase} alt={p.name} className="w-full h-full object-cover" style={{transform: `translate(${(sx - 50) * 1.5}%, ${(sy - 50) * 1.5}%) scale(${sz})`}} />
+                            ) : (
+                                <span className="text-base font-black">{p.name.charAt(0)}</span>
+                            )}
                           </div>
-                          <div className="flex-1 text-left">
-                            <span className={`text-base font-bold tracking-widest ${isPinned ? 'text-white' : 'text-zinc-600'}`}>
-                              {p.name}
-                            </span>
-                          </div>
-                          <div className={`w-7 h-7 rounded-xl flex items-center justify-center border transition-all ${isPinned ? 'bg-sunset-rose border-sunset-rose text-white shadow-glow-rose' : 'bg-black/40 border-white/10 text-transparent'}`}>
-                            <Check size={16} strokeWidth={4} />
-                          </div>
+                          
+                          <span className={`text-[10px] font-black tracking-wider truncate w-full relative z-10 mt-2 ${isPinned ? 'text-white' : 'text-zinc-400 group-hover:text-zinc-200'}`}>
+                            {p.name}
+                          </span>
+                          
+                          {isPinned && <div className="absolute top-2 right-2 w-1.5 h-1.5 bg-chiachia-green rounded-full shadow-[0_0_8px_rgba(57,231,95,0.8)] animate-pulse z-20"></div>}
                         </button>
                       );
                     })
                   ) : (
-                    <div className="text-center py-10 text-zinc-600 text-[10px] font-black uppercase tracking-widest">載入名單中...</div>
+                    <div className="col-span-4 text-center py-10 text-zinc-600 text-[10px] font-black uppercase tracking-widest">載入名單中...</div>
                   )}
                 </div>
               </div>

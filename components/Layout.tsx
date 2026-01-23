@@ -10,36 +10,30 @@ interface LayoutProps {
   subtitle?: string;
 }
 
-const Layout: React.FC<LayoutProps> = ({ children, currentPage, onNavigate, title = "睿睿滑步車", subtitle = "LOUIE RUNBIKE" }) => {
+const Layout: React.FC<LayoutProps> = ({ children, currentPage, onNavigate, title = "嘉嘉來了", subtitle = "KIDS RUN BIKE" }) => {
   return (
     <div className="flex flex-col h-[100dvh] w-full relative font-sans text-zinc-200 bg-transparent overflow-hidden">
       
       <header className="flex-none fixed top-0 left-0 right-0 z-40 pt-[calc(env(safe-area-inset-top)+8px)] pb-3 nav-glass border-b border-white/10 shadow-glass backdrop-blur-xl">
-        <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
+        <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-chiachia-green/50 to-transparent"></div>
         
         <div className="max-w-md mx-auto px-5 flex items-center justify-between h-12">
           <div className="flex items-center gap-4 w-full">
-            <div className="w-10 h-10 rounded-xl bg-zinc-900 flex items-center justify-center shadow-inner border border-white/5 shrink-0 relative overflow-hidden">
-               <div className="absolute inset-0 bg-gradient-to-tr from-sunset-rose/20 via-transparent to-sunset-gold/20 opacity-80"></div>
-               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="url(#logo-gradient)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="relative z-10 drop-shadow-[0_0_8px_rgba(244,63,94,0.5)]">
-                  <defs>
-                    <linearGradient id="logo-gradient" x1="0" y1="0" x2="1" y2="1">
-                      <stop offset="0%" stopColor="#fbbf24" />
-                      <stop offset="100%" stopColor="#f43f5e" />
-                    </linearGradient>
-                  </defs>
-                  <circle cx="5.5" cy="17.5" r="3.5"/>
-                  <circle cx="18.5" cy="17.5" r="3.5"/>
-                  <path d="M15 6a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm-3 11.5V14l-3-3 4-3 2 3h2"/>
-               </svg>
+            {/* Logo Container */}
+            <div className="w-10 h-10 rounded-xl bg-black flex items-center justify-center shadow-lg border border-chiachia-green/30 shrink-0 relative overflow-hidden group">
+               <img src="https://pyltlobngdnoqjnrxefn.supabase.co/storage/v1/object/public/runbike/title/cccm.png" alt="Logo" className="w-full h-full object-contain p-0.5" onError={(e) => {
+                   // Fallback if image missing
+                   e.currentTarget.style.display = 'none';
+                   e.currentTarget.parentElement!.innerHTML = '<span style="color:#39e75f; font-weight:900;">C.C</span>';
+               }}/>
             </div>
             
             <div className="flex flex-col justify-center flex-1">
-              <h1 className="text-xl font-black italic tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-white via-zinc-200 to-zinc-400 leading-none transform -skew-x-6 drop-shadow-sm">
-                {title}
+              <h1 className="text-xl font-black italic tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-chiachia-green via-white to-amber-400 leading-none transform -skew-x-6 drop-shadow-sm logo-text-glow">
+                嘉嘉來了
               </h1>
               <div className="flex items-center gap-2 mt-1.5">
-                <div className="h-0.5 w-6 rounded-full bg-gradient-to-r from-sunset-rose to-sunset-gold"></div>
+                <div className="h-0.5 w-6 rounded-full bg-chiachia-green shadow-[0_0_5px_#39e75f]"></div>
                 <span className="text-[10px] text-zinc-400 font-bold tracking-[0.25em] uppercase leading-none">{subtitle}</span>
               </div>
             </div>
@@ -52,7 +46,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentPage, onNavigate, titl
       </main>
 
       <nav className="fixed bottom-0 left-0 right-0 z-50 nav-glass border-t border-white/10 shadow-glass backdrop-blur-xl pb-[env(safe-area-inset-bottom)]">
-        <div className="absolute top-0 inset-x-0 h-[1px] bg-gradient-to-r from-transparent via-sunset-rose/40 to-transparent"></div>
+        <div className="absolute top-0 inset-x-0 h-[1px] bg-gradient-to-r from-transparent via-chiachia-green/50 to-transparent"></div>
         <div className="max-w-md mx-auto grid grid-cols-5 h-[60px] px-2">
             <NavButton active={currentPage === 'dashboard'} onClick={() => onNavigate('dashboard')} icon={<LayoutDashboard size={22} />} label="總覽" />
             <NavButton active={currentPage === 'personal'} onClick={() => onNavigate('personal')} icon={<ContactRound size={22} />} label="個人" />
@@ -73,18 +67,19 @@ interface NavButtonProps {
 }
 
 const NavButton = ({ active, onClick, icon, label }: NavButtonProps) => (
-  <button onClick={onClick} className="w-full h-full flex flex-col items-center justify-center gap-1 transition-all active:bg-white/5 relative">
-    {active && <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-16 h-12 bg-gradient-to-t from-sunset-rose/10 to-transparent blur-xl rounded-t-full pointer-events-none"></div>}
-    <div className={`transition-all duration-300 ${active ? 'transform -translate-y-0.5 scale-110' : 'text-zinc-500'}`}>
+  <button onClick={onClick} className="w-full h-full flex flex-col items-center justify-center gap-1 transition-all active:bg-white/5 relative group">
+    {active && <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-12 h-10 bg-gradient-to-t from-chiachia-green/20 to-transparent blur-xl rounded-t-full pointer-events-none"></div>}
+    <div className={`transition-all duration-300 ${active ? 'transform -translate-y-0.5 scale-110' : 'text-zinc-500 group-hover:text-zinc-300'}`}>
        {active ? (
          <div className="relative">
-            <svg width="0" height="0"><linearGradient id="icon-grad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stopColor="#fbbf24" /><stop offset="100%" stopColor="#f43f5e" /></linearGradient></svg>
-            {React.cloneElement(icon, { stroke: "url(#icon-grad)", strokeWidth: 2.5, className: 'drop-shadow-[0_0_8px_rgba(244,63,94,0.4)]' } as any)}
+            {/* Neon Green Gradient for Icons */}
+            <svg width="0" height="0"><linearGradient id="icon-grad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stopColor="#39e75f" /><stop offset="100%" stopColor="#22c55e" /></linearGradient></svg>
+            {React.cloneElement(icon, { stroke: "url(#icon-grad)", strokeWidth: 2.5, className: 'drop-shadow-[0_0_8px_rgba(57,231,95,0.6)]' } as any)}
          </div>
        ) : React.cloneElement(icon, { strokeWidth: 2 } as any)}
     </div>
     <span className={`text-[10px] font-bold ${active ? 'text-white opacity-100' : 'text-zinc-600 opacity-80'}`}>{label}</span>
-    {active && <div className="absolute top-0 inset-x-4 h-[2px] bg-gradient-to-r from-transparent via-rose-500 to-transparent shadow-[0_2px_8px_#f43f5e]" />}
+    {active && <div className="absolute top-0 inset-x-4 h-[2px] bg-gradient-to-r from-transparent via-chiachia-green to-transparent shadow-[0_2px_8px_#39e75f]" />}
   </button>
 );
 

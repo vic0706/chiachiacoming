@@ -100,14 +100,13 @@ const App: React.FC = () => {
   const renderPage = () => {
     if (isLoading && !hasInitialized.current) {
        return (
-        <div className="h-full flex flex-col items-center justify-center space-y-6 bg-[#0a0508]">
-          <div className="relative w-24 h-24">
-             <div className="absolute inset-0 bg-rose-600/20 blur-xl rounded-full animate-pulse"></div>
-            <div className="relative z-10 w-full h-full border-4 border-white/5 rounded-full"></div>
-            <div className="absolute inset-0 z-10 border-4 border-rose-500 rounded-full border-t-transparent animate-spin"></div>
-            <div className="absolute inset-0 z-10 flex items-center justify-center">
-               <span className="text-sm font-black text-rose-500 tracking-tighter animate-pulse">C.C</span>
-            </div>
+        <div className="h-full flex flex-col items-center justify-center space-y-6 bg-black">
+          <div className="relative w-48 h-48 animate-pulse">
+             <img 
+               src="https://pyltlobngdnoqjnrxefn.supabase.co/storage/v1/object/public/runbike/title/cccm.png" 
+               alt="Loading" 
+               className="w-full h-full object-contain drop-shadow-[0_0_15px_rgba(57,231,95,0.3)]" 
+             />
           </div>
           <div className="flex flex-col items-center">
              <div className="text-sm font-black italic tracking-[0.25em] text-white uppercase mb-2 drop-shadow-lg">CHIA CHIA COMING</div>
@@ -190,8 +189,8 @@ const App: React.FC = () => {
     <Layout 
       currentPage={currentPage} 
       onNavigate={setCurrentPage}
-      title={teamInfo?.team_name}
-      subtitle={teamInfo?.team_en_name}
+      title={teamInfo?.team_name || "CHIA CHIA"}
+      subtitle={teamInfo?.team_en_name || "KIDS RUN BIKE"}
     >
       {renderPage()}
     </Layout>

@@ -4,7 +4,7 @@ import { DataRecord, LookupItem } from '../types';
 import { api } from '../services/api';
 import { uploadImage } from '../services/supabase';
 import { Search, Plus, X, Calendar, Trash2, Edit2, Camera, Filter, ChevronDown, Loader2, MapPin, ExternalLink, Maximize, Link as LinkIcon, Users, Trophy, AlertTriangle, UploadCloud, Lock, Unlock, Check, LogOut, LogIn } from 'lucide-react';
-import { format, subMonths, addHours, subWeeks } from 'date-fns';
+import { format, subMonths, addHours, subWeeks, addWeeks, addMonths } from 'date-fns';
 
 interface RacesProps {
   data: DataRecord[];
@@ -29,11 +29,11 @@ const Races: React.FC<RacesProps> = ({ data, refreshData, people, raceGroups }) 
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedGroup, setSelectedGroup] = useState('');
   const [filterType, setFilterType] = useState<'all' | 'future' | 'past'>('all');
-  const [filterStartDate, setFilterStartDate] = useState(format(subWeeks(new Date(), 1), 'yyyy-MM-dd'));
-  const [filterEndDate, setFilterEndDate] = useState(format(addHours(new Date(), 8760), 'yyyy-MM-dd')); // +1 year
+  const [filterStartDate, setFilterStartDate] = useState(format(subMonths(new Date(), 1), 'yyyy-MM-dd'));
+  const [filterEndDate, setFilterEndDate] = useState(format(addMonths(new Date(), 1), 'yyyy-MM-dd')); 
   
   // Date Filter UI State
-  const [activeRange, setActiveRange] = useState<'1W' | '1M' | '3M' | 'custom'>('1W');
+  const [activeRange, setActiveRange] = useState<'1W' | '1M' | '3M' | 'custom'>('1M');
   const [showCustomDate, setShowCustomDate] = useState(false);
 
   const [showModal, setShowModal] = useState(false);
@@ -90,14 +90,25 @@ const Races: React.FC<RacesProps> = ({ data, refreshData, people, raceGroups }) 
   const setQuickRange = (range: '1W' | '1M' | '3M') => {
       setActiveRange(range);
       setShowCustomDate(false);
-      const end = new Date(); 
-      let start = new Date();
-      if (range === '1W') start = subWeeks(end, 1);
-      if (range === '1M') start = subMonths(end, 1);
-      if (range === '3M') start = subMonths(end, 3);
+      const now = new Date(); 
+      let start = now;
+      let end = now;
+      
+      if (range === '1W') {
+          start = subWeeks(now, 1);
+          end = addWeeks(now, 1);
+      }
+      if (range === '1M') {
+          start = subMonths(now, 1);
+          end = addMonths(now, 1);
+      }
+      if (range === '3M') {
+          start = subMonths(now, 3);
+          end = addMonths(now, 3);
+      }
       
       setFilterStartDate(format(start, 'yyyy-MM-dd'));
-      setFilterEndDate(format(addHours(end, 8760), 'yyyy-MM-dd')); // Keep looking forward for races
+      setFilterEndDate(format(end, 'yyyy-MM-dd'));
   };
 
   const toggleCustomDate = () => {
@@ -441,14 +452,15 @@ const Races: React.FC<RacesProps> = ({ data, refreshData, people, raceGroups }) 
 
   return (
     <div className="flex flex-col h-full w-full overflow-hidden animate-fade-in">
+      {/* ... Headers ... */}
       <div className="flex-none px-4 pt-2 pb-3 space-y-3 bg-background/80 backdrop-blur-md z-30 border-b border-white/5 relative shadow-lg">
-          {/* ... Headers ... */}
           <div className="flex justify-between items-end mt-1">
             <div>
               <h2 className="text-xl font-bold text-white tracking-tight">賽事資訊</h2>
               <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-[0.3em] mt-0.5 italic">Racing Information</p>
             </div>
-            <button onClick={handleOpenAdd} className="w-11 h-11 rounded-2xl bg-gradient-to-br from-sunset-rose to-rose-700 flex items-center justify-center shadow-glow-rose active:scale-95 transition-all text-white border border-white/20">
+            {/* NEW ADD BUTTON: Neon Green Gradient */}
+            <button onClick={handleOpenAdd} className="w-11 h-11 rounded-2xl bg-gradient-to-br from-green-600 to-emerald-500 flex items-center justify-center shadow-glow-green active:scale-95 transition-all text-white border border-white/20">
               <Plus size={24} />
             </button>
           </div>
@@ -456,7 +468,7 @@ const Races: React.FC<RacesProps> = ({ data, refreshData, people, raceGroups }) 
           <div className="flex gap-2">
             <div className="flex-1 relative h-11">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={16} />
-                <input type="text" placeholder="檢索..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full h-full bg-zinc-900/50 border border-white/10 rounded-xl pl-10 pr-3 text-white outline-none text-sm focus:border-sunset-rose/40 shadow-inner" />
+                <input type="text" placeholder="檢索..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full h-full bg-zinc-900/50 border border-white/10 rounded-xl pl-10 pr-3 text-white outline-none text-sm focus:border-chiachia-green/40 shadow-inner" />
             </div>
             <div className="relative w-[38%] h-11">
                 <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-sunset-gold" size={14} />
@@ -475,7 +487,7 @@ const Races: React.FC<RacesProps> = ({ data, refreshData, people, raceGroups }) 
                         <button key={range} onClick={() => setQuickRange(range)} className={`text-[9px] font-bold px-2 py-1 rounded-lg transition-all ${activeRange === range ? 'bg-zinc-800 text-white shadow-inner' : 'text-zinc-500 hover:text-zinc-300'}`}>{range}</button>
                     ))}
                     <div className="w-[1px] h-3 bg-white/10 mx-0.5"></div>
-                    <button onClick={toggleCustomDate} className={`p-1 rounded-lg transition-all ${activeRange === 'custom' ? 'bg-sunset-rose/20 text-sunset-rose' : 'text-zinc-500 hover:text-zinc-300'}`}><Calendar size={14} /></button>
+                    <button onClick={toggleCustomDate} className={`p-1 rounded-lg transition-all ${activeRange === 'custom' ? 'bg-chiachia-green/20 text-chiachia-green' : 'text-zinc-500 hover:text-zinc-300'}`}><Calendar size={14} /></button>
                 </div>
                 <div className="flex-1 bg-zinc-900/50 rounded-xl p-1 flex relative border border-white/5">
                     {(['all', 'future', 'past'] as const).map((status) => (
@@ -525,7 +537,7 @@ const Races: React.FC<RacesProps> = ({ data, refreshData, people, raceGroups }) 
                return (
                   <div key={rec.id} className="flex justify-between items-center bg-black/50 border border-white/10 p-2.5 rounded-xl backdrop-blur-md mb-2 shrink-0 h-14 w-full">
                       <div className="flex items-center gap-2 overflow-hidden">
-                          <div className={`w-8 h-8 rounded-full flex-none flex items-center justify-center overflow-hidden border-2 ${isRetired ? 'bg-zinc-800 border-zinc-500' : 'bg-zinc-800 border-sunset-rose shadow-glow-rose'}`}>
+                          <div className={`w-8 h-8 rounded-full flex-none flex items-center justify-center overflow-hidden border-2 ${isRetired ? 'bg-zinc-800 border-zinc-500' : 'bg-zinc-800 border-chiachia-green shadow-glow-green'}`}>
                               {sUrlBase ? (
                                   <img src={sUrlBase} alt={rec.person_name} className="w-full h-full object-cover" style={{ transform: `translate(${(sx - 50) * 1.5}%, ${(sy - 50) * 1.5}%) scale(${sz})` }}/>
                               ) : (
@@ -534,13 +546,16 @@ const Races: React.FC<RacesProps> = ({ data, refreshData, people, raceGroups }) 
                           </div>
                           <div className="min-w-0"><div className="text-[10px] font-bold text-white truncate">{rec.person_name}</div></div>
                       </div>
-                      <div className="flex flex-col items-end"><span className="text-xs font-black font-mono italic text-sunset-gold drop-shadow-[0_0_5px_rgba(251,191,36,0.6)]">{rec.value || '--'}</span></div>
+                      <div className="flex flex-col items-end">
+                        {/* Gold Glory Style for Rank Text */}
+                        <span className="text-xs font-black font-mono italic text-yellow-400 drop-shadow-[0_0_5px_rgba(251,191,36,0.6)]">{rec.value || '--'}</span>
+                      </div>
                   </div>
                );
           });
 
           return (
-            <div key={event.key} onClick={() => setExpandedRaceKey(isExpanded ? null : event.key)} className={`${isUpcoming ? 'glass-card-gold border-sunset-gold/40' : 'glass-card border-white/10'} rounded-2xl p-0 relative overflow-hidden group animate-slide-up transition-all shadow-xl active:scale-[0.99]`} >
+            <div key={event.key} onClick={() => setExpandedRaceKey(isExpanded ? null : event.key)} className={`rounded-2xl p-0 relative overflow-hidden group animate-slide-up transition-all active:scale-[0.99] mb-4 cursor-pointer border border-chiachia-green/40 shadow-[0_4px_15px_rgba(57,231,95,0.15)] bg-zinc-900/40 backdrop-blur-md`} >
               {imageUrl && (
                 <div className="absolute inset-0 z-0 overflow-hidden rounded-2xl">
                   <div className={`absolute inset-0 z-10 transition-colors ${isUpcoming ? 'bg-black/20' : 'bg-black/70'}`} />
@@ -615,7 +630,7 @@ const Races: React.FC<RacesProps> = ({ data, refreshData, people, raceGroups }) 
                 <div className="flex justify-between items-center mb-4">
                 <div>
                     <h3 className="text-xl font-bold text-white tracking-tight">{isEditMode ? '管理賽事' : '賽場登錄'}</h3>
-                    <p className="text-[9px] text-sunset-rose font-black uppercase tracking-[0.3em] mt-0.5">Race Deployment</p>
+                    <p className="text-[9px] text-chiachia-green font-black uppercase tracking-[0.3em] mt-0.5">Race Deployment</p>
                 </div>
                 <button onClick={() => setShowModal(false)} className="w-10 h-10 flex items-center justify-center bg-white/10 rounded-full text-zinc-400 active:scale-95"><X size={20} /></button>
                 </div>
@@ -641,14 +656,14 @@ const Races: React.FC<RacesProps> = ({ data, refreshData, people, raceGroups }) 
 
                           return (
                           <div key={row.key} className="flex items-center gap-2 bg-zinc-900/50 p-2 rounded-xl border border-white/5 animate-fade-in">
-                              <div className="relative flex-1">
-                                  <select value={row.people_id} onChange={(e) => handleRowChange(row.key, 'people_id', e.target.value)} className="w-full appearance-none bg-black/40 border border-white/10 rounded-lg px-2 py-2 text-white text-xs outline-none">
-                                      {dropdownOptions.map(p => (<option key={p.id} value={p.id}>{p.name} {p.is_hidden ? '(退役)' : ''}</option>))}
+                              <div className="relative w-[32%] shrink-0">
+                                  <select value={row.people_id} onChange={(e) => handleRowChange(row.key, 'people_id', e.target.value)} className="w-full appearance-none bg-black/40 border border-white/10 rounded-lg px-2 py-2 text-white text-xs outline-none truncate">
+                                      {dropdownOptions.map(p => (<option key={p.id} value={p.id}>{p.name} {p.is_hidden ? '(退)' : ''}</option>))}
                                   </select>
                               </div>
                               {isRetired && <div className="text-[9px] text-zinc-500 bg-zinc-800 px-1 rounded border border-zinc-700">退</div>}
-                              <input type="text" placeholder="名次" value={row.value} onChange={(e) => handleRowChange(row.key, 'value', e.target.value)} className="w-16 bg-black/40 border border-white/10 rounded-lg px-2 py-2 text-white text-xs text-center outline-none focus:border-sunset-gold/50" />
-                              <button type="button" onClick={() => handleRemoveRow(row.key)} className="w-8 h-8 flex items-center justify-center bg-rose-500/10 text-rose-500 rounded-lg active:scale-95"><Trash2 size={14} /></button>
+                              <input type="text" placeholder="名次/成績" value={row.value} onChange={(e) => handleRowChange(row.key, 'value', e.target.value)} className="flex-1 min-w-0 bg-black/40 border border-white/10 rounded-lg px-2 py-2 text-white text-xs text-center outline-none focus:border-sunset-gold/50" />
+                              <button type="button" onClick={() => handleRemoveRow(row.key)} className="w-8 h-8 flex items-center justify-center bg-rose-500/10 text-rose-500 rounded-lg active:scale-95 flex-none"><Trash2 size={14} /></button>
                           </div>
                         );
                       })}
@@ -697,18 +712,19 @@ const Races: React.FC<RacesProps> = ({ data, refreshData, people, raceGroups }) 
                         <button type="button" onClick={() => setIsCropperLocked(!isCropperLocked)} className={`flex items-center gap-1 px-2 py-1 rounded-lg border ${isCropperLocked ? 'border-zinc-700 bg-zinc-800 text-zinc-400' : 'border-rose-500/50 bg-rose-500/10 text-rose-500'}`}>{isCropperLocked ? <Lock size={10} /> : <Unlock size={10} />}{isCropperLocked ? '鎖定' : '編輯中'}</button>
                     </div>
                     <div ref={cropperRef} className="relative h-32 rounded-xl overflow-hidden bg-black border border-white/10 shadow-inner group touch-none" style={{ touchAction: 'none' }} onMouseDown={handleDragStart} onMouseMove={handleDragMove} onMouseUp={handleDragEnd} onMouseLeave={handleDragEnd} onTouchStart={handleDragStart} onTouchMove={handleDragMove} onTouchEnd={handleDragEnd}>
-                        <img src={eventForm.url} className={`w-full h-full object-contain pointer-events-none select-none ${isCropperLocked ? 'opacity-80' : ''}`} style={{ transform: `translate(${(posX - 50) * 1.5}%, ${(posY - 50) * 1.5}%) scale(${zoomScale})` }} />
+                        <img src={eventForm.url} className={`w-full h-full object-cover pointer-events-none select-none ${isCropperLocked ? 'opacity-80' : ''}`} style={{ transform: `translate(${(posX - 50) * 1.5}%, ${(posY - 50) * 1.5}%) scale(${zoomScale})` }} />
                         {isCropperLocked && <div className="absolute inset-0 flex items-center justify-center pointer-events-none"><Lock size={24} className="text-white/20" /></div>}
                     </div>
                     <div className={`px-1 transition-opacity ${isCropperLocked ? 'opacity-50 pointer-events-none' : 'opacity-100'}`}>
-                        <input type="range" min="1" max="5" step="0.01" value={zoomScale} onChange={e => setZoomScale(parseFloat(e.target.value))} className="w-full accent-sunset-rose h-1.5 bg-zinc-800 rounded-full appearance-none shadow-inner" />
+                        <input type="range" min="1" max="10" step="0.01" value={zoomScale} onChange={e => setZoomScale(parseFloat(e.target.value))} className="w-full accent-sunset-rose h-1.5 bg-zinc-800 rounded-full appearance-none shadow-inner" />
                     </div>
                     </div>
                   )}
               </div>
 
               <div className="pt-2 space-y-3">
-                <button type="submit" disabled={isSubmitting} className="w-full bg-gradient-to-r from-sunset-rose to-rose-700 text-white font-black text-xs tracking-[0.3em] py-4 rounded-2xl active:scale-95 transition-all shadow-glow-rose">
+                {/* Sync Data Button: Green Gradient */}
+                <button type="submit" disabled={isSubmitting} className="w-full bg-gradient-to-r from-green-600 to-emerald-500 text-white font-black text-xs tracking-[0.3em] py-4 rounded-2xl active:scale-95 transition-all shadow-glow-green">
                   {isSubmitting ? <Loader2 size={16} className="animate-spin mx-auto" /> : '同步變更數據'}
                 </button>
                 {isEditMode && (
@@ -734,17 +750,33 @@ const Races: React.FC<RacesProps> = ({ data, refreshData, people, raceGroups }) 
                 <button onClick={() => setShowParticipantSelect(false)} className="w-8 h-8 flex items-center justify-center bg-white/5 rounded-full text-zinc-500"><X size={18} /></button>
               </div>
               <div className="flex-1 overflow-y-auto no-scrollbar pb-6">
-                  <div className="grid grid-cols-1 gap-2">
+                  <div className="grid grid-cols-4 gap-2">
                       {people
                         .filter(p => !participantRows.some(row => !row.isDeleted && String(row.people_id) === String(p.id)))
                         .sort((a,b) => a.name.localeCompare(b.name))
-                        .map(p => (
-                          <button key={p.id} onClick={() => handleAddParticipant(p.id)} className="flex items-center gap-3 p-3 rounded-xl bg-white/5 hover:bg-white/10 active:scale-95 transition-all text-left">
-                              <div className={`w-8 h-8 rounded-full flex items-center justify-center bg-zinc-800 text-xs font-black ${p.is_hidden ? 'text-zinc-600' : 'text-zinc-300'}`}>{p.name.charAt(0)}</div>
-                              <span className={`text-sm font-bold ${p.is_hidden ? 'text-zinc-500 line-through' : 'text-white'}`}>{p.name}</span>
-                              {p.is_hidden && <span className="ml-auto text-[9px] bg-zinc-800 px-1.5 py-0.5 rounded text-zinc-500">退役</span>}
+                        .map(p => {
+                          const [sUrlBase, sUrlFragment] = (p.s_url || '').split('#');
+                          let sz=1, sx=50, sy=50;
+                          if(sUrlFragment) {
+                              const sp = new URLSearchParams(sUrlFragment);
+                              sz = parseFloat(sp.get('z')||'1');
+                              sx = parseFloat(sp.get('x')||'50');
+                              sy = parseFloat(sp.get('y')||'50');
+                          }
+
+                          return (
+                          <button key={p.id} onClick={() => handleAddParticipant(p.id)} className="flex flex-col items-center justify-start py-2.5 px-1 rounded-xl transition-all active:scale-[0.95] bg-zinc-900/60 border border-white/10 aspect-[3/4] relative overflow-hidden group hover:bg-zinc-800">
+                              <div className={`w-12 h-12 rounded-full flex-none overflow-hidden flex items-center justify-center border-2 shadow-lg relative z-10 shrink-0 ${p.is_hidden ? 'border-zinc-700 bg-zinc-800' : 'border-white/10 bg-zinc-950'}`}>
+                                {sUrlBase ? (
+                                    <img src={sUrlBase} alt={p.name} className="w-full h-full object-cover" style={{transform: `translate(${(sx - 50) * 1.5}%, ${(sy - 50) * 1.5}%) scale(${sz})`}} />
+                                ) : (
+                                    <span className={`text-base font-black ${p.is_hidden ? 'text-zinc-600' : 'text-white'}`}>{p.name.charAt(0)}</span>
+                                )}
+                              </div>
+                              <span className={`text-[10px] font-black tracking-wider truncate w-full relative z-10 mt-2 ${p.is_hidden ? 'text-zinc-500 line-through' : 'text-zinc-300 group-hover:text-white'}`}>{p.name}</span>
+                              {p.is_hidden && <div className="absolute top-2 right-2 text-[7px] bg-zinc-800 px-1 py-0.5 rounded text-zinc-500 z-20">退</div>}
                           </button>
-                      ))}
+                      )})}
                   </div>
               </div>
            </div>
