@@ -216,6 +216,7 @@ const Personal: React.FC<PersonalProps> = ({ data, people, trainingTypes, refres
   const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
   const [authTitle, setAuthTitle] = useState('權限驗證');
   const [authPlaceholder, setAuthPlaceholder] = useState('Password / OTP');
+  const [authError, setAuthError] = useState(''); // New state for error message
   const [showPersonalInfoModal, setShowPersonalInfoModal] = useState(false);
   const [showSettingsMode, setShowSettingsMode] = useState(false); 
   const [wordFeedback, setWordFeedback] = useState<{msg: string, type: 'success' | 'error'} | null>(null);
@@ -258,6 +259,9 @@ const Personal: React.FC<PersonalProps> = ({ data, people, trainingTypes, refres
   const [raceActiveRange, setRaceActiveRange] = useState<'1W' | '1M' | '3M' | 'custom'>('1W'); 
   const [raceShowCustom, setRaceShowCustom] = useState(false);
   const [raceSearchTerm, setRaceSearchTerm] = useState('');
+  
+  // New state for custom delete confirmation modal
+  const [recordToDelete, setRecordToDelete] = useState<string | number | null>(null);
 
   const setTrainQuickRange = (range: '1W' | '1M' | '3M') => {
       setTrainActiveRange(range);
@@ -480,12 +484,11 @@ const Personal: React.FC<PersonalProps> = ({ data, people, trainingTypes, refres
      return Math.min(...allRecs.map(r => parseFloat(r.value)));
   }, [data, person, selectedType]);
 
-  // Fix 3-4: Sort training records by ID (creation time), not value/description
   const detailRecords = useMemo(() => {
       if (!detailDate) return [];
       return personRecords
         .filter(r => r.date === detailDate)
-        .sort((a, b) => Number(a.id) - Number(b.id)); // Sort by ID to reflect chronological order (Round 1, Round 2...)
+        .sort((a, b) => Number(a.id) - Number(b.id)); 
   }, [personRecords, detailDate]);
 
   const checkAuth = (action: () => void, requireAdmin = false) => {
@@ -495,7 +498,6 @@ const Personal: React.FC<PersonalProps> = ({ data, people, trainingTypes, refres
           return;
       }
 
-      // If viewing personal info (not requireAdmin), allow personal auth
       if (!requireAdmin && person?.id) {
           const authKey = `louie_p_auth_${person.id}`;
           const cachedAuth = localStorage.getItem(authKey);
@@ -505,26 +507,26 @@ const Personal: React.FC<PersonalProps> = ({ data, people, trainingTypes, refres
           }
       }
 
-      // Fix 3-3: Require Admin Password for training data editing/deleting
       setAuthTitle(requireAdmin ? '管理員驗證' : '個人身份驗證');
       setAuthPlaceholder(requireAdmin ? 'Admin Password' : '請輸入個人密碼'); 
       setPendingAction(() => action);
+      setAuthError('');
       setShowAuthModal(true);
   };
 
   const handleAuthSubmit = async () => {
       if (!authInput) {
-          alert('請輸入密碼');
+          setAuthError('請輸入密碼');
           return;
       }
       setIsVerifying(true);
+      setAuthError('');
       
       let personalSuccess = false;
       let adminSuccess = false;
       let adminOtp = '';
 
       try {
-          // If we are in "Admin Only" mode (implied by title), don't try personal login unless necessary
           const isAdminMode = authTitle === '管理員驗證';
 
           if (!isAdminMode && person && person.id) {
@@ -551,7 +553,6 @@ const Personal: React.FC<PersonalProps> = ({ data, people, trainingTypes, refres
           setAuthInput('');
           if (pendingAction) pendingAction();
       } else if (adminSuccess) {
-          // Fix 3-1 & 3-3: Admin Password validates for training edits and caches it
           localStorage.setItem('louie_admin_auth_ts', String(Date.now() + 5 * 60 * 1000));
           if (adminOtp) {
               api.setOtp(adminOtp);
@@ -560,13 +561,11 @@ const Personal: React.FC<PersonalProps> = ({ data, people, trainingTypes, refres
           setAuthInput('');
           if (pendingAction) pendingAction();
       } else {
-          alert('驗證失敗：密碼錯誤');
-          setAuthInput('');
+          setAuthError('驗證失敗：密碼錯誤');
       }
       setIsVerifying(false);
   };
 
-  // Fix 3-2: Fix training record update failure. Explicitly pass item: 'training' and ensure correct ID.
   const handleUpdateRecord = async (id: string | number) => {
       const val = parseFloat(editValue);
       if (isNaN(val) || val <= 0) return;
@@ -579,7 +578,7 @@ const Personal: React.FC<PersonalProps> = ({ data, people, trainingTypes, refres
 
       const success = await api.submitRecord({ 
           ...rec,
-          item: 'training', // Explicitly set item type so backend knows it's a training record update
+          item: 'training', 
           value: val.toFixed(3)
       });
       
@@ -591,25 +590,25 @@ const Personal: React.FC<PersonalProps> = ({ data, people, trainingTypes, refres
       }
   };
 
-  // Fix 3-3: Fix training record delete failure. Pass 'training' as item type.
-  const handleDeleteRecord = async (id: string | number) => {
-      if (!id) {
-          alert('Error: Record ID missing');
-          return;
-      }
-      if (!confirm('確定刪除此筆數據？')) return;
-      
-      // Ensure 'training' item type is passed for correct API endpoint selection
-      const success = await api.deleteRecord(id, 'training');
+  const handleDeleteRecord = (id: string | number) => {
+      setRecordToDelete(id);
+  };
+
+  const executeDeleteRecord = async () => {
+      if (!recordToDelete) return;
+
+      const success = await api.deleteRecord(recordToDelete, 'training');
       
       if (success) {
-          await refreshData();
+          // If this was the last record in the detail list, close the modal to avoid empty state confusion
           if (detailRecords.length <= 1) {
               setShowDetailModal(false);
           }
+          await refreshData();
       } else {
           alert('刪除失敗：請確認網路連線');
       }
+      setRecordToDelete(null);
   };
   
   const getAge = (birthday?: string) => {
@@ -1383,14 +1382,22 @@ const Personal: React.FC<PersonalProps> = ({ data, people, trainingTypes, refres
                         inputMode="numeric"
                         pattern="[0-9]*"
                         value={authInput}
-                        onChange={(e) => setAuthInput(e.target.value)}
+                        onChange={(e) => {
+                            setAuthInput(e.target.value);
+                            if (authError) setAuthError('');
+                        }}
                         placeholder="請輸入密碼"
-                        className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-white text-center tracking-widest mb-4 outline-none focus:border-rose-500/50 shadow-inner"
+                        className={`w-full bg-black/50 border rounded-xl px-4 py-3 text-white text-center tracking-widest mb-2 outline-none shadow-inner transition-colors ${authError ? 'border-rose-500' : 'border-white/10 focus:border-rose-500/50'}`}
                     />
+                    
+                    {authError && (
+                        <div className="text-[10px] font-bold text-rose-500 mb-4 animate-fade-in">{authError}</div>
+                    )}
+                    
                     <button 
                         onClick={handleAuthSubmit}
                         disabled={!authInput || isVerifying}
-                        className="w-full py-3 bg-gradient-to-r from-rose-600 to-amber-500 text-white font-bold text-xs rounded-xl shadow-glow active:scale-95 transition-all flex items-center justify-center gap-2"
+                        className={`w-full py-3 bg-gradient-to-r from-rose-600 to-amber-500 text-white font-bold text-xs rounded-xl shadow-glow active:scale-95 transition-all flex items-center justify-center gap-2 ${!authError ? 'mt-4' : ''}`}
                     >
                         {isVerifying ? <Loader2 size={16} className="animate-spin" /> : <Unlock size={16} />} 
                         驗證
@@ -1399,30 +1406,19 @@ const Personal: React.FC<PersonalProps> = ({ data, people, trainingTypes, refres
             </div>
         )}
 
-        {/* Player Selection Modal when clicking header or empty state */}
-        {showPlayerList && (
-            <div className="fixed inset-0 z-[110] flex items-end justify-center bg-black/85 backdrop-blur-md animate-fade-in" onClick={() => setShowPlayerList(false)}>
-               <div className="glass-card w-full max-w-md rounded-t-[32px] p-6 shadow-2xl animate-slide-up bg-[#0f0508] border-white/10 flex flex-col max-h-[85vh]" onClick={e => e.stopPropagation()}>
-                  <div className="flex justify-between items-center mb-6 shrink-0">
-                    <div>
-                      <h3 className="text-lg font-black text-white tracking-tight">選擇選手</h3>
-                      <p className="text-[9px] text-zinc-500 font-black uppercase tracking-[0.2em] mt-0.5">Select Rider</p>
+        {recordToDelete && (
+            <div className="fixed inset-0 z-[160] flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm animate-fade-in" onClick={() => setRecordToDelete(null)}>
+                <div className="glass-card w-full max-w-xs rounded-3xl p-6 shadow-2xl border-rose-500/30 text-center animate-scale-in" onClick={e => e.stopPropagation()}>
+                    <div className="w-16 h-16 bg-rose-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Trash2 size={32} className="text-rose-500" />
                     </div>
-                    <button onClick={() => setShowPlayerList(false)} className="w-8 h-8 flex items-center justify-center bg-white/5 rounded-full text-zinc-500"><X size={18} /></button>
-                  </div>
-                  <div className="flex-1 overflow-y-auto no-scrollbar pb-6">
-                      <div className="grid grid-cols-2 gap-3">
-                          {people.filter(p => !p.is_hidden).map(p => (
-                              <RiderListItem 
-                                key={p.id} 
-                                person={p} 
-                                isActive={String(p.id) === String(activePersonId)} 
-                                onClick={() => { onSelectPerson(p.id); setShowPlayerList(false); }}
-                              />
-                          ))}
-                      </div>
-                  </div>
-               </div>
+                    <h3 className="text-lg font-black text-white mb-2">確定刪除紀錄？</h3>
+                    <p className="text-xs text-zinc-400 mb-6 leading-relaxed">此操作無法復原。</p>
+                    <div className="grid grid-cols-2 gap-3 mt-6">
+                        <button onClick={() => setRecordToDelete(null)} className="py-3 bg-zinc-900 text-zinc-400 font-bold text-xs rounded-xl active:bg-zinc-800 transition-colors border border-white/5">取消</button>
+                        <button onClick={executeDeleteRecord} className="py-3 bg-rose-600 text-white font-bold text-xs rounded-xl active:scale-95 transition-all shadow-glow-rose">確定刪除</button>
+                    </div>
+                </div>
             </div>
         )}
 

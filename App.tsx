@@ -110,8 +110,8 @@ const App: React.FC = () => {
             </div>
           </div>
           <div className="flex flex-col items-center">
-             <div className="text-sm font-black italic tracking-[0.25em] text-white uppercase mb-2 drop-shadow-lg">LOUIE RACING</div>
-             <div className="text-[9px] text-zinc-500 font-mono tracking-widest border border-white/5 px-2 py-1 rounded-md bg-white/5">INITIALIZING D1 CORE...</div>
+             <div className="text-sm font-black italic tracking-[0.25em] text-white uppercase mb-2 drop-shadow-lg">LOUIE RUNBIKE</div>
+             <div className="text-[9px] text-zinc-500 font-mono tracking-widest border border-white/5 px-2 py-1 rounded-md bg-white/5">Loading Data...</div>
           </div>
         </div>
       );

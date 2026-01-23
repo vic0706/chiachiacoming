@@ -3,7 +3,7 @@ import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { DataRecord, LookupItem } from '../types';
 import { api } from '../services/api';
 import { uploadImage } from '../services/supabase';
-import { Search, Plus, X, Calendar, Trash2, Edit2, Camera, Filter, ChevronDown, Loader2, MapPin, ExternalLink, Maximize, Link as LinkIcon, Users, Trophy, AlertTriangle, UploadCloud, Lock, Unlock, Check } from 'lucide-react';
+import { Search, Plus, X, Calendar, Trash2, Edit2, Camera, Filter, ChevronDown, Loader2, MapPin, ExternalLink, Maximize, Link as LinkIcon, Users, Trophy, AlertTriangle, UploadCloud, Lock, Unlock, Check, LogOut, LogIn } from 'lucide-react';
 import { format, subMonths, addHours, subWeeks } from 'date-fns';
 
 interface RacesProps {
@@ -82,6 +82,9 @@ const Races: React.FC<RacesProps> = ({ data, refreshData, people, raceGroups }) 
   // Upload state
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Withdraw Confirmation State
+  const [withdrawTargetId, setWithdrawTargetId] = useState<string | number | null>(null);
 
   // Date Range Helper
   const setQuickRange = (range: '1W' | '1M' | '3M') => {
@@ -343,16 +346,27 @@ const Races: React.FC<RacesProps> = ({ data, refreshData, people, raceGroups }) 
       
       const recordsToDelete = confirmDeleteEvent.records;
       
-      if (recordsToDelete.length === 1 && String(recordsToDelete[0].id).startsWith('preview_')) {
-          await api.deleteRecord(recordsToDelete[0].id!, 'race');
-      } else {
-          const promises = recordsToDelete.map(r => api.deleteRecord(r.id!, 'race'));
+      // 1. Delete all participant records first
+      const realRecords = recordsToDelete.filter(r => !String(r.id).startsWith('preview_'));
+      if (realRecords.length > 0) {
+          const promises = realRecords.map(r => api.deleteRecord(r.id!, 'race'));
           await Promise.all(promises);
+      }
+      
+      // 2. Delete the event itself (RaceEvents)
+      // Use editingEventId if available (from Edit Mode context)
+      if (editingEventId) {
+          await api.deleteRecord(`preview_${editingEventId}`, 'race');
+      } 
+      // Fallback: if editingEventId missing but we have a preview record handle
+      else if (recordsToDelete.length === 1 && String(recordsToDelete[0].id).startsWith('preview_')) {
+          await api.deleteRecord(recordsToDelete[0].id!, 'race');
       }
       
       await refreshData();
       setIsDeleting(false);
       setConfirmDeleteEvent(null);
+      setShowModal(false);
   };
 
   // Image Upload Logic
@@ -408,6 +422,20 @@ const Races: React.FC<RacesProps> = ({ data, refreshData, people, raceGroups }) 
   };
   const handleDragEnd = () => isDragging.current = false;
 
+  const handleWithdrawRace = (id: string | number) => {
+      setWithdrawTargetId(id);
+  };
+
+  const executeWithdraw = async () => {
+      if (!withdrawTargetId) return;
+      const success = await api.deleteRecord(withdrawTargetId, 'race');
+      if (success) {
+          await refreshData();
+      } else {
+          alert('退出失敗');
+      }
+      setWithdrawTargetId(null);
+  };
 
   const todayStr = format(new Date(), 'yyyy-MM-dd');
 
@@ -748,6 +776,22 @@ const Races: React.FC<RacesProps> = ({ data, refreshData, people, raceGroups }) 
             <div className="grid grid-cols-2 gap-3 mt-6">
               <button onClick={() => setShowPreviewConfirm(false)} className="py-3 bg-zinc-900 text-zinc-400 font-bold text-xs rounded-xl active:bg-zinc-800 transition-colors border border-white/5">取消</button>
               <button onClick={() => executeSave([])} disabled={isSubmitting} className="py-3 bg-gradient-to-r from-sunset-gold to-orange-500 text-black font-black text-xs rounded-xl active:scale-95 transition-all shadow-glow-gold">{isSubmitting ? <Loader2 size={16} className="animate-spin" /> : '確認建立'}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {withdrawTargetId && (
+        <div className="fixed inset-0 z-[160] flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm animate-fade-in" onClick={() => setWithdrawTargetId(null)}>
+          <div className="glass-card w-full max-w-xs rounded-3xl p-6 shadow-2xl border-white/10 text-center animate-scale-in" onClick={e => e.stopPropagation()}>
+             <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-4">
+               <LogOut size={32} className="text-zinc-400" />
+            </div>
+            <h3 className="text-lg font-black text-white mb-2">確定退出此賽事？</h3>
+            <p className="text-xs text-zinc-400 mb-6 leading-relaxed">將刪除您的報名與成績紀錄。</p>
+            <div className="grid grid-cols-2 gap-3 mt-6">
+              <button onClick={() => setWithdrawTargetId(null)} className="py-3 bg-zinc-900 text-zinc-400 font-bold text-xs rounded-xl active:bg-zinc-800 transition-colors border border-white/5">取消</button>
+              <button onClick={executeWithdraw} className="py-3 bg-rose-600 text-white font-bold text-xs rounded-xl active:scale-95 transition-all shadow-glow-rose">確定退出</button>
             </div>
           </div>
         </div>
