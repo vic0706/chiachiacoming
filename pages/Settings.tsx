@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Plus, Star, User, Activity, Settings as SettingsIcon, Edit2, Save, X, Flag, Loader2, AlertTriangle, Lock, Unlock, Eye, EyeOff, CalendarDays, Trash2, Image as ImageIcon, Maximize, Download, FileSpreadsheet, KeyRound, RefreshCcw, UploadCloud } from 'lucide-react';
+import { Plus, Star, User, Activity, Settings as SettingsIcon, Edit2, Save, X, Flag, Loader2, AlertTriangle, Lock, Unlock, Eye, EyeOff, CalendarDays, Trash2, Image as ImageIcon, Maximize, KeyRound, RefreshCcw, UploadCloud } from 'lucide-react';
 import { LookupItem, DataRecord } from '../types';
 import { api } from '../services/api';
 import { uploadImage } from '../services/supabase';
@@ -176,9 +176,6 @@ const Settings: React.FC<SettingsProps> = ({ data, trainingTypes, raceGroups, de
 
   const [deleteTarget, setDeleteTarget] = useState<{table: 'training-types' | 'races' | 'people', id: number | string, name: string} | null>(null);
 
-  const [exportDate, setExportDate] = useState(format(new Date(), 'yyyy-MM-dd'));
-  const [exportType, setExportType] = useState(defaultType || (trainingTypes[0]?.name || ''));
-
   useEffect(() => {
     // Check for cached admin auth (Global 5 mins)
     const cachedAuth = localStorage.getItem('louie_admin_auth_ts');
@@ -203,12 +200,6 @@ const Settings: React.FC<SettingsProps> = ({ data, trainingTypes, raceGroups, de
       }
     }
   }, []);
-
-  useEffect(() => {
-    if (!exportType && trainingTypes.length > 0) {
-        setExportType(trainingTypes[0].name);
-    }
-  }, [trainingTypes, exportType]);
 
   const handleAdminLogin = async () => {
       setIsSyncing(true);
@@ -342,58 +333,6 @@ const Settings: React.FC<SettingsProps> = ({ data, trainingTypes, raceGroups, de
     if (!deleteTarget) return;
     await handleAction(() => api.manageLookup(deleteTarget.table, '', deleteTarget.id, true));
     setDeleteTarget(null);
-  };
-
-  const handleExportCSV = () => {
-    if (!exportType) {
-        alert("請選擇訓練項目");
-        return;
-    }
-
-    const filteredRecords = data.filter(r => {
-        if (r.item !== 'training') return false;
-        if (r.name !== exportType) return false;
-        if (r.date !== exportDate) return false;
-        return true;
-    }).sort((a, b) => (Number(a.id) || 0) - (Number(b.id) || 0)); 
-
-    if (filteredRecords.length === 0) {
-        alert("無符合條件的數據");
-        return;
-    }
-
-    const grouped = new Map<string, string[]>();
-    filteredRecords.forEach(r => {
-        const key = r.person_name;
-        if (!grouped.has(key)) grouped.set(key, []);
-        grouped.get(key)!.push(r.value);
-    });
-
-    let csvContent = "\uFEFF"; 
-    csvContent += "Date,Name,null,null,Score1,Score2,Score3,Score4,Score5,Score6,Score7,Score8,Score9,Score10\n";
-    
-    const sortedNames = Array.from(grouped.keys()).sort();
-    
-    sortedNames.forEach(name => {
-        const scores = grouped.get(name) || [];
-        const row = [
-            exportDate, 
-            name, 
-            "", 
-            "", 
-            ...scores
-        ].join(",");
-        csvContent += row + "\n";
-    });
-
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.setAttribute("href", url);
-    link.setAttribute("download", `LR_${exportType}_${exportDate}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
   };
 
   if (!isAdminUnlocked) {
@@ -602,35 +541,6 @@ const Settings: React.FC<SettingsProps> = ({ data, trainingTypes, raceGroups, de
               </div>
             </div>
           ))}
-        </div>
-      </section>
-
-      <section className="glass-card rounded-2xl p-5 border border-white/5">
-        <h3 className="text-xs font-bold text-zinc-500 mb-4 flex items-center tracking-widest uppercase gap-2"><FileSpreadsheet size={14} className="text-emerald-500" /> 數據導出 (CSV)</h3>
-        <div className="flex flex-col gap-3">
-            <div className="flex gap-3">
-                <input 
-                    type="date" 
-                    value={exportDate} 
-                    onChange={(e) => setExportDate(e.target.value)}
-                    className="flex-1 bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 text-white text-sm outline-none focus:border-emerald-500/50 shadow-inner" 
-                />
-                <div className="relative flex-1">
-                    <select 
-                        value={exportType}
-                        onChange={(e) => setExportType(e.target.value)}
-                        className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 text-white text-sm outline-none focus:border-emerald-500/50 shadow-inner appearance-none"
-                    >
-                        {trainingTypes.map(t => <option key={t.id} value={t.name}>{t.name}</option>)}
-                    </select>
-                </div>
-            </div>
-            <button 
-                onClick={handleExportCSV}
-                className="w-full bg-zinc-800 text-emerald-500 font-bold text-xs tracking-widest py-3 rounded-xl border border-emerald-500/20 shadow-lg active:scale-95 transition-all flex items-center justify-center gap-2 hover:bg-zinc-700"
-            >
-                <Download size={16} /> 導出 CSV
-            </button>
         </div>
       </section>
 

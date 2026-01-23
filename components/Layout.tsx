@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { LayoutDashboard, Trophy, ClipboardPen, Settings, ContactRound } from 'lucide-react';
+import { LayoutDashboard, Trophy, ClipboardPen, Settings, ContactRound, BookOpen } from 'lucide-react';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -11,6 +11,10 @@ interface LayoutProps {
 }
 
 const Layout: React.FC<LayoutProps> = ({ children, currentPage, onNavigate, title = "嘉嘉來了", subtitle = "KIDS RUN BIKE" }) => {
+  const handleManualClick = () => {
+      window.open('https://pyltlobngdnoqjnrxefn.supabase.co/storage/v1/object/public/runbike/title/info_ccmd.txt', '_blank');
+  };
+
   return (
     <div className="flex flex-col h-[100dvh] w-full relative font-sans text-zinc-200 bg-transparent overflow-hidden">
       
@@ -18,7 +22,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentPage, onNavigate, titl
         <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-chiachia-green/50 to-transparent"></div>
         
         <div className="max-w-md mx-auto px-5 flex items-center justify-between h-12">
-          <div className="flex items-center gap-4 w-full">
+          <div className="flex items-center gap-4">
             {/* Logo Container */}
             <div className="w-10 h-10 rounded-xl bg-black flex items-center justify-center shadow-lg border border-chiachia-green/30 shrink-0 relative overflow-hidden group">
                <img src="https://pyltlobngdnoqjnrxefn.supabase.co/storage/v1/object/public/runbike/title/cccm.png" alt="Logo" className="w-full h-full object-contain p-0.5" onError={(e) => {
@@ -28,7 +32,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentPage, onNavigate, titl
                }}/>
             </div>
             
-            <div className="flex flex-col justify-center flex-1">
+            <div className="flex flex-col justify-center">
               <h1 className="text-xl font-black italic tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-chiachia-green via-white to-amber-400 leading-none transform -skew-x-6 drop-shadow-sm logo-text-glow">
                 嘉嘉來了
               </h1>
@@ -37,6 +41,17 @@ const Layout: React.FC<LayoutProps> = ({ children, currentPage, onNavigate, titl
                 <span className="text-[10px] text-zinc-400 font-bold tracking-[0.25em] uppercase leading-none">{subtitle}</span>
               </div>
             </div>
+          </div>
+
+          <div className="flex flex-col items-end justify-center gap-1">
+              <button 
+                onClick={handleManualClick}
+                className="flex items-center gap-1 text-[10px] text-zinc-600 font-bold hover:text-chiachia-green transition-colors active:scale-95"
+              >
+                  <BookOpen size={12} />
+                  <span>說明書</span>
+              </button>
+              <span className="text-[8px] font-mono text-zinc-700 tracking-wider">v20260125</span>
           </div>
         </div>
       </header>

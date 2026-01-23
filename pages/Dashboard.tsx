@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { DataRecord, LookupItem } from '../types';
-import { Calendar, ChevronRight, X, ChevronDown, Activity, BarChart3, MapPin, ExternalLink, Trophy, Filter, Users } from 'lucide-react';
+import { Calendar, ChevronRight, X, ChevronDown, Activity, BarChart3, MapPin, ExternalLink, Trophy, Filter, Users, Download } from 'lucide-react';
 import { ComposedChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, CartesianGrid } from 'recharts';
 import { format, differenceInYears, subMonths, subWeeks } from 'date-fns';
 
@@ -229,6 +229,54 @@ const Dashboard: React.FC<DashboardProps> = ({ data, refreshData, onNavigateToRa
           title: `${activeLabel} @ ${expandedChart.date}`,
           records: records
       });
+  };
+
+  const handleExportChartCSV = () => {
+      if (!expandedChart) return;
+
+      const targetRecords = data.filter(r => 
+          r.item === 'training' && 
+          r.date === expandedChart.date && 
+          r.name === expandedChart.itemName
+      ).sort((a, b) => (Number(a.id) || 0) - (Number(b.id) || 0));
+
+      if (targetRecords.length === 0) {
+          alert("無數據可導出");
+          return;
+      }
+
+      const grouped = new Map<string, string[]>();
+      targetRecords.forEach(r => {
+          const key = r.person_name;
+          if (!grouped.has(key)) grouped.set(key, []);
+          grouped.get(key)!.push(r.value);
+      });
+
+      let csvContent = "\uFEFF"; 
+      csvContent += "Date,Name,null,null,Score1,Score2,Score3,Score4,Score5,Score6,Score7,Score8,Score9,Score10\n";
+      
+      const sortedNames = Array.from(grouped.keys()).sort();
+      
+      sortedNames.forEach(name => {
+          const scores = grouped.get(name) || [];
+          const row = [
+              expandedChart.date, 
+              name, 
+              "", 
+              "", 
+              ...scores
+          ].join(",");
+          csvContent += row + "\n";
+      });
+
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.setAttribute("href", url);
+      link.setAttribute("download", `LR_${expandedChart.itemName}_${expandedChart.date}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
   };
 
   // Filter ages that actually have a record
@@ -495,7 +543,13 @@ const Dashboard: React.FC<DashboardProps> = ({ data, refreshData, onNavigateToRa
                        <h3 className="text-xl font-black text-white tracking-tight">{expandedChart.title}</h3>
                        <p className="text-[9px] text-zinc-500 font-black uppercase tracking-[0.3em] mt-0.5">Detailed Analytics</p>
                    </div>
-                   <button onClick={() => setExpandedChart(null)} className="w-10 h-10 flex items-center justify-center bg-white/5 rounded-full text-zinc-500 active:scale-95"><X size={20} /></button>
+                   <div className="flex gap-3">
+                        {/* CSV Export Button */}
+                        <button onClick={handleExportChartCSV} className="w-10 h-10 flex items-center justify-center bg-white/5 rounded-full text-emerald-500 border border-emerald-500/20 active:scale-95 transition-all hover:bg-emerald-500/10">
+                            <Download size={20} />
+                        </button>
+                        <button onClick={() => setExpandedChart(null)} className="w-10 h-10 flex items-center justify-center bg-white/5 rounded-full text-zinc-500 active:scale-95 border border-white/5"><X size={20} /></button>
+                   </div>
                </div>
                
                <div className="flex-1 min-h-0 w-full">
