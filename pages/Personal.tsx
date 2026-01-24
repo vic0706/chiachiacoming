@@ -786,7 +786,7 @@ const Personal: React.FC<PersonalProps> = ({
     }
 
     return (
-        <div className="h-full overflow-y-auto no-scrollbar animate-fade-in pb-24 relative bg-[#0a0508] overflow-x-hidden">
+        <div className="h-full overflow-y-auto no-scrollbar animate-fade-in pb-24 relative bg-[#0a0508] overflow-x-hidden" style={{ overscrollBehaviorY: 'contain' }}>
             <svg width="0" height="0" className="absolute">
                 <defs>
                     <linearGradient id="neon-trophy" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -797,7 +797,8 @@ const Personal: React.FC<PersonalProps> = ({
             </svg>
 
             {/* Hero Section */}
-            <div className="relative w-full h-[80vh] z-0 overflow-hidden pb-32">
+            {/* User requested change: svh to 77 */}
+            <div className="relative w-full h-[77svh] z-0 overflow-hidden shrink-0">
                 <div className="absolute inset-0 bg-gradient-to-b from-zinc-900 via-[#1c1016] to-[#0a0508] z-0"></div>
 
                 <div className="absolute inset-0 z-10 w-full h-full flex justify-center bg-black">
@@ -853,7 +854,7 @@ const Personal: React.FC<PersonalProps> = ({
             </div>
 
             {/* Content Section */}
-            {/* Fix: Increased z-index to 40 to ensure interaction over hero gradients */}
+            {/* Fix: Adjusted -mt-20 to pull content nicely over the bottom of the aspect-ratio image */}
             <div className="relative z-40 -mt-20 space-y-0">
                 {/* Fix: Reduced pb to bring filter bar closer */}
                 <div className="px-4 pb-2">
