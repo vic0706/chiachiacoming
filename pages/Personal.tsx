@@ -797,8 +797,8 @@ const Personal: React.FC<PersonalProps> = ({
             </svg>
 
             {/* Hero Section */}
-            {/* User requested change: svh to 77 */}
-            <div className="relative w-full h-[77svh] z-0 overflow-hidden shrink-0">
+            {/* User requested change: svh to 79 */}
+            <div className="relative w-full h-[79svh] z-0 overflow-hidden shrink-0">
                 <div className="absolute inset-0 bg-gradient-to-b from-zinc-900 via-[#1c1016] to-[#0a0508] z-0"></div>
 
                 <div className="absolute inset-0 z-10 w-full h-full flex justify-center bg-black">
