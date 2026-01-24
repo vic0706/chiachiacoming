@@ -339,8 +339,8 @@ const Training: React.FC<TrainingProps> = ({
                       >
                         <span className={`${gridConfig.textSize} font-black tracking-wide truncate w-full px-2 transition-all duration-300 ${isActive ? 'text-white scale-110 drop-shadow-[0_0_10px_rgba(57,231,95,0.4)]' : 'text-zinc-600'}`}>
                             {sUrlBase ? (
-                                <div className="absolute inset-0 opacity-40 mix-blend-screen">
-                                    <img src={sUrlBase} alt={p.name} className="w-full h-full object-cover" style={{transform: `translate(${(sx - 50) * 1.5}%, ${(sy - 50) * 1.5}%) scale(${sz})`}} />
+                                <div className="absolute inset-0 opacity-40 mix-blend-screen bg-black">
+                                    <img src={sUrlBase} alt={p.name} className="w-full h-full object-contain" style={{transform: `translate(${(sx - 50) * 1.5}%, ${(sy - 50) * 1.5}%) scale(${sz})`}} />
                                 </div>
                             ) : null}
                             <span className="relative z-10">{p.name}</span>
@@ -427,7 +427,7 @@ const Training: React.FC<TrainingProps> = ({
                         >
                           <div className={`w-12 h-12 rounded-full flex-none overflow-hidden flex items-center justify-center border-2 shadow-lg relative z-10 shrink-0 ${isPinned ? 'border-white bg-zinc-950' : 'border-white/10 bg-zinc-950'}`}>
                             {sUrlBase ? (
-                                <img src={sUrlBase} alt={p.name} className="w-full h-full object-cover" style={{transform: `translate(${(sx - 50) * 1.5}%, ${(sy - 50) * 1.5}%) scale(${sz})`}} />
+                                <img src={sUrlBase} alt={p.name} className="w-full h-full object-contain bg-black" style={{transform: `translate(${(sx - 50) * 1.5}%, ${(sy - 50) * 1.5}%) scale(${sz})`}} />
                             ) : (
                                 <span className="text-base font-black">{p.name.charAt(0)}</span>
                             )}

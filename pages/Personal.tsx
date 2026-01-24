@@ -7,7 +7,7 @@ import {
   Edit2, Trophy, Zap, ChevronDown, Calendar, Filter, X, Lock, Unlock, 
   Camera, UploadCloud, Loader2, Maximize, Eye, EyeOff, Activity, Medal,
   Settings, Key, MessageCircle, UserCircle2, Check, Trash2, ArrowRight, Search, Link as LinkIcon, ExternalLink, LogIn, LogOut, KeyRound,
-  ChevronLeft, ChevronRight, Star, Image as ImageIcon
+  ChevronLeft, ChevronRight, Star, Image as ImageIcon, Flag, Plus, MinusCircle, MapPin, StickyNote, Navigation
 } from 'lucide-react';
 import { format, subWeeks, subMonths, startOfYear, differenceInYears, addWeeks, addMonths } from 'date-fns';
 import { ComposedChart, Line, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
@@ -19,14 +19,16 @@ const ImageCropperInput = ({
     onChange, 
     ratioClass = 'h-32 w-full',
     personId,
-    typeSuffix
+    typeSuffix,
+    customFileName
 }: { 
     label: string, 
     urlValue: string, 
     onChange: (val: string) => void, 
     ratioClass?: string,
     personId?: string | number,
-    typeSuffix: 's' | 'b'
+    typeSuffix: 's' | 'b' | 'race',
+    customFileName?: string
 }) => {
   const [baseUrl, fragment] = urlValue.split('#');
   const [z, setZ] = useState(1);
@@ -60,9 +62,16 @@ const ImageCropperInput = ({
       if (e.target.files && e.target.files[0]) {
           setIsUploading(true);
           const file = e.target.files[0];
-          const customName = personId ? `${personId}_${typeSuffix}` : undefined;
           
-          const result = await uploadImage(file, 'people', customName);
+          // Determine folder based on suffix
+          const folder = typeSuffix === 'race' ? 'race' : 'people';
+          
+          // Use customFileName if provided, otherwise default logic
+          const customName = customFileName 
+            ? customFileName 
+            : (personId ? `${personId}_${typeSuffix}_${Date.now()}` : undefined);
+          
+          const result = await uploadImage(file, folder, customName);
           
           if (result.url) {
               const timestampUrl = `${result.url}?t=${Date.now()}`;
@@ -255,6 +264,16 @@ const Personal: React.FC<PersonalProps> = ({
     const [isEditUnlocked, setIsEditUnlocked] = useState(false);
     const [recordToDelete, setRecordToDelete] = useState<string | number | null>(null);
 
+    // Race Management State
+    const [raceFilter, setRaceFilter] = useState<'registered' | 'available' | 'ended'>('registered');
+    const [managingEvent, setManagingEvent] = useState<any | null>(null); // Used for Join or Edit
+    const [manageNote, setManageNote] = useState('');
+    const [manageValue, setManageValue] = useState('');
+    const [managePhotoUrl, setManagePhotoUrl] = useState('');
+    const [expandedRaceId, setExpandedRaceId] = useState<string | null>(null);
+
+    const todayStr = format(new Date(), 'yyyy-MM-dd');
+
     // Initial load effects
     useEffect(() => {
         if (!selectedType && trainingTypes.length > 0) {
@@ -379,6 +398,157 @@ const Personal: React.FC<PersonalProps> = ({
           .filter(r => r.date === detailDate)
           .sort((a, b) => Number(a.id) - Number(b.id)); 
     }, [filteredRecords, detailDate]);
+
+    // Personal Race Management Logic
+    const raceManagerData = useMemo(() => {
+      if (!person) return { registered: [], available: [], ended: [] };
+      
+      const registered: any[] = [];
+      const available: any[] = [];
+      const ended: any[] = [];
+
+      const allRaceItems = data.filter(r => r.item === 'race');
+      
+      // Extract unique events map to handle duplicates and PREVIEW placeholders
+      const eventsMap = new Map<string, any>();
+      allRaceItems.forEach(r => {
+          if(r.event_id) {
+              const eid = String(r.event_id);
+              if(!eventsMap.has(eid)) {
+                  eventsMap.set(eid, {
+                      id: r.event_id,
+                      date: r.date,
+                      name: r.name,
+                      race_group: r.race_group,
+                      series_id: r.series_id || r.race_id,
+                      address: r.address,
+                      // Capture public url if available from preview, otherwise might be empty initially
+                      public_url: r.value === 'PREVIEW' ? r.url : '' 
+                  });
+              } else {
+                  // If we find a PREVIEW record later, update the public_url
+                  if (r.value === 'PREVIEW') {
+                      const existing = eventsMap.get(eid);
+                      if (!existing.public_url) existing.public_url = r.url;
+                  }
+              }
+          }
+      });
+
+      const uniqueEvents = Array.from(eventsMap.values());
+
+      uniqueEvents.forEach(evt => {
+          const userRecord = allRaceItems.find(r => 
+              String(r.event_id) === String(evt.id) && 
+              String(r.people_id) === String(person.id)
+          );
+
+          // If public_url is still empty, try to find ANY record's url (fallback)
+          if (!evt.public_url) {
+              const anyRecord = allRaceItems.find(r => String(r.event_id) === String(evt.id));
+              if (anyRecord) evt.public_url = anyRecord.url;
+          }
+
+          const isFuture = evt.date >= todayStr;
+
+          if (userRecord) {
+              // User is registered
+              // Logic: Display URL should be Personal URL if exists, else Public URL
+              const displayUrl = (userRecord.url && userRecord.url !== evt.public_url) ? userRecord.url : evt.public_url;
+
+              const record = { 
+                  ...evt, 
+                  recordId: userRecord.id, 
+                  value: userRecord.value,
+                  note: userRecord.note,
+                  personal_url: userRecord.url, // Explicitly keep personal url state
+                  display_url: displayUrl
+              };
+
+              if (isFuture) {
+                  registered.push(record);
+              } else {
+                  ended.push(record);
+              }
+          } else {
+              // User NOT registered
+              if (isFuture) {
+                  available.push({ ...evt, display_url: evt.public_url });
+              }
+          }
+      });
+
+      registered.sort((a,b) => a.date.localeCompare(b.date));
+      available.sort((a,b) => a.date.localeCompare(b.date));
+      ended.sort((a,b) => b.date.localeCompare(a.date));
+
+      return { registered, available, ended };
+    }, [data, person, todayStr]);
+
+    const handlePrepareJoin = (evt: any) => {
+        setManagingEvent({ ...evt, mode: 'join' });
+        setManageNote('');
+        setManageValue('');
+        setManagePhotoUrl(evt.display_url || ''); 
+    };
+
+    const handlePrepareEdit = (evt: any) => {
+        setManagingEvent({ ...evt, mode: 'edit' });
+        setManageNote(evt.note || '');
+        setManageValue(evt.value || '');
+        setManagePhotoUrl(evt.personal_url || evt.display_url || '');
+    };
+
+    const handleConfirmSubmit = async () => {
+        if (!managingEvent || !person) return;
+        
+        checkAuth(async () => {
+            const isJoin = managingEvent.mode === 'join';
+            
+            const payload: any = {
+                item: 'race',
+                people_id: person.id,
+                event_id: managingEvent.id,
+                date: managingEvent.date,
+                name: managingEvent.name,
+                race_id: managingEvent.series_id,
+                address: managingEvent.address,
+                url: managePhotoUrl, // This will be saved as personal_url in backend
+                value: isJoin ? '' : manageValue, // Keep existing value if edit
+                note: manageNote
+            };
+
+            if (!isJoin) {
+                payload.id = managingEvent.recordId; // Update existing record
+            }
+
+            const success = await api.submitRecord(payload);
+            
+            if(success) {
+                setManagingEvent(null);
+                refreshData();
+            } else {
+                alert(isJoin ? '加入失敗' : '更新失敗');
+            }
+        });
+    };
+
+    const handleWithdrawRace = async (recordId: string) => {
+        if(!confirm('確定要退出此賽事？')) return;
+        checkAuth(async () => {
+            const success = await api.deleteRecord(recordId, 'race');
+            if(success) refreshData();
+        });
+    };
+
+    const handleNavigate = (address: string) => {
+        if (!address) return;
+        if (address.startsWith('http')) {
+          window.open(address, '_blank');
+        } else {
+          window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`, '_blank');
+        }
+    };
 
     // Actions
     const checkAuth = (action: () => void, requireAdmin = false) => {
@@ -617,6 +787,15 @@ const Personal: React.FC<PersonalProps> = ({
 
     return (
         <div className="h-full overflow-y-auto no-scrollbar animate-fade-in pb-24 relative bg-[#0a0508] overflow-x-hidden">
+            <svg width="0" height="0" className="absolute">
+                <defs>
+                    <linearGradient id="neon-trophy" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stopColor="#39e75f" />
+                        <stop offset="100%" stopColor="#22c55e" />
+                    </linearGradient>
+                </defs>
+            </svg>
+
             {/* Hero Section */}
             <div className="relative w-full h-[80vh] z-0 overflow-hidden pb-32">
                 <div className="absolute inset-0 bg-gradient-to-b from-zinc-900 via-[#1c1016] to-[#0a0508] z-0"></div>
@@ -719,11 +898,12 @@ const Personal: React.FC<PersonalProps> = ({
                             </div>
                         </button>
 
-                        <div className="col-span-2 glass-card rounded-2xl p-3 flex flex-col justify-center relative overflow-hidden shadow-[0_0_30px_rgba(57,231,95,0.2)] border border-chiachia-green/40">
-                            <div className="absolute -top-2 -right-2 p-2 opacity-20 rotate-12"><Trophy size={60} /></div>
-                            <div className="absolute inset-0 bg-gradient-to-t from-chiachia-green/10 to-transparent"></div>
+                        <div className="col-span-2 bg-zinc-900/60 backdrop-blur-lg border border-white/5 rounded-2xl p-2.5 flex flex-col justify-center relative overflow-hidden shadow-lg">
+                            <div className="absolute top-[-5px] right-[-5px] p-2 opacity-100 rotate-12 scale-110">
+                                <Trophy size={36} style={{ stroke: '#39e75f', strokeWidth: 1.5, filter: 'drop-shadow(0 0 5px rgba(57, 231, 95, 0.4))' }} className="opacity-40" />
+                            </div>
                             <span className="text-[9px] text-chiachia-green uppercase tracking-wider font-black flex items-center gap-1 z-10"><Zap size={10} fill="currentColor"/> 最速紀錄</span>
-                            <span className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-b from-amber-200 via-amber-400 to-amber-600 font-mono tracking-tighter z-10 drop-shadow-[0_0_10px_rgba(251,191,36,0.8)] truncate">
+                            <span className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-b from-amber-200 via-amber-400 to-amber-600 font-mono tracking-tighter z-10 drop-shadow-sm truncate mt-1">
                                 {allTimeBest ? allTimeBest.toFixed(3) : '--'}
                             </span>
                         </div>
@@ -790,7 +970,7 @@ const Personal: React.FC<PersonalProps> = ({
                     </div>
                 </div>
 
-                <div className="px-4 space-y-3 pt-6">
+                <div className="px-4 space-y-3 pt-6 pb-20">
                     {dailyStats.map((stat, idx) => (
                         <div 
                             key={idx} 
@@ -964,9 +1144,187 @@ const Personal: React.FC<PersonalProps> = ({
                                     </div>
                                 </div>
                             ) : (
-                                <div className="py-20 flex flex-col items-center justify-center text-zinc-600 opacity-50">
-                                    <Settings size={32} className="mb-2" />
-                                    <p className="text-[10px] font-black uppercase tracking-widest">點擊上方齒輪進入設定</p>
+                                <div className="space-y-4 animate-fade-in">
+                                    <div className="flex bg-zinc-900/80 p-1 rounded-xl border border-white/5">
+                                        {(['registered', 'available', 'ended'] as const).map(f => (
+                                            <button 
+                                                key={f} 
+                                                onClick={() => setRaceFilter(f)} 
+                                                className={`flex-1 py-2 text-[10px] font-bold rounded-lg transition-all uppercase ${raceFilter === f ? 'bg-zinc-800 text-white shadow-md' : 'text-zinc-500 hover:text-zinc-300'}`}
+                                            >
+                                                {f === 'registered' ? '已報名' : f === 'available' ? '可參加' : '已結束'}
+                                            </button>
+                                        ))}
+                                    </div>
+
+                                    {managingEvent && (
+                                        <div className="animate-fade-in bg-zinc-900/50 p-4 rounded-2xl border border-white/10 space-y-4 relative">
+                                            <div className="flex justify-between items-center mb-1">
+                                                <h4 className="text-sm font-bold text-white flex items-center gap-2"><Flag size={14}/> {managingEvent.mode === 'join' ? '報名確認' : '編輯報名資訊'}</h4>
+                                                <button onClick={() => setManagingEvent(null)} className="w-6 h-6 bg-zinc-800 rounded-full flex items-center justify-center text-zinc-400"><X size={14}/></button>
+                                            </div>
+                                            
+                                            <div className="space-y-3">
+                                                <div className="bg-black/40 p-2 rounded-xl flex items-center gap-3">
+                                                    <div className="w-10 h-10 rounded-lg bg-zinc-800 flex items-center justify-center shrink-0 overflow-hidden">
+                                                        <Calendar size={16} className="text-zinc-500"/>
+                                                    </div>
+                                                    <div>
+                                                        <div className="text-[10px] font-black text-chiachia-green uppercase">{managingEvent.date}</div>
+                                                        <div className="text-xs font-bold text-white line-clamp-1">{managingEvent.name}</div>
+                                                    </div>
+                                                </div>
+
+                                                <ImageCropperInput 
+                                                    label="個人賽事照片 (選填)"
+                                                    urlValue={managePhotoUrl}
+                                                    onChange={setManagePhotoUrl}
+                                                    personId={person.id}
+                                                    typeSuffix="race"
+                                                    ratioClass="aspect-[4/3] w-full rounded-xl bg-black"
+                                                    customFileName={`race_${managingEvent.date}_1_${person.id}`}
+                                                />
+
+                                                {/* NEW: Result Input for Ended Races */}
+                                                {managingEvent.date < todayStr && (
+                                                    <div className="space-y-1">
+                                                        <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1 flex items-center gap-1"><Trophy size={10}/> 比賽排名 / 成績</label>
+                                                        <input 
+                                                            type="text"
+                                                            value={manageValue}
+                                                            onChange={(e) => setManageValue(e.target.value)}
+                                                            placeholder="例如：冠軍、第3名..."
+                                                            className="w-full bg-zinc-950 border border-white/10 rounded-xl px-4 py-3 text-white text-xs outline-none shadow-inner focus:border-chiachia-green/50 transition-colors"
+                                                        />
+                                                    </div>
+                                                )}
+
+                                                <div className="space-y-1">
+                                                    <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1 flex items-center gap-1"><StickyNote size={10}/> 備註 / 目標</label>
+                                                    <textarea 
+                                                        value={manageNote}
+                                                        onChange={(e) => setManageNote(e.target.value)}
+                                                        className="w-full bg-zinc-950 border border-white/10 rounded-xl px-3 py-2 text-white text-xs outline-none h-16 resize-none"
+                                                        placeholder="例如：目標前三名..."
+                                                    />
+                                                </div>
+
+                                                <button onClick={handleConfirmSubmit} className="w-full py-3 bg-gradient-to-r from-emerald-600 to-green-500 text-white font-bold text-xs rounded-xl shadow-glow-green active:scale-95 transition-all">{managingEvent.mode === 'join' ? '確認加入' : '儲存變更'}</button>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {!managingEvent && (
+                                        <div className="space-y-3">
+                                            {raceManagerData[raceFilter].length > 0 ? (
+                                                raceManagerData[raceFilter].map((evt: any, i: number) => {
+                                                    const isExpanded = expandedRaceId === evt.id;
+                                                    const isUpcoming = evt.date >= todayStr;
+                                                    // Ensure we have a valid image url to show
+                                                    // Default to display_url which handles the fallback logic in raceManagerData
+                                                    const [imgUrl, imgFrag] = (evt.display_url || '').split('#');
+                                                    let iz=1, ix=50, iy=50;
+                                                    if(imgFrag) {
+                                                        const sp = new URLSearchParams(imgFrag);
+                                                        iz = parseFloat(sp.get('z')||'1');
+                                                        ix = parseFloat(sp.get('x')||'50');
+                                                        iy = parseFloat(sp.get('y')||'50');
+                                                    }
+
+                                                    return (
+                                                    <div key={i} onClick={() => setExpandedRaceId(isExpanded ? null : evt.id)} className="rounded-2xl p-0 relative overflow-hidden group animate-slide-up transition-all active:scale-[0.99] mb-4 cursor-pointer border border-chiachia-green/40 shadow-[0_4px_15px_rgba(57,231,95,0.15)] bg-zinc-900/40 backdrop-blur-md">
+                                                        {imgUrl ? (
+                                                            <div className="absolute inset-0 z-0 overflow-hidden rounded-2xl">
+                                                                <div className={`absolute inset-0 z-10 transition-colors ${isUpcoming ? 'bg-black/20' : 'bg-black/70'}`} />
+                                                                <img src={imgUrl} className="w-full h-full object-cover opacity-60" style={{ transform: `translate(${(ix - 50) * 1.5}%, ${(iy - 50) * 1.5}%) scale(${iz})`}} />
+                                                            </div>
+                                                        ) : (
+                                                            <div className="absolute inset-0 z-0 overflow-hidden bg-zinc-900">
+                                                                <div className="absolute inset-0 z-10 bg-gradient-to-r from-black/80 via-black/60 to-black/30" />
+                                                                <div className="w-full h-full flex items-center justify-center opacity-10"><Trophy size={64}/></div>
+                                                            </div>
+                                                        )}
+                                                        
+                                                        <div className="relative z-10 p-5">
+                                                            <div className="flex justify-between items-start mb-4">
+                                                                <div className="min-w-0 flex-1">
+                                                                    <div className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md border text-[9px] font-black uppercase tracking-tighter mb-2 ${isUpcoming ? 'bg-sunset-gold text-amber-950 border-sunset-gold/50 shadow-glow-gold' : 'bg-white/10 text-white border-white/20 shadow-inner'}`}>
+                                                                        <Calendar size={10} />
+                                                                        <span className="font-mono">{evt.date}</span>
+                                                                    </div>
+                                                                    <div className="text-xl font-black italic tracking-tight text-white drop-shadow-[0_2px_10px_rgba(0,0,0,0.9)] leading-tight truncate">{evt.name}</div>
+                                                                    <div className="text-[11px] font-black text-white/95 mt-1 uppercase tracking-[0.15em] drop-shadow-md">{evt.race_group || 'RACE'}</div>
+                                                                </div>
+                                                                
+                                                                {isExpanded && (
+                                                                    <div className="flex gap-2 shrink-0 animate-fade-in">
+                                                                        {evt.address && (
+                                                                            <button onClick={(e) => { e.stopPropagation(); handleNavigate(evt.address); }} className="w-8 h-8 flex items-center justify-center bg-black/60 backdrop-blur rounded-xl border border-white/10 text-white active:scale-90 hover:bg-chiachia-green/20">
+                                                                                <Navigation size={14} />
+                                                                            </button>
+                                                                        )}
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                            
+                                                            {isExpanded && (
+                                                                <div className="mt-4 pt-4 border-t border-white/20 animate-fade-in">
+                                                                    <div className="flex items-center gap-2 mb-3 text-sunset-gold/90 drop-shadow-md">
+                                                                        <StickyNote size={12} />
+                                                                        <span className="text-[10px] font-black uppercase tracking-widest">個人筆記</span>
+                                                                    </div>
+                                                                    <div className="bg-black/40 p-3 rounded-xl border border-white/5 text-xs text-zinc-300 leading-relaxed whitespace-pre-wrap">
+                                                                        {evt.note || 'No notes added.'}
+                                                                    </div>
+
+                                                                    <div className="mt-4 flex gap-2" onClick={e => e.stopPropagation()}>
+                                                                        {raceFilter === 'available' && (
+                                                                            <button onClick={() => handlePrepareJoin(evt)} className="flex-1 py-2 bg-gradient-to-r from-emerald-600 to-green-500 text-white font-bold text-[10px] rounded-xl shadow-glow-green active:scale-95 transition-all flex items-center justify-center gap-1">
+                                                                                <Plus size={12} /> 加入報名
+                                                                            </button>
+                                                                        )}
+                                                                        {raceFilter === 'registered' && (
+                                                                            <>
+                                                                                <button onClick={() => handlePrepareEdit(evt)} className="flex-1 py-2 bg-zinc-800 text-white font-bold text-[10px] rounded-xl border border-white/10 active:scale-95 transition-all flex items-center justify-center gap-1 hover:bg-zinc-700">
+                                                                                    <Edit2 size={12} /> 編輯資訊
+                                                                                </button>
+                                                                                <button onClick={() => handleWithdrawRace(evt.recordId)} className="w-10 flex items-center justify-center py-2 bg-black/40 text-rose-500 font-bold text-[10px] rounded-xl border border-rose-500/30 active:scale-95 transition-all hover:bg-rose-500/10">
+                                                                                    <MinusCircle size={14} />
+                                                                                </button>
+                                                                            </>
+                                                                        )}
+                                                                        {raceFilter === 'ended' && (
+                                                                            <>
+                                                                            <button onClick={() => handlePrepareEdit(evt)} className="flex-1 py-2 bg-zinc-800 text-white font-bold text-[10px] rounded-xl border border-white/10 active:scale-95 transition-all flex items-center justify-center gap-1 hover:bg-zinc-700">
+                                                                                    <Edit2 size={12} /> 更新紀錄
+                                                                            </button>
+                                                                            <div className="px-3 flex items-center justify-center text-[9px] text-zinc-500 font-bold uppercase tracking-widest bg-black/40 rounded-xl border border-white/5">Completed</div>
+                                                                            </>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                            )}
+
+                                                            {!isExpanded && (
+                                                                <div className="flex items-center gap-2 mt-3 pt-3 border-t border-white/10">
+                                                                   <div className={`w-1.5 h-1.5 rounded-full ${isUpcoming ? 'bg-sunset-gold animate-pulse' : 'bg-emerald-500'}`}></div>
+                                                                   <span className="text-[10px] font-black text-white/80 uppercase tracking-widest drop-shadow-sm">{isUpcoming ? '戰備預定' : '完賽紀錄'}</span>
+                                                                   {raceFilter === 'ended' && (
+                                                                       <div className="ml-auto text-lg font-black font-mono text-yellow-400 italic drop-shadow-md">{evt.value || '--'}</div>
+                                                                   )}
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                )})
+                                            ) : (
+                                                <div className="py-12 flex flex-col items-center justify-center text-zinc-600 border border-dashed border-zinc-800 rounded-2xl">
+                                                    <Trophy size={24} className="mb-2 opacity-30" />
+                                                    <span className="text-[10px] font-black uppercase tracking-widest">此區間無賽事</span>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
                                 </div>
                             )}
                         </div>

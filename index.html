@@ -92,6 +92,12 @@
         padding-bottom: env(safe-area-inset-bottom);
         margin: 0;
         overflow-x: hidden;
+        
+        /* Disable Text Selection Globally */
+        user-select: none;
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
       }
       
       /* Liquid Glass Card */
@@ -128,6 +134,9 @@
       
       input, select, textarea {
         font-size: 16px !important;
+        /* Re-enable selection for inputs so users can edit text */
+        user-select: auto;
+        -webkit-user-select: auto;
       }
       
       /* Navigation Bar Glass - Jet Black */

@@ -164,7 +164,22 @@ const Races: React.FC<RacesProps> = ({ data, refreshData, people, raceGroups }) 
         list = list.filter(g => g.date < todayStr);
     }
 
-    return list.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    return list.sort((a, b) => {
+        const timeA = new Date(a.date).getTime();
+        const timeB = new Date(b.date).getTime();
+        const now = new Date(todayStr).getTime();
+        
+        const isFutureA = timeA >= now;
+        const isFutureB = timeB >= now;
+
+        if (isFutureA && isFutureB) {
+            return timeA - timeB; // Future: Ascending (Nearest first)
+        }
+        if (!isFutureA && !isFutureB) {
+            return timeB - timeA; // Past: Descending (Recent first)
+        }
+        return isFutureA ? -1 : 1; // Future comes first
+    });
   }, [data, searchTerm, selectedGroup, filterType, filterStartDate, filterEndDate]);
 
   const handleOpenAdd = () => {
@@ -386,9 +401,9 @@ const Races: React.FC<RacesProps> = ({ data, refreshData, people, raceGroups }) 
           setIsUploading(true);
           const file = e.target.files[0];
           
-          // Naming convention: race_event_[id]_[date].jpg or race_event_[timestamp]_[date].jpg
-          const idPart = editingEventId || Date.now();
-          const customName = `race_event_${idPart}_${eventForm.date}`;
+          // Naming convention: race_[date]_[team_id]
+          // Assuming Team ID is 1 for now as per system default
+          const customName = `race_${eventForm.date}_1`;
 
           const result = await uploadImage(file, 'race', customName); 
           if (result.url) {
@@ -539,7 +554,7 @@ const Races: React.FC<RacesProps> = ({ data, refreshData, people, raceGroups }) 
                       <div className="flex items-center gap-2 overflow-hidden">
                           <div className={`w-8 h-8 rounded-full flex-none flex items-center justify-center overflow-hidden border-2 ${isRetired ? 'bg-zinc-800 border-zinc-500' : 'bg-zinc-800 border-chiachia-green shadow-glow-green'}`}>
                               {sUrlBase ? (
-                                  <img src={sUrlBase} alt={rec.person_name} className="w-full h-full object-cover" style={{ transform: `translate(${(sx - 50) * 1.5}%, ${(sy - 50) * 1.5}%) scale(${sz})` }}/>
+                                  <img src={sUrlBase} alt={rec.person_name} className="w-full h-full object-contain bg-black" style={{ transform: `translate(${(sx - 50) * 1.5}%, ${(sy - 50) * 1.5}%) scale(${sz})` }}/>
                               ) : (
                                   <span className={`text-[10px] font-black ${isRetired ? 'text-zinc-400' : 'text-white'}`}>{rec.person_name.charAt(0)}</span>
                               )}
@@ -768,7 +783,7 @@ const Races: React.FC<RacesProps> = ({ data, refreshData, people, raceGroups }) 
                           <button key={p.id} onClick={() => handleAddParticipant(p.id)} className="flex flex-col items-center justify-start py-2.5 px-1 rounded-xl transition-all active:scale-[0.95] bg-zinc-900/60 border border-white/10 aspect-[3/4] relative overflow-hidden group hover:bg-zinc-800">
                               <div className={`w-12 h-12 rounded-full flex-none overflow-hidden flex items-center justify-center border-2 shadow-lg relative z-10 shrink-0 ${p.is_hidden ? 'border-zinc-700 bg-zinc-800' : 'border-white/10 bg-zinc-950'}`}>
                                 {sUrlBase ? (
-                                    <img src={sUrlBase} alt={p.name} className="w-full h-full object-cover" style={{transform: `translate(${(sx - 50) * 1.5}%, ${(sy - 50) * 1.5}%) scale(${sz})`}} />
+                                    <img src={sUrlBase} alt={p.name} className="w-full h-full object-contain bg-black" style={{transform: `translate(${(sx - 50) * 1.5}%, ${(sy - 50) * 1.5}%) scale(${sz})`}} />
                                 ) : (
                                     <span className={`text-base font-black ${p.is_hidden ? 'text-zinc-600' : 'text-white'}`}>{p.name.charAt(0)}</span>
                                 )}
