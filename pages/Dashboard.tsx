@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { DataRecord, LookupItem } from '../types';
 import { Calendar, ChevronRight, X, ChevronDown, Activity, BarChart3, MapPin, ExternalLink, Trophy, Filter, Users, Download } from 'lucide-react';
@@ -356,7 +355,7 @@ const Dashboard: React.FC<DashboardProps> = ({ data, refreshData, onNavigateToRa
                                 sy = parseFloat(sp.get('y')||'50');
                             }
                             avatar = sUrlBase ? (
-                                <img src={sUrlBase} className="w-full h-full object-cover bg-black" style={{transform: `translate(${(sx - 50) * 1.5}%, ${(sy - 50) * 1.5}%) scale(${sz})`}} />
+                                <img src={sUrlBase} className="w-full h-full object-contain bg-black" style={{transform: `translate(${(sx - 50) * 1.5}%, ${(sy - 50) * 1.5}%) scale(${sz})`}} />
                             ) : (
                                 <span className="text-lg font-black text-white">{info.person.name.charAt(0)}</span>
                             );
@@ -552,7 +551,11 @@ const Dashboard: React.FC<DashboardProps> = ({ data, refreshData, onNavigateToRa
                    </div>
                </div>
                
-               <div className="flex-1 min-h-0 w-full">
+               {/* 
+                  FIX: Changed container from flex-1 to a fixed 45% height. 
+                  This prevents the chart from expanding uncontrollably and overlapping the text list.
+               */}
+               <div className="h-[45%] w-full shrink-0 mb-4 border-b border-white/5 pb-4">
                     <ResponsiveContainer width="100%" height="100%">
                         <ComposedChart
                             data={expandedChart.data}
@@ -608,9 +611,9 @@ const Dashboard: React.FC<DashboardProps> = ({ data, refreshData, onNavigateToRa
                     </ResponsiveContainer>
                </div>
 
-               <div className="mt-6 space-y-2 overflow-y-auto max-h-[40%] pr-1 custom-scrollbar">
+               <div className="flex-1 overflow-y-auto no-scrollbar pr-1">
                    {expandedChart.data.map((item, idx) => (
-                       <div key={idx} onClick={() => handleDrillDown(item.name)} className="flex items-center justify-between p-3 rounded-xl bg-zinc-900/50 border border-white/5 active:scale-[0.98] transition-all">
+                       <div key={idx} onClick={() => handleDrillDown(item.name)} className="flex items-center justify-between p-3 rounded-xl bg-zinc-900/50 border border-white/5 active:scale-[0.98] transition-all mb-2">
                            <div className="flex items-center gap-3">
                                <div className="w-6 h-6 rounded-full bg-zinc-800 flex items-center justify-center text-[10px] font-black text-zinc-400">{idx + 1}</div>
                                <span className="text-sm font-bold text-zinc-300">{item.name}</span>

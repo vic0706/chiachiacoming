@@ -1,6 +1,6 @@
 
 import { createClient } from '@supabase/supabase-js';
-import imageCompression from 'browser-image-compression';
+// import imageCompression from 'browser-image-compression'; // 移除壓縮套件引用
 
 // 修正說明：
 // 為了避免 "Cannot read properties of undefined" 錯誤，我們加入安全檢查。
@@ -41,7 +41,10 @@ export const uploadImage = async (
   bucket: string = 'runbike'
 ): Promise<{ url: string | null, error: string | null }> => {
   try {
-    // 1. 使用 browser-image-compression 進行圖片壓縮
+    // 修改：直接使用原圖上傳，不進行壓縮以保持畫質
+    const fileToUpload = file;
+
+    /* 移除壓縮邏輯
     const options = {
       maxSizeMB: 1,           // 最大 1MB
       maxWidthOrHeight: 1920, // 最大寬或高 1920px
@@ -54,6 +57,7 @@ export const uploadImage = async (
     } catch (compressionError) {
         console.warn('Image compression failed, using original file:', compressionError);
     }
+    */
 
     // 2. 處理檔案路徑與名稱
     const fileExt = file.name.split('.').pop();
@@ -69,7 +73,7 @@ export const uploadImage = async (
     // 3. 上傳檔案 (upsert: true 允許覆蓋同名檔案，這對修改頭像很重要)
     const { data, error } = await supabase.storage
       .from(bucket)
-      .upload(filePath, compressedFile, {
+      .upload(filePath, fileToUpload, {
         cacheControl: '3600',
         upsert: true // 允許覆蓋
       });

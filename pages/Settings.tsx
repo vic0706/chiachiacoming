@@ -135,7 +135,7 @@ const ImageCropperInput = ({
                   <div className="flex justify-center bg-black rounded-xl border border-white/5 p-2">
                     <div ref={cropperRef} className={`relative overflow-hidden bg-zinc-900 border border-white/10 shadow-inner group touch-none ${ratioClass}`} style={{ touchAction: 'none' }} onMouseDown={handleDragStart} onMouseMove={handleDragMove} onMouseUp={handleDragEnd} onMouseLeave={handleDragEnd} onTouchStart={handleDragStart} onTouchMove={handleDragMove} onTouchEnd={handleDragEnd}>
                         {!error ? (
-                            <img src={baseUrl} className={`w-full h-full object-cover pointer-events-none select-none ${isLocked ? 'opacity-80' : ''}`} style={{ transform: `translate(${(x - 50) * 1.5}%, ${(y - 50) * 1.5}%) scale(${z})` }} onError={() => setError(true)} />
+                            <img src={baseUrl} className={`w-full h-full object-contain bg-black pointer-events-none select-none ${isLocked ? 'opacity-80' : ''}`} style={{ transform: `translate(${(x - 50) * 1.5}%, ${(y - 50) * 1.5}%) scale(${z})` }} onError={() => setError(true)} />
                         ) : (
                             <div className="w-full h-full flex flex-col items-center justify-center bg-zinc-950 text-zinc-600 space-y-2"><ImageIcon size={24} className="opacity-30"/></div>
                         )}
@@ -452,7 +452,7 @@ const Settings: React.FC<SettingsProps> = ({ data, trainingTypes, raceGroups, de
                             <img 
                                 src={sUrlBase} 
                                 alt={p.name} 
-                                className="w-full h-full object-cover" 
+                                className="w-full h-full object-contain bg-black" 
                                 style={{ transform: `translate(${(sx - 50) * 1.5}%, ${(sy - 50) * 1.5}%) scale(${sz})` }}
                             />
                         ) : (

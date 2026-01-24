@@ -97,6 +97,18 @@ const App: React.FC = () => {
 
   const activePersonName = activePeople.find(p => String(p.id) === String(selectedPersonId))?.name || DEFAULT_NAME;
 
+  const handleNavigation = (page: string) => {
+    // Feature: Random player selection when entering 'personal' page
+    // This logic ensures that every time 'personal' is clicked in nav, a random player is shown.
+    if (page === 'personal') {
+      if (activePeople.length > 0) {
+        const randomIndex = Math.floor(Math.random() * activePeople.length);
+        setSelectedPersonId(activePeople[randomIndex].id);
+      }
+    }
+    setCurrentPage(page);
+  };
+
   const renderPage = () => {
     if (isLoading && !hasInitialized.current) {
        return (
@@ -188,7 +200,7 @@ const App: React.FC = () => {
   return (
     <Layout 
       currentPage={currentPage} 
-      onNavigate={setCurrentPage}
+      onNavigate={handleNavigation}
       title={teamInfo?.team_name || "CHIA CHIA"}
       subtitle={teamInfo?.team_en_name || "KIDS RUN BIKE"}
     >
