@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Plus, Star, User, Activity, Settings as SettingsIcon, Edit2, Save, X, Flag, Loader2, AlertTriangle, Lock, Unlock, Eye, EyeOff, CalendarDays, Trash2, Image as ImageIcon, Maximize, KeyRound, RefreshCcw, UploadCloud } from 'lucide-react';
+import { Plus, Star, User, Activity, Settings as SettingsIcon, Edit2, Save, X, Flag, Loader2, AlertTriangle, Lock, Unlock, Eye, EyeOff, CalendarDays, Trash2, Image as ImageIcon, Maximize, KeyRound, RefreshCcw, UploadCloud, Camera, MessageCircle } from 'lucide-react';
 import { LookupItem, DataRecord } from '../types';
 import { api } from '../services/api';
 import { uploadImage } from '../services/supabase';
@@ -24,14 +24,16 @@ const ImageCropperInput = ({
     onChange, 
     ratioClass = 'h-32 w-full',
     personId,
-    typeSuffix
+    typeSuffix,
+    customFileName
 }: { 
     label: string, 
     urlValue: string, 
     onChange: (val: string) => void, 
     ratioClass?: string,
     personId?: string | number,
-    typeSuffix: 's' | 'b'
+    typeSuffix: 's' | 'b' | 'race',
+    customFileName?: string
 }) => {
   const [baseUrl, fragment] = urlValue.split('#');
   const [z, setZ] = useState(1);
@@ -65,9 +67,16 @@ const ImageCropperInput = ({
       if (e.target.files && e.target.files[0]) {
           setIsUploading(true);
           const file = e.target.files[0];
-          const customName = personId ? `${personId}_${typeSuffix}` : undefined;
           
-          const result = await uploadImage(file, 'people', customName);
+          // Determine folder based on suffix
+          const folder = typeSuffix === 'race' ? 'race' : 'people';
+          
+          // Use customFileName if provided, otherwise default logic (with timestamp to bust cache)
+          const customName = customFileName 
+            ? customFileName 
+            : (personId ? `${personId}_${typeSuffix}_${Date.now()}` : undefined);
+          
+          const result = await uploadImage(file, folder, customName);
           
           if (result.url) {
               const timestampUrl = `${result.url}?t=${Date.now()}`;
@@ -114,12 +123,12 @@ const ImageCropperInput = ({
 
   return (
       <div className="space-y-2">
-          <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1 flex items-center gap-1"><ImageIcon size={12}/> {label}</label>
+          <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1 flex items-center gap-1"><Camera size={12}/> {label}</label>
           <div className="flex gap-2">
             <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileSelect}/>
             <button onClick={() => fileInputRef.current?.click()} disabled={isUploading} className="w-full px-4 py-3 bg-zinc-800 rounded-xl text-white active:scale-95 border border-white/5 flex items-center justify-center gap-2 hover:bg-zinc-700 transition-all shadow-lg text-xs font-bold tracking-wider">
                 {isUploading ? <Loader2 size={16} className="animate-spin" /> : <UploadCloud size={16} />}
-                {isUploading ? '選擇照片並上傳' : '選擇照片並上傳'}
+                {isUploading ? '處理中...' : '上傳照片'}
             </button>
           </div>
 
@@ -137,7 +146,7 @@ const ImageCropperInput = ({
                         {!error ? (
                             <img src={baseUrl} className={`w-full h-full object-contain bg-black pointer-events-none select-none ${isLocked ? 'opacity-80' : ''}`} style={{ transform: `translate(${(x - 50) * 1.5}%, ${(y - 50) * 1.5}%) scale(${z})` }} onError={() => setError(true)} />
                         ) : (
-                            <div className="w-full h-full flex flex-col items-center justify-center bg-zinc-950 text-zinc-600 space-y-2"><ImageIcon size={24} className="opacity-30"/></div>
+                            <div className="w-full h-full flex flex-col items-center justify-center bg-zinc-950 text-zinc-600 space-y-2"><Camera size={24} className="opacity-30"/></div>
                         )}
                         <div className={`absolute inset-0 pointer-events-none transition-opacity ${isLocked ? 'opacity-0' : 'opacity-20'}`}><div className="w-full h-full border border-white/30 flex"><div className="flex-1 border-r border-white/30"></div><div className="flex-1 border-r border-white/30"></div><div className="flex-1"></div></div><div className="absolute inset-0 flex flex-col"><div className="flex-1 border-b border-white/30"></div><div className="flex-1 border-b border-white/30"></div><div className="flex-1"></div></div></div>
                         {isLocked && <div className="absolute inset-0 flex items-center justify-center pointer-events-none"><Lock size={24} className="text-white/20" /></div>}
