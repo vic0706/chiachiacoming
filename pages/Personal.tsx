@@ -118,10 +118,10 @@ const ImageCropperInput = ({
 
   return (
       <div className="space-y-2">
-          <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1 flex items-center gap-1"><Camera size={12}/> {label}</label>
+          <label className="text-xs font-black text-zinc-500 uppercase tracking-widest ml-1 flex items-center gap-1"><Camera size={14}/> {label}</label>
           <div className="flex gap-2">
             <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileSelect}/>
-            <button onClick={() => fileInputRef.current?.click()} disabled={isUploading} className="w-full px-4 py-3 bg-zinc-800 rounded-xl text-white active:scale-95 border border-white/5 flex items-center justify-center gap-2 hover:bg-zinc-700 transition-all shadow-lg text-xs font-bold tracking-wider">
+            <button onClick={() => fileInputRef.current?.click()} disabled={isUploading} className="w-full px-4 py-3 bg-zinc-800 rounded-xl text-white active:scale-95 border border-white/5 flex items-center justify-center gap-2 hover:bg-zinc-700 transition-all shadow-lg text-sm font-bold tracking-wider">
                 {isUploading ? <Loader2 size={16} className="animate-spin" /> : <UploadCloud size={16} />}
                 {isUploading ? '處理中...' : '上傳照片'}
             </button>
@@ -129,10 +129,10 @@ const ImageCropperInput = ({
 
           {baseUrl && (
                <div className="space-y-3 bg-white/5 p-4 rounded-2xl border border-white/10 shadow-lg mt-2 relative">
-                  <div className="flex justify-between items-center text-[9px] font-black text-zinc-500 uppercase tracking-widest mb-1">
-                      <span className="flex items-center gap-1"><Maximize size={10}/> 縮放與位置調整</span>
+                  <div className="flex justify-between items-center text-[11px] font-black text-zinc-500 uppercase tracking-widest mb-1">
+                      <span className="flex items-center gap-1"><Maximize size={12}/> 縮放與位置調整</span>
                       <button type="button" onClick={() => setIsLocked(!isLocked)} className={`flex items-center gap-1 px-2 py-1 rounded-lg border ${isLocked ? 'border-zinc-700 bg-zinc-800 text-zinc-400' : 'border-rose-500/50 bg-rose-500/10 text-rose-500'}`}>
-                          {isLocked ? <Lock size={10} /> : <Unlock size={10} />}
+                          {isLocked ? <Lock size={12} /> : <Unlock size={12} />}
                           {isLocked ? '鎖定' : '編輯中'}
                       </button>
                   </div>
@@ -144,11 +144,11 @@ const ImageCropperInput = ({
                             <div className="w-full h-full flex flex-col items-center justify-center bg-zinc-950 text-zinc-600 space-y-2"><Camera size={24} className="opacity-30"/></div>
                         )}
                         <div className={`absolute inset-0 pointer-events-none transition-opacity ${isLocked ? 'opacity-0' : 'opacity-20'}`}><div className="w-full h-full border border-white/30 flex"><div className="flex-1 border-r border-white/30"></div><div className="flex-1 border-r border-white/30"></div><div className="flex-1"></div></div><div className="absolute inset-0 flex flex-col"><div className="flex-1 border-b border-white/30"></div><div className="flex-1 border-b border-white/30"></div><div className="flex-1"></div></div></div>
-                        {isLocked && <div className="absolute inset-0 flex items-center justify-center pointer-events-none"><Lock size={24} className="text-white/20" /></div>}
+                        {isLocked && <div className="absolute inset-0 flex items-center justify-center pointer-events-none"><Lock size={32} className="text-white/20" /></div>}
                     </div>
                   </div>
                   <div className={`px-1 transition-opacity ${isLocked ? 'opacity-50 pointer-events-none' : 'opacity-100'}`}>
-                      <div className="flex justify-between text-[8px] text-zinc-500 font-mono mb-1"><span>ZOOM: {z.toFixed(2)}x</span><span>POS: {x.toFixed(0)},{y.toFixed(0)}</span></div>
+                      <div className="flex justify-between text-[10px] text-zinc-500 font-mono mb-1"><span>ZOOM: {z.toFixed(2)}x</span><span>POS: {x.toFixed(0)},{y.toFixed(0)}</span></div>
                       <input type="range" min="0.1" max="10" step="0.01" value={z} onChange={e => { const val = parseFloat(e.target.value); setZ(val); updateUrl(val, x, y); }} className="w-full accent-chiachia-green h-1.5 bg-zinc-800 rounded-full appearance-none shadow-inner" />
                   </div>
               </div>
@@ -184,7 +184,7 @@ const RiderListItem: React.FC<RiderListItemProps> = ({ person, isActive, onClick
             onClick={onClick}
             className={`flex flex-col items-center justify-start py-2.5 px-1 rounded-xl transition-all active:scale-[0.95] border w-full aspect-[3/4] gap-2 relative overflow-hidden isolate ${isActive ? 'bg-gradient-to-b from-chiachia-green/20 to-black border-chiachia-green shadow-glow-green' : 'bg-zinc-900/40 border-white/10 hover:bg-zinc-800'}`}
         >
-            <div className={`w-12 h-12 rounded-full flex-none overflow-hidden flex items-center justify-center border-2 shadow-lg relative z-10 shrink-0 ${isActive ? 'border-white bg-zinc-950' : 'border-white/10 bg-zinc-950'}`}>
+            <div className={`w-14 h-14 rounded-full flex-none overflow-hidden flex items-center justify-center border-2 shadow-lg relative z-10 shrink-0 ${isActive ? 'border-white bg-zinc-950' : 'border-white/10 bg-zinc-950'}`}>
                 {!error ? (
                     <img 
                         src={src} 
@@ -194,10 +194,10 @@ const RiderListItem: React.FC<RiderListItemProps> = ({ person, isActive, onClick
                         alt={person.name}
                     />
                 ) : (
-                    <span className={`text-base font-black ${isActive ? 'text-white' : 'text-zinc-600'}`}>{person.name.charAt(0)}</span>
+                    <span className={`text-xl font-black ${isActive ? 'text-white' : 'text-zinc-600'}`}>{person.name.charAt(0)}</span>
                 )}
             </div>
-            <span className={`text-[10px] font-black tracking-wider truncate w-full relative z-10 ${isActive ? 'text-white' : 'text-zinc-400'}`}>{person.name}</span>
+            <span className={`text-xs font-black tracking-wider truncate w-full relative z-10 ${isActive ? 'text-white' : 'text-zinc-400'}`}>{person.name}</span>
             {isActive && <div className="absolute top-2 right-2 w-1.5 h-1.5 bg-chiachia-green rounded-full shadow-[0_0_8px_rgba(57,231,95,0.8)] animate-pulse z-20"></div>}
         </button>
     );
@@ -777,10 +777,10 @@ const Personal: React.FC<PersonalProps> = ({
                     <Activity size={32} className="text-zinc-600" />
                 </div>
                 <div>
-                    <h3 className="text-lg font-bold text-white">請選擇一位選手</h3>
-                    <p className="text-[10px] text-zinc-500 font-black uppercase tracking-widest mt-1">Select a player to view profile</p>
+                    <h3 className="text-xl font-bold text-white">請選擇一位選手</h3>
+                    <p className="text-xs text-zinc-500 font-black uppercase tracking-widest mt-1">Select a player to view profile</p>
                 </div>
-                {people.length > 0 && <button onClick={() => setShowPlayerList(true)} className="px-4 py-2 bg-white/10 rounded-xl text-xs font-bold">選擇選手</button>}
+                {people.length > 0 && <button onClick={() => setShowPlayerList(true)} className="px-4 py-2 bg-white/10 rounded-xl text-sm font-bold">選擇選手</button>}
             </div>
         );
     }
@@ -836,16 +836,16 @@ const Personal: React.FC<PersonalProps> = ({
                         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[150%] h-[150%] bg-black/20 blur-xl rounded-full pointer-events-none"></div>
                         
                         <div className="w-full flex items-center justify-center gap-2 overflow-visible">
-                            <h1 className="relative text-center text-4xl font-black italic tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-white via-white to-sunset-gold/90 drop-shadow-[0_4px_12px_rgba(0,0,0,1)] filter z-10 break-keep whitespace-nowrap overflow-visible p-2">
+                            <h1 className="relative text-center text-5xl font-black italic tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-white via-white to-sunset-gold/90 drop-shadow-[0_4px_12px_rgba(0,0,0,1)] filter z-10 break-keep whitespace-nowrap overflow-visible p-2">
                                 {person.name}
                             </h1>
-                            <ChevronDown size={20} className="text-white/50 animate-bounce mt-2" />
+                            <ChevronDown size={24} className="text-white/50 animate-bounce mt-2" />
                         </div>
                         
                         <div className="flex items-center gap-1.5 -mt-1 bg-black/50 backdrop-blur-md px-3 py-0.5 rounded-full border border-white/15 shadow-lg relative z-10 shrink-0">
-                            <Star size={10} className="text-sunset-gold fill-sunset-gold animate-pulse" />
-                            <span className="text-[9px] font-bold text-sunset-gold tracking-[0.2em] uppercase shadow-black drop-shadow-md">{getAge(person.birthday)}</span>
-                            <Star size={10} className="text-sunset-gold fill-sunset-gold animate-pulse" />
+                            <Star size={12} className="text-sunset-gold fill-sunset-gold animate-pulse" />
+                            <span className="text-[11px] font-bold text-sunset-gold tracking-[0.2em] uppercase shadow-black drop-shadow-md">{getAge(person.birthday)}</span>
+                            <Star size={12} className="text-sunset-gold fill-sunset-gold animate-pulse" />
                         </div>
                     </div>
 
@@ -880,16 +880,16 @@ const Personal: React.FC<PersonalProps> = ({
                                     />
                                 ) : (
                                     <div className="w-full h-full flex items-center justify-center bg-zinc-800">
-                                        <span className="text-sm font-black text-white">{person.name.charAt(0)}</span>
+                                        <span className="text-base font-black text-white">{person.name.charAt(0)}</span>
                                     </div>
                                 )}
                             </div>
                             <div className="flex-1 min-w-0 flex flex-col justify-center text-left z-10 overflow-hidden relative h-full">
                                 <div className="flex items-center gap-1.5 mb-0.5">
-                                    <span className="text-[10px] font-black text-chiachia-green bg-chiachia-green/10 px-1.5 py-0.5 rounded border border-chiachia-green/20">個人中心</span>
-                                    <Edit2 size={10} className="text-zinc-500 group-hover:text-chiachia-green transition-colors" />
+                                    <span className="text-[11px] font-black text-chiachia-green bg-chiachia-green/10 px-1.5 py-0.5 rounded border border-chiachia-green/20">個人中心</span>
+                                    <Edit2 size={12} className="text-zinc-500 group-hover:text-chiachia-green transition-colors" />
                                 </div>
-                                <div className="text-sm font-medium text-white/90 whitespace-nowrap overflow-hidden">
+                                <div className="text-base font-medium text-white/90 whitespace-nowrap overflow-hidden">
                                     <div className={`${(person.myword || '').length > 8 ? 'animate-marquee-infinite inline-block' : ''}`}>
                                         {person.myword || "編輯個人檔案..."}
                                         {(person.myword || '').length > 8 && <span className="inline-block w-8"></span>}
@@ -901,10 +901,10 @@ const Personal: React.FC<PersonalProps> = ({
 
                         <div className="col-span-2 bg-zinc-900/60 backdrop-blur-lg border border-white/5 rounded-2xl p-2.5 flex flex-col justify-center relative overflow-hidden shadow-lg">
                             <div className="absolute top-[-5px] right-[-5px] p-2 opacity-100 rotate-12 scale-110">
-                                <Trophy size={36} style={{ stroke: '#39e75f', strokeWidth: 1.5, filter: 'drop-shadow(0 0 5px rgba(57, 231, 95, 0.4))' }} className="opacity-40" />
+                                <Trophy size={42} style={{ stroke: '#39e75f', strokeWidth: 1.5, filter: 'drop-shadow(0 0 5px rgba(57, 231, 95, 0.4))' }} className="opacity-40" />
                             </div>
-                            <span className="text-[9px] text-chiachia-green uppercase tracking-wider font-black flex items-center gap-1 z-10"><Zap size={10} fill="currentColor"/> 最速紀錄</span>
-                            <span className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-b from-amber-200 via-amber-400 to-amber-600 font-mono tracking-tighter z-10 drop-shadow-sm truncate mt-1">
+                            <span className="text-[11px] text-chiachia-green uppercase tracking-wider font-black flex items-center gap-1 z-10"><Zap size={12} fill="currentColor"/> 最速紀錄</span>
+                            <span className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-b from-amber-200 via-amber-400 to-amber-600 font-mono tracking-tighter z-10 drop-shadow-sm truncate mt-1">
                                 {allTimeBest ? allTimeBest.toFixed(3) : '--'}
                             </span>
                         </div>
@@ -920,13 +920,13 @@ const Personal: React.FC<PersonalProps> = ({
                                 <select 
                                     value={selectedType}
                                     onChange={(e) => setSelectedType(e.target.value)}
-                                    className="absolute inset-0 w-full h-full opacity-0 z-20 cursor-pointer"
+                                    className="absolute inset-0 w-full h-full opacity-0 z-20 cursor-pointer text-base"
                                 >
                                     {trainingTypes.map(t => <option key={t.id} value={t.name}>{t.name}</option>)}
                                 </select>
                                 <div className="relative z-10 flex items-center justify-between px-4 h-full pointer-events-none">
-                                    <span className="text-white font-black text-sm tracking-wide truncate pr-4">{selectedType}</span>
-                                    <ChevronDown size={14} className="text-chiachia-green flex-none" />
+                                    <span className="text-white font-black text-base tracking-wide truncate pr-4">{selectedType}</span>
+                                    <ChevronDown size={18} className="text-chiachia-green flex-none" />
                                 </div>
                             </div>
                             
@@ -935,7 +935,7 @@ const Personal: React.FC<PersonalProps> = ({
                                     <button 
                                         key={range}
                                         onClick={() => setTrainQuickRange(range)} 
-                                        className={`text-[9px] font-bold px-2 h-full rounded-xl transition-all ${trainActiveRange === range ? 'bg-white/10 text-white shadow-inner' : 'text-zinc-500 hover:text-zinc-300'}`}
+                                        className={`text-[11px] font-bold px-3 h-full rounded-xl transition-all ${trainActiveRange === range ? 'bg-white/10 text-white shadow-inner' : 'text-zinc-500 hover:text-zinc-300'}`}
                                     >
                                         {range}
                                     </button>
@@ -943,28 +943,28 @@ const Personal: React.FC<PersonalProps> = ({
                                 <div className="w-[1px] h-3 bg-white/10 mx-0.5"></div>
                                 <button 
                                     onClick={toggleTrainCustom} 
-                                    className={`p-2 rounded-xl transition-all h-full flex items-center justify-center ${trainActiveRange === 'custom' ? 'bg-chiachia-green/20 text-chiachia-green' : 'text-zinc-500 hover:text-zinc-300'}`}
+                                    className={`p-2.5 rounded-xl transition-all h-full flex items-center justify-center ${trainActiveRange === 'custom' ? 'bg-chiachia-green/20 text-chiachia-green' : 'text-zinc-500 hover:text-zinc-300'}`}
                                 >
-                                    <Calendar size={14} />
+                                    <Calendar size={16} />
                                 </button>
                             </div>
                         </div>
 
                         {trainShowCustom && (
                             <div className="flex items-center justify-end gap-2 animate-fade-in bg-zinc-900/30 p-2 rounded-xl border border-white/5 border-dashed">
-                                <span className="text-[9px] text-zinc-500 font-bold uppercase tracking-wider mr-1">Range</span>
+                                <span className="text-[11px] text-zinc-500 font-bold uppercase tracking-wider mr-1">Range</span>
                                 <input 
                                     type="date" 
                                     value={trainStartDate} 
                                     onChange={(e) => { setTrainStartDate(e.target.value); setTrainActiveRange('custom'); }} 
-                                    className="bg-zinc-950 text-[10px] font-mono text-zinc-300 outline-none w-auto min-w-[80px] text-center p-1 rounded border border-white/10" 
+                                    className="bg-zinc-950 text-xs font-mono text-zinc-300 outline-none w-auto min-w-[90px] text-center p-1 rounded border border-white/10" 
                                 />
-                                <span className="text-zinc-600 text-[10px]">-</span>
+                                <span className="text-zinc-600 text-xs">-</span>
                                 <input 
                                     type="date" 
                                     value={trainEndDate} 
                                     onChange={(e) => { setTrainEndDate(e.target.value); setTrainActiveRange('custom'); }} 
-                                    className="bg-zinc-950 text-[10px] font-mono text-zinc-300 outline-none w-auto min-w-[80px] text-center p-1 rounded border border-white/10" 
+                                    className="bg-zinc-950 text-xs font-mono text-zinc-300 outline-none w-auto min-w-[90px] text-center p-1 rounded border border-white/10" 
                                 />
                             </div>
                         )}
@@ -982,12 +982,12 @@ const Personal: React.FC<PersonalProps> = ({
                             
                             <div className="flex justify-between items-start mb-3 relative z-10">
                                 <div className="flex items-center gap-3">
-                                    <div className="w-12 h-12 rounded-2xl bg-zinc-900/60 flex flex-col items-center justify-center border border-white/10 shadow-inner backdrop-blur-sm">
-                                        <span className="text-[8px] text-zinc-500 uppercase font-bold tracking-widest">{format(new Date(stat.date), 'MMM')}</span>
-                                        <span className="text-lg font-black text-white font-mono leading-none">{format(new Date(stat.date), 'dd')}</span>
+                                    <div className="w-14 h-14 rounded-2xl bg-zinc-900/60 flex flex-col items-center justify-center border border-white/10 shadow-inner backdrop-blur-sm">
+                                        <span className="text-[10px] text-zinc-500 uppercase font-bold tracking-widest">{format(new Date(stat.date), 'MMM')}</span>
+                                        <span className="text-xl font-black text-white font-mono leading-none">{format(new Date(stat.date), 'dd')}</span>
                                     </div>
                                     <div>
-                                        <div className="text-[9px] text-zinc-500 font-black uppercase tracking-wider mb-0.5 flex items-center gap-1">Stability <Activity size={8}/></div>
+                                        <div className="text-[11px] text-zinc-500 font-black uppercase tracking-wider mb-0.5 flex items-center gap-1">Stability <Activity size={10}/></div>
                                         <div className="flex items-center gap-2">
                                             <div className="h-1.5 w-16 bg-zinc-800 rounded-full overflow-hidden border border-white/5">
                                                 <div 
@@ -995,27 +995,27 @@ const Personal: React.FC<PersonalProps> = ({
                                                     style={{width: `${stat.stability}%`}}
                                                 ></div>
                                             </div>
-                                            <span className={`text-sm font-black font-mono ${stat.stability >= 80 ? 'text-emerald-400' : stat.stability >= 60 ? 'text-amber-400' : 'text-rose-400'}`}>
+                                            <span className={`text-base font-black font-mono ${stat.stability >= 80 ? 'text-emerald-400' : stat.stability >= 60 ? 'text-amber-400' : 'text-rose-400'}`}>
                                                 {stat.stability.toFixed(0)}
                                             </span>
                                         </div>
                                     </div>
                                 </div>
                                 <div className="flex flex-col items-end">
-                                    <ArrowRight size={18} className="text-zinc-600 group-hover:text-white transition-colors mt-1" />
-                                    <span className="text-[9px] font-mono text-zinc-500 mt-1 font-bold">{stat.count} Rounds</span>
+                                    <ArrowRight size={20} className="text-zinc-600 group-hover:text-white transition-colors mt-1" />
+                                    <span className="text-[11px] font-mono text-zinc-500 mt-1 font-bold">{stat.count} Rounds</span>
                                 </div>
                             </div>
                             
                             <div className="grid grid-cols-2 gap-2 relative z-10">
                                 <div className="bg-black/30 rounded-xl p-2.5 border border-white/5 flex flex-col">
-                                    <span className="text-[8px] text-zinc-500 uppercase font-bold mb-0.5">Average</span>
-                                    <span className="text-sm font-mono font-bold text-zinc-300">{stat.avg.toFixed(3)}s</span>
+                                    <span className="text-[10px] text-zinc-500 uppercase font-bold mb-0.5">Average</span>
+                                    <span className="text-base font-mono font-bold text-zinc-300">{stat.avg.toFixed(3)}s</span>
                                 </div>
                                 <div className="bg-black/30 rounded-xl p-2.5 border border-white/5 flex flex-col">
-                                    <span className="text-[8px] text-zinc-500 uppercase font-bold mb-0.5">Best</span>
+                                    <span className="text-[10px] text-zinc-500 uppercase font-bold mb-0.5">Best</span>
                                     {/* GOLD GLORY TEXT EFFECT */}
-                                    <span className="text-sm font-mono font-black text-transparent bg-clip-text bg-gradient-to-b from-amber-200 via-amber-400 to-amber-600 drop-shadow-sm">{stat.best.toFixed(3)}s</span>
+                                    <span className="text-base font-mono font-black text-transparent bg-clip-text bg-gradient-to-b from-amber-200 via-amber-400 to-amber-600 drop-shadow-sm">{stat.best.toFixed(3)}s</span>
                                 </div>
                             </div>
                         </div>
@@ -1031,8 +1031,8 @@ const Personal: React.FC<PersonalProps> = ({
                         <div className="flex justify-between items-center mb-6 shrink-0">
                             <div className="flex items-center gap-3">
                                 <div>
-                                    <h3 className="text-xl font-black text-white tracking-tight">{detailDate}</h3>
-                                    <p className="text-[9px] text-zinc-500 font-black uppercase tracking-[0.3em] mt-0.5">Detailed Records</p>
+                                    <h3 className="text-2xl font-black text-white tracking-tight">{detailDate}</h3>
+                                    <p className="text-xs text-zinc-500 font-black uppercase tracking-[0.3em] mt-0.5">Detailed Records</p>
                                 </div>
                                 <button 
                                     onClick={() => {
@@ -1044,7 +1044,7 @@ const Personal: React.FC<PersonalProps> = ({
                                     }}
                                     className={`w-8 h-8 flex items-center justify-center rounded-xl border transition-all active:scale-95 ${isEditUnlocked ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/30' : 'bg-white/5 text-zinc-500 border-white/5'}`}
                                 >
-                                    {isEditUnlocked ? <Unlock size={16} /> : <Edit2 size={16} />}
+                                    {isEditUnlocked ? <Unlock size={18} /> : <Edit2 size={18} />}
                                 </button>
                             </div>
                             <button onClick={() => setShowDetailModal(false)} className="w-10 h-10 flex items-center justify-center bg-white/5 rounded-full text-zinc-500 active:scale-95"><X size={20} /></button>
@@ -1054,7 +1054,7 @@ const Personal: React.FC<PersonalProps> = ({
                             {detailRecords.map((rec, i) => (
                                 <div key={rec.id} className="flex items-center justify-between bg-zinc-900/50 p-3 rounded-2xl border border-white/5">
                                     <div className="flex items-center gap-3">
-                                        <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black font-mono ${i===0 ? 'bg-chiachia-green text-black shadow-glow-green' : 'bg-zinc-800 text-zinc-500'}`}>
+                                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-black font-mono ${i===0 ? 'bg-chiachia-green text-black shadow-glow-green' : 'bg-zinc-800 text-zinc-500'}`}>
                                             {i + 1}
                                         </div>
                                         {editingRecordId === rec.id ? (
@@ -1064,10 +1064,10 @@ const Personal: React.FC<PersonalProps> = ({
                                                 inputMode="decimal"
                                                 value={editValue}
                                                 onChange={handleScoreChange}
-                                                className="w-24 bg-black border border-chiachia-green rounded px-2 py-1 text-white font-mono text-sm outline-none"
+                                                className="w-24 bg-black border border-chiachia-green rounded px-2 py-1 text-white font-mono text-base outline-none"
                                             />
                                         ) : (
-                                            <span className={`text-lg font-mono font-bold ${i===0 ? 'text-chiachia-green' : 'text-zinc-300'}`}>
+                                            <span className={`text-xl font-mono font-bold ${i===0 ? 'text-chiachia-green' : 'text-zinc-300'}`}>
                                                 {parseFloat(rec.value).toFixed(3)}
                                             </span>
                                         )}
@@ -1076,14 +1076,14 @@ const Personal: React.FC<PersonalProps> = ({
                                     <div className="flex gap-2">
                                         {editingRecordId === rec.id ? (
                                             <>
-                                                <button onClick={() => handleUpdateRecord(rec.id!)} className="p-2 bg-green-500/20 text-green-500 rounded-lg active:scale-90"><Check size={16} /></button>
-                                                <button onClick={() => setEditingRecordId(null)} className="p-2 bg-zinc-700/50 text-zinc-400 rounded-lg active:scale-90"><X size={16} /></button>
+                                                <button onClick={() => handleUpdateRecord(rec.id!)} className="p-2 bg-green-500/20 text-green-500 rounded-lg active:scale-90"><Check size={18} /></button>
+                                                <button onClick={() => setEditingRecordId(null)} className="p-2 bg-zinc-700/50 text-zinc-400 rounded-lg active:scale-90"><X size={18} /></button>
                                             </>
                                         ) : (
                                             isEditUnlocked && (
                                                 <>
-                                                    <button onClick={() => { setEditingRecordId(rec.id!); setEditValue(rec.value); }} className="p-2 text-zinc-600 hover:text-white rounded-lg active:scale-90"><Edit2 size={16} /></button>
-                                                    <button onClick={(e) => { e.stopPropagation(); handleDeleteRecord(rec.id!); }} className="p-2 text-zinc-600 hover:text-rose-500 rounded-lg active:scale-90"><Trash2 size={16} /></button>
+                                                    <button onClick={() => { setEditingRecordId(rec.id!); setEditValue(rec.value); }} className="p-2 text-zinc-600 hover:text-white rounded-lg active:scale-90"><Edit2 size={18} /></button>
+                                                    <button onClick={(e) => { e.stopPropagation(); handleDeleteRecord(rec.id!); }} className="p-2 text-zinc-600 hover:text-rose-500 rounded-lg active:scale-90"><Trash2 size={18} /></button>
                                                 </>
                                             )
                                         )}
@@ -1106,14 +1106,14 @@ const Personal: React.FC<PersonalProps> = ({
                     <div className="flex-1 flex flex-col p-6 overflow-hidden max-w-md mx-auto w-full animate-slide-up" onClick={e => e.stopPropagation()}>
                         <div className="flex justify-between items-center mb-6 shrink-0 pt-2">
                             <div>
-                                <h3 className="text-xl font-black text-white tracking-tight flex items-center gap-2">{person.name}</h3>
-                                <p className="text-[9px] text-chiachia-green font-black uppercase tracking-[0.3em] mt-0.5">Personal Space</p>
+                                <h3 className="text-2xl font-black text-white tracking-tight flex items-center gap-2">{person.name}</h3>
+                                <p className="text-xs text-chiachia-green font-black uppercase tracking-[0.3em] mt-0.5">Personal Space</p>
                             </div>
                             <div className="flex gap-3">
                                 <button onClick={() => setShowSettingsMode(!showSettingsMode)} className={`w-10 h-10 flex items-center justify-center rounded-full border transition-all active:scale-95 ${showSettingsMode ? 'bg-chiachia-green text-black border-chiachia-green' : 'bg-white/5 text-zinc-400 border-white/10'}`}>
-                                    <Settings size={20} />
+                                    <Settings size={22} />
                                 </button>
-                                <button onClick={() => { setShowPersonalInfoModal(false); }} className="w-10 h-10 flex items-center justify-center bg-white/10 rounded-full text-zinc-400 active:scale-95"><X size={20} /></button>
+                                <button onClick={() => { setShowPersonalInfoModal(false); }} className="w-10 h-10 flex items-center justify-center bg-white/10 rounded-full text-zinc-400 active:scale-95"><X size={22} /></button>
                             </div>
                         </div>
 
@@ -1122,26 +1122,26 @@ const Personal: React.FC<PersonalProps> = ({
                                 <div className="space-y-4 animate-fade-in">
                                     <div className="space-y-4 p-4 bg-zinc-900/50 rounded-2xl border border-white/5">
                                         <div className="space-y-1.5">
-                                            <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1 flex items-center gap-1"><MessageCircle size={10}/> 我想說的話</label>
-                                            <textarea value={editMyWord} onChange={e => setEditMyWord(e.target.value)} className="w-full bg-zinc-900 border border-white/10 rounded-xl px-4 py-3 text-white text-xs outline-none resize-none h-20 shadow-inner" />
+                                            <label className="text-xs font-black text-zinc-500 uppercase tracking-widest ml-1 flex items-center gap-1"><MessageCircle size={12}/> 我想說的話</label>
+                                            <textarea value={editMyWord} onChange={e => setEditMyWord(e.target.value)} className="w-full bg-zinc-900 border border-white/10 rounded-xl px-4 py-3 text-white text-sm outline-none resize-none h-20 shadow-inner" />
                                         </div>
-                                        <h4 className="text-[10px] font-black text-zinc-500 uppercase tracking-widest flex items-center gap-1 pt-2 border-t border-white/5"><UserCircle2 size={12}/> 選手照片管理</h4>
+                                        <h4 className="text-xs font-black text-zinc-500 uppercase tracking-widest flex items-center gap-1 pt-2 border-t border-white/5"><UserCircle2 size={14}/> 選手照片管理</h4>
                                         <ImageCropperInput label="更換頭像" urlValue={tempSUrl} onChange={setTempSUrl} personId={person.id} typeSuffix="s" ratioClass="aspect-square w-44 mx-auto rounded-full border-2 border-white/10" />
                                         <ImageCropperInput label="更換全身照" urlValue={tempBUrl} onChange={setTempBUrl} personId={person.id} typeSuffix="b" ratioClass="aspect-[2/3] w-full mx-auto rounded-xl" />
-                                        <button onClick={handleUpdateProfile} className="w-full py-3 bg-gradient-to-r from-chiachia-green to-emerald-600 text-white font-bold text-xs rounded-xl shadow-glow active:scale-95 transition-all mt-2">儲存個人檔案</button>
-                                        {wordFeedback && (<div className={`text-center text-[10px] font-bold animate-fade-in ${wordFeedback.type === 'success' ? 'text-green-500' : 'text-rose-500'}`}>{wordFeedback.msg}</div>)}
+                                        <button onClick={handleUpdateProfile} className="w-full py-3 bg-gradient-to-r from-chiachia-green to-emerald-600 text-white font-bold text-sm rounded-xl shadow-glow active:scale-95 transition-all mt-2">儲存個人檔案</button>
+                                        {wordFeedback && (<div className={`text-center text-xs font-bold animate-fade-in ${wordFeedback.type === 'success' ? 'text-green-500' : 'text-rose-500'}`}>{wordFeedback.msg}</div>)}
                                     </div>
                                     <div className="p-4 bg-zinc-900/50 rounded-2xl border border-white/5 space-y-3 mt-4">
-                                        <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1 flex items-center gap-1"><Key size={10}/> 安全設定 - 重設密碼</label>
+                                        <label className="text-xs font-black text-zinc-500 uppercase tracking-widest ml-1 flex items-center gap-1"><Key size={12}/> 安全設定 - 重設密碼</label>
                                         <div className="space-y-2">
-                                            <input type="password" placeholder="輸入新密碼 (至少6碼)" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="w-full bg-black/60 border border-white/10 rounded-xl px-4 py-3 text-white text-xs outline-none" />
+                                            <input type="password" placeholder="輸入新密碼 (至少6碼)" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="w-full bg-black/60 border border-white/10 rounded-xl px-4 py-3 text-white text-sm outline-none" />
                                             <div className="space-y-1">
-                                                <input type="password" placeholder="再次確認新密碼" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className={`w-full bg-black/60 border rounded-xl px-4 py-3 text-white text-xs outline-none ${!passwordsMatch && confirmPassword.length > 0 ? 'border-rose-500' : 'border-white/10'}`} />
+                                                <input type="password" placeholder="再次確認新密碼" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className={`w-full bg-black/60 border rounded-xl px-4 py-3 text-white text-sm outline-none ${!passwordsMatch && confirmPassword.length > 0 ? 'border-rose-500' : 'border-white/10'}`} />
                                                 {!passwordsMatch && confirmPassword.length > 0 && (<div className="text-[10px] text-rose-500 font-bold ml-1 animate-fade-in">密碼不一致</div>)}
                                             </div>
                                         </div>
-                                        <button onClick={handleChangePassword} disabled={!newPassword || !confirmPassword || !passwordsMatch || !isPasswordValid} className="w-full py-3 bg-gradient-to-r from-chiachia-green to-emerald-600 text-white font-bold text-xs rounded-xl border border-white/5 active:scale-95 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed">確認修改密碼</button>
-                                        {passFeedback && (<div className={`text-center text-[10px] font-bold animate-fade-in ${passFeedback.type === 'success' ? 'text-green-500' : 'text-rose-500'}`}>{passFeedback.msg}</div>)}
+                                        <button onClick={handleChangePassword} disabled={!newPassword || !confirmPassword || !passwordsMatch || !isPasswordValid} className="w-full py-3 bg-gradient-to-r from-chiachia-green to-emerald-600 text-white font-bold text-sm rounded-xl border border-white/5 active:scale-95 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed">確認修改密碼</button>
+                                        {passFeedback && (<div className={`text-center text-xs font-bold animate-fade-in ${passFeedback.type === 'success' ? 'text-green-500' : 'text-rose-500'}`}>{passFeedback.msg}</div>)}
                                     </div>
                                 </div>
                             ) : (
@@ -1151,7 +1151,7 @@ const Personal: React.FC<PersonalProps> = ({
                                             <button 
                                                 key={f} 
                                                 onClick={() => setRaceFilter(f)} 
-                                                className={`flex-1 py-2 text-[10px] font-bold rounded-lg transition-all uppercase ${raceFilter === f ? 'bg-zinc-800 text-white shadow-md' : 'text-zinc-500 hover:text-zinc-300'}`}
+                                                className={`flex-1 py-2 text-[11px] font-bold rounded-lg transition-all uppercase ${raceFilter === f ? 'bg-zinc-800 text-white shadow-md' : 'text-zinc-500 hover:text-zinc-300'}`}
                                             >
                                                 {f === 'registered' ? '已報名' : f === 'available' ? '可參加' : '已結束'}
                                             </button>
@@ -1161,18 +1161,18 @@ const Personal: React.FC<PersonalProps> = ({
                                     {managingEvent && (
                                         <div className="animate-fade-in bg-zinc-900/50 p-4 rounded-2xl border border-white/10 space-y-4 relative">
                                             <div className="flex justify-between items-center mb-1">
-                                                <h4 className="text-sm font-bold text-white flex items-center gap-2"><Flag size={14}/> {managingEvent.mode === 'join' ? '報名確認' : '編輯報名資訊'}</h4>
-                                                <button onClick={() => setManagingEvent(null)} className="w-6 h-6 bg-zinc-800 rounded-full flex items-center justify-center text-zinc-400"><X size={14}/></button>
+                                                <h4 className="text-base font-bold text-white flex items-center gap-2"><Flag size={16}/> {managingEvent.mode === 'join' ? '報名確認' : '編輯報名資訊'}</h4>
+                                                <button onClick={() => setManagingEvent(null)} className="w-6 h-6 bg-zinc-800 rounded-full flex items-center justify-center text-zinc-400"><X size={16}/></button>
                                             </div>
                                             
                                             <div className="space-y-3">
                                                 <div className="bg-black/40 p-2 rounded-xl flex items-center gap-3">
-                                                    <div className="w-10 h-10 rounded-lg bg-zinc-800 flex items-center justify-center shrink-0 overflow-hidden">
-                                                        <Calendar size={16} className="text-zinc-500"/>
+                                                    <div className="w-12 h-12 rounded-lg bg-zinc-800 flex items-center justify-center shrink-0 overflow-hidden">
+                                                        <Calendar size={18} className="text-zinc-500"/>
                                                     </div>
                                                     <div>
-                                                        <div className="text-[10px] font-black text-chiachia-green uppercase">{managingEvent.date}</div>
-                                                        <div className="text-xs font-bold text-white line-clamp-1">{managingEvent.name}</div>
+                                                        <div className="text-[11px] font-black text-chiachia-green uppercase">{managingEvent.date}</div>
+                                                        <div className="text-sm font-bold text-white line-clamp-1">{managingEvent.name}</div>
                                                     </div>
                                                 </div>
 
@@ -1189,28 +1189,28 @@ const Personal: React.FC<PersonalProps> = ({
                                                 {/* NEW: Result Input for Ended Races */}
                                                 {managingEvent.date < todayStr && (
                                                     <div className="space-y-1">
-                                                        <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1 flex items-center gap-1"><Trophy size={10}/> 比賽排名 / 成績</label>
+                                                        <label className="text-xs font-black text-zinc-500 uppercase tracking-widest ml-1 flex items-center gap-1"><Trophy size={12}/> 比賽排名 / 成績</label>
                                                         <input 
                                                             type="text"
                                                             value={manageValue}
                                                             onChange={(e) => setManageValue(e.target.value)}
                                                             placeholder="例如：冠軍、第3名..."
-                                                            className="w-full bg-zinc-950 border border-white/10 rounded-xl px-4 py-3 text-white text-xs outline-none shadow-inner focus:border-chiachia-green/50 transition-colors"
+                                                            className="w-full bg-zinc-950 border border-white/10 rounded-xl px-4 py-3 text-white text-sm outline-none shadow-inner focus:border-chiachia-green/50 transition-colors"
                                                         />
                                                     </div>
                                                 )}
 
                                                 <div className="space-y-1">
-                                                    <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1 flex items-center gap-1"><StickyNote size={10}/> 備註 / 目標</label>
+                                                    <label className="text-xs font-black text-zinc-500 uppercase tracking-widest ml-1 flex items-center gap-1"><StickyNote size={12}/> 備註 / 目標</label>
                                                     <textarea 
                                                         value={manageNote}
                                                         onChange={(e) => setManageNote(e.target.value)}
-                                                        className="w-full bg-zinc-950 border border-white/10 rounded-xl px-3 py-2 text-white text-xs outline-none h-16 resize-none"
+                                                        className="w-full bg-zinc-950 border border-white/10 rounded-xl px-3 py-2 text-white text-sm outline-none h-16 resize-none"
                                                         placeholder="例如：目標前三名..."
                                                     />
                                                 </div>
 
-                                                <button onClick={handleConfirmSubmit} className="w-full py-3 bg-gradient-to-r from-emerald-600 to-green-500 text-white font-bold text-xs rounded-xl shadow-glow-green active:scale-95 transition-all">{managingEvent.mode === 'join' ? '確認加入' : '儲存變更'}</button>
+                                                <button onClick={handleConfirmSubmit} className="w-full py-3 bg-gradient-to-r from-emerald-600 to-green-500 text-white font-bold text-sm rounded-xl shadow-glow-green active:scale-95 transition-all">{managingEvent.mode === 'join' ? '確認加入' : '儲存變更'}</button>
                                             </div>
                                         </div>
                                     )}
@@ -1249,19 +1249,19 @@ const Personal: React.FC<PersonalProps> = ({
                                                         <div className="relative z-10 p-5">
                                                             <div className="flex justify-between items-start mb-4">
                                                                 <div className="min-w-0 flex-1">
-                                                                    <div className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md border text-[9px] font-black uppercase tracking-tighter mb-2 ${isUpcoming ? 'bg-sunset-gold text-amber-950 border-sunset-gold/50 shadow-glow-gold' : 'bg-white/10 text-white border-white/20 shadow-inner'}`}>
-                                                                        <Calendar size={10} />
+                                                                    <div className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md border text-[11px] font-black uppercase tracking-tighter mb-2 ${isUpcoming ? 'bg-sunset-gold text-amber-950 border-sunset-gold/50 shadow-glow-gold' : 'bg-white/10 text-white border-white/20 shadow-inner'}`}>
+                                                                        <Calendar size={12} />
                                                                         <span className="font-mono">{evt.date}</span>
                                                                     </div>
-                                                                    <div className="text-xl font-black italic tracking-tight text-white drop-shadow-[0_2px_10px_rgba(0,0,0,0.9)] leading-tight truncate">{evt.name}</div>
-                                                                    <div className="text-[11px] font-black text-white/95 mt-1 uppercase tracking-[0.15em] drop-shadow-md">{evt.race_group || 'RACE'}</div>
+                                                                    <div className="text-2xl font-black italic tracking-tight text-white drop-shadow-[0_2px_10px_rgba(0,0,0,0.9)] leading-tight truncate">{evt.name}</div>
+                                                                    <div className="text-xs font-black text-white/95 mt-1 uppercase tracking-[0.15em] drop-shadow-md">{evt.race_group || 'RACE'}</div>
                                                                 </div>
                                                                 
                                                                 {isExpanded && (
                                                                     <div className="flex gap-2 shrink-0 animate-fade-in">
                                                                         {evt.address && (
-                                                                            <button onClick={(e) => { e.stopPropagation(); handleNavigate(evt.address); }} className="w-8 h-8 flex items-center justify-center bg-black/60 backdrop-blur rounded-xl border border-white/10 text-white active:scale-90 hover:bg-chiachia-green/20">
-                                                                                <Navigation size={14} />
+                                                                            <button onClick={(e) => { e.stopPropagation(); handleNavigate(evt.address); }} className="w-10 h-10 flex items-center justify-center bg-black/60 backdrop-blur rounded-xl border border-white/10 text-white active:scale-90 hover:bg-chiachia-green/20">
+                                                                                <Navigation size={18} />
                                                                             </button>
                                                                         )}
                                                                     </div>
@@ -1271,35 +1271,35 @@ const Personal: React.FC<PersonalProps> = ({
                                                             {isExpanded && (
                                                                 <div className="mt-4 pt-4 border-t border-white/20 animate-fade-in">
                                                                     <div className="flex items-center gap-2 mb-3 text-sunset-gold/90 drop-shadow-md">
-                                                                        <StickyNote size={12} />
-                                                                        <span className="text-[10px] font-black uppercase tracking-widest">個人筆記</span>
+                                                                        <StickyNote size={14} />
+                                                                        <span className="text-[11px] font-black uppercase tracking-widest">個人筆記</span>
                                                                     </div>
-                                                                    <div className="bg-black/40 p-3 rounded-xl border border-white/5 text-xs text-zinc-300 leading-relaxed whitespace-pre-wrap">
+                                                                    <div className="bg-black/40 p-3 rounded-xl border border-white/5 text-sm text-zinc-300 leading-relaxed whitespace-pre-wrap">
                                                                         {evt.note || 'No notes added.'}
                                                                     </div>
 
                                                                     <div className="mt-4 flex gap-2" onClick={e => e.stopPropagation()}>
                                                                         {raceFilter === 'available' && (
-                                                                            <button onClick={() => handlePrepareJoin(evt)} className="flex-1 py-2 bg-gradient-to-r from-emerald-600 to-green-500 text-white font-bold text-[10px] rounded-xl shadow-glow-green active:scale-95 transition-all flex items-center justify-center gap-1">
-                                                                                <Plus size={12} /> 加入報名
+                                                                            <button onClick={() => handlePrepareJoin(evt)} className="flex-1 py-2.5 bg-gradient-to-r from-emerald-600 to-green-500 text-white font-bold text-[11px] rounded-xl shadow-glow-green active:scale-95 transition-all flex items-center justify-center gap-1">
+                                                                                <Plus size={14} /> 加入報名
                                                                             </button>
                                                                         )}
                                                                         {raceFilter === 'registered' && (
                                                                             <>
-                                                                                <button onClick={() => handlePrepareEdit(evt)} className="flex-1 py-2 bg-zinc-800 text-white font-bold text-[10px] rounded-xl border border-white/10 active:scale-95 transition-all flex items-center justify-center gap-1 hover:bg-zinc-700">
-                                                                                    <Edit2 size={12} /> 編輯資訊
+                                                                                <button onClick={() => handlePrepareEdit(evt)} className="flex-1 py-2.5 bg-zinc-800 text-white font-bold text-[11px] rounded-xl border border-white/10 active:scale-95 transition-all flex items-center justify-center gap-1 hover:bg-zinc-700">
+                                                                                    <Edit2 size={14} /> 編輯資訊
                                                                                 </button>
-                                                                                <button onClick={() => handleWithdrawRace(evt.recordId)} className="w-10 flex items-center justify-center py-2 bg-black/40 text-rose-500 font-bold text-[10px] rounded-xl border border-rose-500/30 active:scale-95 transition-all hover:bg-rose-500/10">
-                                                                                    <MinusCircle size={14} />
+                                                                                <button onClick={() => handleWithdrawRace(evt.recordId)} className="w-12 flex items-center justify-center py-2.5 bg-black/40 text-rose-500 font-bold text-[11px] rounded-xl border border-rose-500/30 active:scale-95 transition-all hover:bg-rose-500/10">
+                                                                                    <MinusCircle size={16} />
                                                                                 </button>
                                                                             </>
                                                                         )}
                                                                         {raceFilter === 'ended' && (
                                                                             <>
-                                                                            <button onClick={() => handlePrepareEdit(evt)} className="flex-1 py-2 bg-zinc-800 text-white font-bold text-[10px] rounded-xl border border-white/10 active:scale-95 transition-all flex items-center justify-center gap-1 hover:bg-zinc-700">
-                                                                                    <Edit2 size={12} /> 更新紀錄
+                                                                            <button onClick={() => handlePrepareEdit(evt)} className="flex-1 py-2.5 bg-zinc-800 text-white font-bold text-[11px] rounded-xl border border-white/10 active:scale-95 transition-all flex items-center justify-center gap-1 hover:bg-zinc-700">
+                                                                                    <Edit2 size={14} /> 更新紀錄
                                                                             </button>
-                                                                            <div className="px-3 flex items-center justify-center text-[9px] text-zinc-500 font-bold uppercase tracking-widest bg-black/40 rounded-xl border border-white/5">Completed</div>
+                                                                            <div className="px-3 flex items-center justify-center text-[10px] text-zinc-500 font-bold uppercase tracking-widest bg-black/40 rounded-xl border border-white/5">Completed</div>
                                                                             </>
                                                                         )}
                                                                     </div>
@@ -1309,9 +1309,9 @@ const Personal: React.FC<PersonalProps> = ({
                                                             {!isExpanded && (
                                                                 <div className="flex items-center gap-2 mt-3 pt-3 border-t border-white/10">
                                                                    <div className={`w-1.5 h-1.5 rounded-full ${isUpcoming ? 'bg-sunset-gold animate-pulse' : 'bg-emerald-500'}`}></div>
-                                                                   <span className="text-[10px] font-black text-white/80 uppercase tracking-widest drop-shadow-sm">{isUpcoming ? '戰備預定' : '完賽紀錄'}</span>
+                                                                   <span className="text-[11px] font-black text-white/80 uppercase tracking-widest drop-shadow-sm">{isUpcoming ? '戰備預定' : '完賽紀錄'}</span>
                                                                    {raceFilter === 'ended' && (
-                                                                       <div className="ml-auto text-lg font-black font-mono text-yellow-400 italic drop-shadow-md">{evt.value || '--'}</div>
+                                                                       <div className="ml-auto text-xl font-black font-mono text-yellow-400 italic drop-shadow-md">{evt.value || '--'}</div>
                                                                    )}
                                                                 </div>
                                                             )}
@@ -1320,8 +1320,8 @@ const Personal: React.FC<PersonalProps> = ({
                                                 )})
                                             ) : (
                                                 <div className="py-12 flex flex-col items-center justify-center text-zinc-600 border border-dashed border-zinc-800 rounded-2xl">
-                                                    <Trophy size={24} className="mb-2 opacity-30" />
-                                                    <span className="text-[10px] font-black uppercase tracking-widest">此區間無賽事</span>
+                                                    <Trophy size={32} className="mb-2 opacity-30" />
+                                                    <span className="text-[11px] font-black uppercase tracking-widest">此區間無賽事</span>
                                                 </div>
                                             )}
                                         </div>
@@ -1339,11 +1339,11 @@ const Personal: React.FC<PersonalProps> = ({
                         <div className="w-16 h-16 bg-rose-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
                         <Trash2 size={32} className="text-rose-500" />
                         </div>
-                        <h3 className="text-lg font-black text-white mb-2">確定刪除紀錄？</h3>
+                        <h3 className="text-xl font-black text-white mb-2">確定刪除紀錄？</h3>
                         <p className="text-xs text-zinc-400 mb-6 leading-relaxed">此操作無法復原。</p>
                         <div className="grid grid-cols-2 gap-3 mt-6">
-                            <button onClick={() => setRecordToDelete(null)} className="py-3 bg-zinc-900 text-zinc-400 font-bold text-xs rounded-xl active:bg-zinc-800 transition-colors border border-white/5">取消</button>
-                            <button onClick={executeDeleteRecord} className="py-3 bg-rose-600 text-white font-bold text-xs rounded-xl active:scale-95 transition-all shadow-glow-rose">確定刪除</button>
+                            <button onClick={() => setRecordToDelete(null)} className="py-3 bg-zinc-900 text-zinc-400 font-bold text-sm rounded-xl active:bg-zinc-800 transition-colors border border-white/5">取消</button>
+                            <button onClick={executeDeleteRecord} className="py-3 bg-rose-600 text-white font-bold text-sm rounded-xl active:scale-95 transition-all shadow-glow-rose">確定刪除</button>
                         </div>
                     </div>
                 </div>
@@ -1355,7 +1355,7 @@ const Personal: React.FC<PersonalProps> = ({
                         <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
                             <KeyRound size={32} className="text-white opacity-80" />
                         </div>
-                        <h3 className="text-xl font-black text-white tracking-tight mb-2">{authTitle}</h3>
+                        <h3 className="text-2xl font-black text-white tracking-tight mb-2">{authTitle}</h3>
                         <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mb-6">Security Check</p>
                         
                         <input 
@@ -1373,9 +1373,9 @@ const Personal: React.FC<PersonalProps> = ({
                         <button 
                             onClick={handleAuthSubmit}
                             disabled={!authInput || isVerifying}
-                            className="w-full py-3 bg-gradient-to-r from-green-600 to-emerald-500 text-white font-bold text-xs rounded-xl shadow-glow active:scale-95 transition-all flex items-center justify-center gap-2"
+                            className="w-full py-3 bg-gradient-to-r from-green-600 to-emerald-500 text-white font-bold text-sm rounded-xl shadow-glow active:scale-95 transition-all flex items-center justify-center gap-2"
                         >
-                            {isVerifying ? <Loader2 size={16} className="animate-spin" /> : <Unlock size={16} />} 
+                            {isVerifying ? <Loader2 size={18} className="animate-spin" /> : <Unlock size={18} />} 
                             驗證
                         </button>
                     </div>
@@ -1387,8 +1387,8 @@ const Personal: React.FC<PersonalProps> = ({
                     <div className="glass-card w-full max-w-md rounded-t-[32px] p-6 shadow-2xl animate-slide-up bg-[#0f0508] border-white/10 flex flex-col max-h-[85vh]" onClick={e => e.stopPropagation()}>
                         <div className="flex justify-between items-center mb-6 shrink-0">
                             <div>
-                                <h3 className="text-xl font-black text-white tracking-tight">切換選手</h3>
-                                <p className="text-[9px] text-zinc-500 font-black uppercase tracking-[0.3em] mt-0.5">Select Rider</p>
+                                <h3 className="text-2xl font-black text-white tracking-tight">切換選手</h3>
+                                <p className="text-xs text-zinc-500 font-black uppercase tracking-[0.3em] mt-0.5">Select Rider</p>
                             </div>
                             <button onClick={() => setShowPlayerList(false)} className="w-10 h-10 flex items-center justify-center bg-white/5 rounded-full text-zinc-500 active:scale-95"><X size={20} /></button>
                         </div>

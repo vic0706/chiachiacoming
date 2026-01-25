@@ -123,10 +123,10 @@ const ImageCropperInput = ({
 
   return (
       <div className="space-y-2">
-          <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1 flex items-center gap-1"><Camera size={12}/> {label}</label>
+          <label className="text-xs font-black text-zinc-500 uppercase tracking-widest ml-1 flex items-center gap-1"><Camera size={14}/> {label}</label>
           <div className="flex gap-2">
             <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileSelect}/>
-            <button onClick={() => fileInputRef.current?.click()} disabled={isUploading} className="w-full px-4 py-3 bg-zinc-800 rounded-xl text-white active:scale-95 border border-white/5 flex items-center justify-center gap-2 hover:bg-zinc-700 transition-all shadow-lg text-xs font-bold tracking-wider">
+            <button onClick={() => fileInputRef.current?.click()} disabled={isUploading} className="w-full px-4 py-3 bg-zinc-800 rounded-xl text-white active:scale-95 border border-white/5 flex items-center justify-center gap-2 hover:bg-zinc-700 transition-all shadow-lg text-sm font-bold tracking-wider">
                 {isUploading ? <Loader2 size={16} className="animate-spin" /> : <UploadCloud size={16} />}
                 {isUploading ? '處理中...' : '上傳照片'}
             </button>
@@ -134,10 +134,10 @@ const ImageCropperInput = ({
 
           {baseUrl && (
                <div className="space-y-3 bg-white/5 p-4 rounded-2xl border border-white/10 shadow-lg mt-2 relative">
-                  <div className="flex justify-between items-center text-[9px] font-black text-zinc-500 uppercase tracking-widest mb-1">
-                      <span className="flex items-center gap-1"><Maximize size={10}/> 縮放與位置調整</span>
+                  <div className="flex justify-between items-center text-[11px] font-black text-zinc-500 uppercase tracking-widest mb-1">
+                      <span className="flex items-center gap-1"><Maximize size={12}/> 縮放與位置調整</span>
                       <button type="button" onClick={() => setIsLocked(!isLocked)} className={`flex items-center gap-1 px-2 py-1 rounded-lg border ${isLocked ? 'border-zinc-700 bg-zinc-800 text-zinc-400' : 'border-rose-500/50 bg-rose-500/10 text-rose-500'}`}>
-                          {isLocked ? <Lock size={10} /> : <Unlock size={10} />}
+                          {isLocked ? <Lock size={12} /> : <Unlock size={12} />}
                           {isLocked ? '鎖定' : '編輯中'}
                       </button>
                   </div>
@@ -149,11 +149,11 @@ const ImageCropperInput = ({
                             <div className="w-full h-full flex flex-col items-center justify-center bg-zinc-950 text-zinc-600 space-y-2"><Camera size={24} className="opacity-30"/></div>
                         )}
                         <div className={`absolute inset-0 pointer-events-none transition-opacity ${isLocked ? 'opacity-0' : 'opacity-20'}`}><div className="w-full h-full border border-white/30 flex"><div className="flex-1 border-r border-white/30"></div><div className="flex-1 border-r border-white/30"></div><div className="flex-1"></div></div><div className="absolute inset-0 flex flex-col"><div className="flex-1 border-b border-white/30"></div><div className="flex-1 border-b border-white/30"></div><div className="flex-1"></div></div></div>
-                        {isLocked && <div className="absolute inset-0 flex items-center justify-center pointer-events-none"><Lock size={24} className="text-white/20" /></div>}
+                        {isLocked && <div className="absolute inset-0 flex items-center justify-center pointer-events-none"><Lock size={32} className="text-white/20" /></div>}
                     </div>
                   </div>
                   <div className={`px-1 transition-opacity ${isLocked ? 'opacity-50 pointer-events-none' : 'opacity-100'}`}>
-                      <div className="flex justify-between text-[8px] text-zinc-500 font-mono mb-1"><span>ZOOM: {z.toFixed(2)}x</span><span>POS: {x.toFixed(0)},{y.toFixed(0)}</span></div>
+                      <div className="flex justify-between text-[10px] text-zinc-500 font-mono mb-1"><span>ZOOM: {z.toFixed(2)}x</span><span>POS: {x.toFixed(0)},{y.toFixed(0)}</span></div>
                       <input type="range" min="0.1" max="10" step="0.01" value={z} onChange={e => { const val = parseFloat(e.target.value); setZ(val); updateUrl(val, x, y); }} className="w-full accent-chiachia-green h-1.5 bg-zinc-800 rounded-full appearance-none shadow-inner" />
                   </div>
               </div>
@@ -352,7 +352,7 @@ const Settings: React.FC<SettingsProps> = ({ data, trainingTypes, raceGroups, de
                  <Lock size={32} className="text-white opacity-80" />
                </div>
                <h3 className="text-xl font-black text-white tracking-tight mb-2">系統設定鎖定</h3>
-               <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mb-6">Admin Access Required</p>
+               <p className="text-xs text-zinc-500 font-bold uppercase tracking-widest mb-6">Admin Access Required</p>
                
                <input 
                   autoFocus
@@ -362,14 +362,14 @@ const Settings: React.FC<SettingsProps> = ({ data, trainingTypes, raceGroups, de
                   value={adminPasswordInput}
                   onChange={(e) => setAdminPasswordInput(e.target.value)}
                   placeholder="Admin Password"
-                  className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-white text-center tracking-widest mb-4 outline-none focus:border-chiachia-green/50 shadow-inner"
+                  className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-white text-base text-center tracking-widest mb-4 outline-none focus:border-chiachia-green/50 shadow-inner"
                />
                <button 
                   onClick={handleAdminLogin}
                   disabled={!adminPasswordInput || isSyncing}
-                  className="w-full py-3 bg-gradient-to-r from-green-600 to-emerald-500 text-white font-bold text-xs rounded-xl shadow-glow-green active:scale-95 transition-all flex items-center justify-center gap-2"
+                  className="w-full py-3 bg-gradient-to-r from-green-600 to-emerald-500 text-white font-bold text-sm rounded-xl shadow-glow-green active:scale-95 transition-all flex items-center justify-center gap-2"
                >
-                  {isSyncing ? <Loader2 size={16} className="animate-spin" /> : <Unlock size={16} />} 
+                  {isSyncing ? <Loader2 size={18} className="animate-spin" /> : <Unlock size={18} />} 
                   驗證並登入
                </button>
            </div>
@@ -382,12 +382,12 @@ const Settings: React.FC<SettingsProps> = ({ data, trainingTypes, raceGroups, de
       {/* ... (Existing Settings UI) ... */}
       <div className="mb-6 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-zinc-900 flex items-center justify-center border border-white/5 shadow-inner">
-            <SettingsIcon size={20} className="text-zinc-400" />
+          <div className="w-12 h-12 rounded-xl bg-zinc-900 flex items-center justify-center border border-white/5 shadow-inner">
+            <SettingsIcon size={24} className="text-zinc-400" />
           </div>
           <div>
-            <h2 className="text-xl font-bold text-white tracking-tight">系統設定</h2>
-            <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">SYSTEM CONFIGURATION</p>
+            <h2 className="text-2xl font-bold text-white tracking-tight">系統設定</h2>
+            <p className="text-xs text-zinc-500 font-bold uppercase tracking-wider">SYSTEM CONFIGURATION</p>
           </div>
         </div>
         {isSyncing && <Loader2 size={16} className="animate-spin text-chiachia-green" />}
@@ -400,11 +400,11 @@ const Settings: React.FC<SettingsProps> = ({ data, trainingTypes, raceGroups, de
                       <KeyRound size={20} />
                   </div>
                   <div>
-                      <div className="text-[9px] text-chiachia-green font-black uppercase tracking-widest">Guest OTP</div>
+                      <div className="text-[11px] text-chiachia-green font-black uppercase tracking-widest">Guest OTP</div>
                       {otpInfo ? (
-                          <div className="text-2xl font-mono font-black text-white tracking-widest">{otpInfo.code}</div>
+                          <div className="text-3xl font-mono font-black text-white tracking-widest">{otpInfo.code}</div>
                       ) : (
-                          <div className="text-xs font-bold text-zinc-400 mt-0.5">尚未生成</div>
+                          <div className="text-sm font-bold text-zinc-400 mt-0.5">尚未生成</div>
                       )}
                   </div>
               </div>
@@ -412,16 +412,16 @@ const Settings: React.FC<SettingsProps> = ({ data, trainingTypes, raceGroups, de
               <div className="flex flex-col items-end gap-2">
                   {otpInfo && (
                       <div className="text-right">
-                          <div className="text-[8px] text-zinc-400 font-bold uppercase tracking-wider">Expires</div>
-                          <div className="text-[10px] font-mono text-zinc-200">{otpInfo.expires}</div>
+                          <div className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider">Expires</div>
+                          <div className="text-xs font-mono text-zinc-200">{otpInfo.expires}</div>
                       </div>
                   )}
                   <button 
                       onClick={handleGenerateOtp}
                       disabled={isGeneratingOtp}
-                      className="bg-black/40 hover:bg-black/60 text-white text-[10px] font-black uppercase tracking-wider px-3 py-1.5 rounded-lg border border-white/10 active:scale-95 transition-all flex items-center gap-1.5"
+                      className="bg-black/40 hover:bg-black/60 text-white text-xs font-black uppercase tracking-wider px-3 py-1.5 rounded-lg border border-white/10 active:scale-95 transition-all flex items-center gap-1.5"
                   >
-                      {isGeneratingOtp ? <Loader2 size={10} className="animate-spin"/> : <Plus size={10}/>}
+                      {isGeneratingOtp ? <Loader2 size={12} className="animate-spin"/> : <Plus size={12}/>}
                       獲取訪客密鑰
                   </button>
               </div>
@@ -430,14 +430,14 @@ const Settings: React.FC<SettingsProps> = ({ data, trainingTypes, raceGroups, de
 
       <section className="glass-card rounded-2xl p-5 border border-white/5">
         <div className="flex items-center justify-between mb-4">
-           <h3 className="text-xs font-bold text-zinc-500 flex items-center tracking-widest uppercase gap-2">
-             <User size={14} className="text-chiachia-green" /> 選手名單管理
+           <h3 className="text-sm font-bold text-zinc-500 flex items-center tracking-widest uppercase gap-2">
+             <User size={16} className="text-chiachia-green" /> 選手名單管理
            </h3>
            <button 
                 onClick={handleAddPersonClick}
-                className="text-[10px] font-black bg-chiachia-green/10 text-chiachia-green px-3 py-1.5 rounded-lg border border-chiachia-green/20 active:scale-95 transition-all flex items-center gap-1 hover:bg-chiachia-green/20"
+                className="text-xs font-black bg-chiachia-green/10 text-chiachia-green px-3 py-1.5 rounded-lg border border-chiachia-green/20 active:scale-95 transition-all flex items-center gap-1 hover:bg-chiachia-green/20"
            >
-               <Plus size={12} /> 新增選手
+               <Plus size={14} /> 新增選手
            </button>
         </div>
 
@@ -465,22 +465,22 @@ const Settings: React.FC<SettingsProps> = ({ data, trainingTypes, raceGroups, de
                                 style={{ transform: `translate(${(sx - 50) * 1.5}%, ${(sy - 50) * 1.5}%) scale(${sz})` }}
                             />
                         ) : (
-                            <span className={`text-xs font-black ${p.is_hidden ? 'text-zinc-600' : 'text-white'}`}>{p.name.charAt(0)}</span>
+                            <span className={`text-sm font-black ${p.is_hidden ? 'text-zinc-600' : 'text-white'}`}>{p.name.charAt(0)}</span>
                         )}
                     </div>
                     {p.is_hidden && (
                             <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-zinc-900 rounded-full flex items-center justify-center border border-zinc-700 z-10">
-                            <span className="text-[8px] text-zinc-500 font-bold">退</span>
+                            <span className="text-[10px] text-zinc-500 font-bold">退</span>
                             </div>
                     )}
                 </div>
 
                 <div className="flex flex-col items-center w-full">
-                    <span className={`text-[9px] font-bold tracking-wider truncate max-w-full ${p.is_hidden ? 'text-zinc-600 line-through' : 'text-zinc-300'}`}>
+                    <span className={`text-[10px] font-bold tracking-wider truncate max-w-full ${p.is_hidden ? 'text-zinc-600 line-through' : 'text-zinc-300'}`}>
                         {p.name}
                     </span>
                     {p.birthday && (
-                            <span className="text-[7px] text-zinc-600 font-mono scale-90">{p.birthday.split('-')[0]}</span>
+                            <span className="text-[9px] text-zinc-600 font-mono scale-90">{p.birthday.split('-')[0]}</span>
                     )}
                 </div>
                 </div>
@@ -491,9 +491,9 @@ const Settings: React.FC<SettingsProps> = ({ data, trainingTypes, raceGroups, de
 
       {/* Rest of the sections (Training Types, Races, CSV) ... */}
       <section className="glass-card rounded-2xl p-5 border border-white/5">
-        <h3 className="text-xs font-bold text-zinc-500 mb-4 flex items-center tracking-widest uppercase gap-2"><Activity size={14} className="text-amber-500" /> 訓練項目管理</h3>
+        <h3 className="text-sm font-bold text-zinc-500 mb-4 flex items-center tracking-widest uppercase gap-2"><Activity size={16} className="text-amber-500" /> 訓練項目管理</h3>
         <div className="flex gap-3 mb-5">
-          <input type="text" value={newType} onChange={(e) => setNewType(e.target.value)} placeholder="新增訓練項目..." className="flex-1 bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 text-white text-sm outline-none focus:border-amber-500/50 shadow-inner transition-colors" />
+          <input type="text" value={newType} onChange={(e) => setNewType(e.target.value)} placeholder="新增訓練項目..." className="flex-1 bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 text-white text-base outline-none focus:border-amber-500/50 shadow-inner transition-colors" />
           <button onClick={handleAddType} disabled={!newType || isSyncing} className="bg-zinc-800 text-white rounded-xl px-4 border border-white/5 shadow-lg active:scale-95 transition-all"><Plus size={20} /></button>
         </div>
         <div className="space-y-2 max-h-64 overflow-y-auto no-scrollbar pr-1">
@@ -501,19 +501,19 @@ const Settings: React.FC<SettingsProps> = ({ data, trainingTypes, raceGroups, de
             <div key={t.id} className="flex items-center justify-between bg-zinc-900/40 p-3 rounded-xl border border-white/5">
               {editingType?.id === t.id ? (
                 <div className="flex-1 flex gap-2 mr-2">
-                  <input autoFocus className="w-full bg-black/60 text-white text-xs px-2 py-1 rounded border border-amber-500/50 outline-none" value={editingType.name} onChange={(e) => setEditingType({...editingType, name: e.target.value})} />
-                  <button onClick={handleUpdateType} className="text-green-500"><Save size={16}/></button>
-                  <button onClick={() => setEditingType(null)} className="text-zinc-500"><X size={16}/></button>
+                  <input autoFocus className="w-full bg-black/60 text-white text-sm px-2 py-1 rounded border border-amber-500/50 outline-none" value={editingType.name} onChange={(e) => setEditingType({...editingType, name: e.target.value})} />
+                  <button onClick={handleUpdateType} className="text-green-500"><Save size={18}/></button>
+                  <button onClick={() => setEditingType(null)} className="text-zinc-500"><X size={18}/></button>
                 </div>
               ) : (
-                <span className="text-xs font-black text-zinc-300 tracking-wider pl-2">{t.name}</span>
+                <span className="text-sm font-black text-zinc-300 tracking-wider pl-2">{t.name}</span>
               )}
               <div className="flex items-center gap-1">
                  {!editingType && (
                    <>
-                    <button onClick={() => handleToggleDefault(t)} className={`p-2 rounded-lg transition-colors ${t.is_default ? 'text-amber-500 bg-amber-500/10' : 'text-zinc-600 hover:text-amber-500'}`}><Star size={16} fill={t.is_default ? "currentColor" : "none"} /></button>
-                    <button onClick={() => setEditingType({id: t.id, name: t.name, is_default: t.is_default})} className="p-2 text-zinc-600 hover:text-blue-400"><Edit2 size={16} /></button>
-                    <button onClick={() => setDeleteTarget({table: 'training-types', id: t.id, name: t.name})} className="p-2 text-zinc-600 hover:text-rose-500"><Trash2 size={16} /></button>
+                    <button onClick={() => handleToggleDefault(t)} className={`p-2 rounded-lg transition-colors ${t.is_default ? 'text-amber-500 bg-amber-500/10' : 'text-zinc-600 hover:text-amber-500'}`}><Star size={18} fill={t.is_default ? "currentColor" : "none"} /></button>
+                    <button onClick={() => setEditingType({id: t.id, name: t.name, is_default: t.is_default})} className="p-2 text-zinc-600 hover:text-blue-400"><Edit2 size={18} /></button>
+                    <button onClick={() => setDeleteTarget({table: 'training-types', id: t.id, name: t.name})} className="p-2 text-zinc-600 hover:text-rose-500"><Trash2 size={18} /></button>
                    </>
                  )}
               </div>
@@ -523,9 +523,9 @@ const Settings: React.FC<SettingsProps> = ({ data, trainingTypes, raceGroups, de
       </section>
 
       <section className="glass-card rounded-2xl p-5 border border-white/5">
-        <h3 className="text-xs font-bold text-zinc-500 mb-4 flex items-center tracking-widest uppercase gap-2"><Flag size={14} className="text-cyan-500" /> 賽事系列管理</h3>
+        <h3 className="text-sm font-bold text-zinc-500 mb-4 flex items-center tracking-widest uppercase gap-2"><Flag size={16} className="text-cyan-500" /> 賽事系列管理</h3>
         <div className="flex gap-3 mb-5">
-          <input type="text" value={newGroup} onChange={(e) => setNewGroup(e.target.value)} placeholder="新增賽事系列..." className="flex-1 bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 text-white text-sm outline-none focus:border-cyan-500/50 shadow-inner transition-colors" />
+          <input type="text" value={newGroup} onChange={(e) => setNewGroup(e.target.value)} placeholder="新增賽事系列..." className="flex-1 bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 text-white text-base outline-none focus:border-cyan-500/50 shadow-inner transition-colors" />
           <button onClick={handleAddGroup} disabled={!newGroup || isSyncing} className="bg-zinc-800 text-white rounded-xl px-4 border border-white/5 shadow-lg active:scale-95 transition-all"><Plus size={20} /></button>
         </div>
         <div className="space-y-2 max-h-64 overflow-y-auto no-scrollbar pr-1">
@@ -533,18 +533,18 @@ const Settings: React.FC<SettingsProps> = ({ data, trainingTypes, raceGroups, de
             <div key={g.id} className="flex items-center justify-between bg-zinc-900/40 p-3 rounded-xl border border-white/5">
               {editingGroup?.id === g.id ? (
                 <div className="flex-1 flex gap-2 mr-2">
-                  <input autoFocus className="w-full bg-black/60 text-white text-xs px-2 py-1 rounded border border-cyan-500/50 outline-none" value={editingGroup.name} onChange={(e) => setEditingGroup({...editingGroup, name: e.target.value})} />
-                  <button onClick={handleUpdateGroup} className="text-green-500"><Save size={16}/></button>
-                  <button onClick={() => setEditingGroup(null)} className="text-zinc-500"><X size={16}/></button>
+                  <input autoFocus className="w-full bg-black/60 text-white text-sm px-2 py-1 rounded border border-cyan-500/50 outline-none" value={editingGroup.name} onChange={(e) => setEditingGroup({...editingGroup, name: e.target.value})} />
+                  <button onClick={handleUpdateGroup} className="text-green-500"><Save size={18}/></button>
+                  <button onClick={() => setEditingGroup(null)} className="text-zinc-500"><X size={18}/></button>
                 </div>
               ) : (
-                <span className="text-xs font-black text-zinc-300 tracking-wider pl-2">{g.name}</span>
+                <span className="text-sm font-black text-zinc-300 tracking-wider pl-2">{g.name}</span>
               )}
               <div className="flex items-center gap-1">
                  {!editingGroup && (
                    <>
-                    <button onClick={() => setEditingGroup({id: g.id, name: g.name})} className="p-2 text-zinc-600 hover:text-blue-400"><Edit2 size={16} /></button>
-                    <button onClick={() => setDeleteTarget({table: 'races', id: g.id, name: g.name})} className="p-2 text-zinc-600 hover:text-rose-500"><Trash2 size={16} /></button>
+                    <button onClick={() => setEditingGroup({id: g.id, name: g.name})} className="p-2 text-zinc-600 hover:text-blue-400"><Edit2 size={18} /></button>
+                    <button onClick={() => setDeleteTarget({table: 'races', id: g.id, name: g.name})} className="p-2 text-zinc-600 hover:text-rose-500"><Trash2 size={18} /></button>
                    </>
                  )}
               </div>
@@ -558,8 +558,8 @@ const Settings: React.FC<SettingsProps> = ({ data, trainingTypes, raceGroups, de
            <div className="glass-card w-full max-w-xs rounded-3xl p-6 shadow-2xl border-white/10 animate-scale-in max-h-[90vh] overflow-y-auto no-scrollbar" onClick={e => e.stopPropagation()}>
               <div className="flex justify-between items-center mb-6">
                  <div>
-                    <h3 className="text-lg font-black text-white">{editingPerson.id ? '編輯選手資料' : '新增選手'}</h3>
-                    <p className="text-[10px] text-zinc-500 mt-0.5 font-bold uppercase tracking-wider">{editingPerson.id ? 'Player Profile' : 'New Player'}</p>
+                    <h3 className="text-2xl font-black text-white">{editingPerson.id ? '編輯選手資料' : '新增選手'}</h3>
+                    <p className="text-xs text-zinc-500 mt-0.5 font-bold uppercase tracking-wider">{editingPerson.id ? 'Player Profile' : 'New Player'}</p>
                  </div>
                  <button onClick={() => setShowEditPersonModal(false)} className="w-8 h-8 flex items-center justify-center bg-white/5 rounded-full text-zinc-400 active:scale-95"><X size={18} /></button>
               </div>
@@ -573,28 +573,28 @@ const Settings: React.FC<SettingsProps> = ({ data, trainingTypes, raceGroups, de
                          {editingPerson.is_hidden ? <EyeOff size={16} /> : <Eye size={16} />}
                     </button>
                     <div className="flex flex-col">
-                        <span className="text-xs font-bold text-white">{editingPerson.is_hidden ? '已退役' : '現役選手'}</span>
-                        <span className="text-[9px] text-zinc-500">{editingPerson.is_hidden ? '選手將隱藏於紀錄板' : '正常顯示於所有列表'}</span>
+                        <span className="text-sm font-bold text-white">{editingPerson.is_hidden ? '已退役' : '現役選手'}</span>
+                        <span className="text-[10px] text-zinc-500">{editingPerson.is_hidden ? '選手將隱藏於紀錄板' : '正常顯示於所有列表'}</span>
                     </div>
                  </div>
 
                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1">姓名</label>
+                    <label className="text-xs font-black text-zinc-500 uppercase tracking-widest ml-1">姓名</label>
                     <input 
                        autoFocus
                        type="text"
                        value={editingPerson.name}
                        onChange={e => setEditingPerson({...editingPerson, name: e.target.value})}
-                       className="w-full bg-black/60 border border-white/10 rounded-xl px-4 py-3 text-white text-xs outline-none"
+                       className="w-full bg-black/60 border border-white/10 rounded-xl px-4 py-3 text-white text-sm outline-none"
                     />
                  </div>
                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1">生日</label>
+                    <label className="text-xs font-black text-zinc-500 uppercase tracking-widest ml-1">生日</label>
                     <input 
                        type="date"
                        value={editingPerson.birthday}
                        onChange={e => setEditingPerson({...editingPerson, birthday: e.target.value})}
-                       className="w-full bg-black/60 border border-white/10 rounded-xl px-4 py-3 text-white text-xs outline-none font-mono"
+                       className="w-full bg-black/60 border border-white/10 rounded-xl px-4 py-3 text-white text-sm outline-none font-mono"
                     />
                  </div>
 
@@ -620,14 +620,14 @@ const Settings: React.FC<SettingsProps> = ({ data, trainingTypes, raceGroups, de
                      {editingPerson.id && (
                          <button 
                             onClick={handleResetPassword}
-                            className="flex-1 py-3 bg-zinc-800 text-zinc-400 font-bold text-xs rounded-xl border border-white/5 active:scale-95 transition-all"
+                            className="flex-1 py-3 bg-zinc-800 text-zinc-400 font-bold text-sm rounded-xl border border-white/5 active:scale-95 transition-all"
                          >
                             重置密碼
                          </button>
                      )}
                      <button 
                         onClick={handleSavePerson}
-                        className="flex-[2] py-3 bg-gradient-to-r from-chiachia-green to-emerald-600 text-white font-bold text-xs rounded-xl shadow-glow active:scale-95 transition-all"
+                        className="flex-[2] py-3 bg-gradient-to-r from-chiachia-green to-emerald-600 text-white font-bold text-sm rounded-xl shadow-glow active:scale-95 transition-all"
                      >
                         {editingPerson.id ? '儲存變更' : '確認新增'}
                      </button>

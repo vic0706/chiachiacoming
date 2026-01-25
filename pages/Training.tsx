@@ -142,25 +142,25 @@ const Training: React.FC<TrainingProps> = ({
     const count = pinnedPeople.length;
     let cols = 1;
     let rows = 1;
-    let textSize = 'text-2xl';
+    let textSize = 'text-3xl'; // Default bumped up
     let radius = 'rounded-2xl';
 
     if (count <= 1) {
-       cols = 1; rows = 1; textSize = 'text-[80px]'; radius = 'rounded-[40px]';
+       cols = 1; rows = 1; textSize = 'text-[90px]'; radius = 'rounded-[40px]';
     } else if (count === 2) {
-       cols = 1; rows = 2; textSize = 'text-6xl'; radius = 'rounded-[32px]';
+       cols = 1; rows = 2; textSize = 'text-7xl'; radius = 'rounded-[32px]';
     } else if (count === 3) {
-       cols = 1; rows = 3; textSize = 'text-5xl'; radius = 'rounded-3xl';
+       cols = 1; rows = 3; textSize = 'text-6xl'; radius = 'rounded-3xl';
     } else if (count === 4) {
-       cols = 2; rows = 2; textSize = 'text-4xl'; radius = 'rounded-3xl';
+       cols = 2; rows = 2; textSize = 'text-5xl'; radius = 'rounded-3xl';
     } else if (count <= 6) {
-       cols = 2; rows = 3; textSize = 'text-3xl'; radius = 'rounded-2xl';
+       cols = 2; rows = 3; textSize = 'text-4xl'; radius = 'rounded-2xl';
     } else if (count <= 8) {
-       cols = 2; rows = 4; textSize = 'text-2xl'; radius = 'rounded-2xl';
+       cols = 2; rows = 4; textSize = 'text-3xl'; radius = 'rounded-2xl';
     } else if (count <= 9) {
-       cols = 3; rows = 3; textSize = 'text-2xl'; radius = 'rounded-xl';
+       cols = 3; rows = 3; textSize = 'text-3xl'; radius = 'rounded-xl';
     } else {
-       cols = 3; rows = 4; textSize = 'text-xl'; radius = 'rounded-xl';
+       cols = 3; rows = 4; textSize = 'text-2xl'; radius = 'rounded-xl';
     }
 
     return { cols, rows, textSize, radius };
@@ -284,7 +284,7 @@ const Training: React.FC<TrainingProps> = ({
           <select 
             value={selectedTypeId}
             onChange={(e) => setSelectedTypeId(e.target.value)}
-            className="relative w-full h-full appearance-none bg-zinc-900 border border-white/10 text-white rounded-2xl pl-3 pr-6 text-xs font-black shadow-lg focus:border-chiachia-green/50 outline-none transition-all"
+            className="relative w-full h-full appearance-none bg-zinc-900 border border-white/10 text-white rounded-2xl pl-3 pr-6 text-base font-black shadow-lg focus:border-chiachia-green/50 outline-none transition-all"
           >
             {trainingTypes.map(t => (
               <option key={t.id} value={t.id}>{t.name}</option>
@@ -312,7 +312,7 @@ const Training: React.FC<TrainingProps> = ({
           onClick={() => setShowPeopleModal(true)}
           className="flex-none w-16 h-full bg-zinc-900 border border-white/10 text-zinc-400 rounded-2xl flex items-center justify-center active:scale-95 transition-all shadow-lg hover:text-white hover:border-white/20 group"
         >
-          <Settings2 size={24} className="group-active:rotate-45 transition-transform" />
+          <Settings2 size={28} className="group-active:rotate-45 transition-transform" />
         </button>
       </div>
 
@@ -330,7 +330,6 @@ const Training: React.FC<TrainingProps> = ({
                   pinnedPeople.map((p) => {
                     const isActive = String(p.id) === String(activePersonId);
                     
-                    // 移除圖片相關邏輯，僅保留純文字顯示
                     return (
                       <button
                         key={p.id}
@@ -345,7 +344,7 @@ const Training: React.FC<TrainingProps> = ({
                   })
                 ) : (
                   <div className="col-span-full row-span-full flex items-center justify-center h-full">
-                     <button onClick={() => setShowPeopleModal(true)} className="text-xs text-zinc-500 font-black uppercase tracking-widest underline italic hover:text-chiachia-green transition-colors p-4 border border-dashed border-zinc-700 rounded-2xl w-full h-full flex items-center justify-center">點此設定常駐選手</button>
+                     <button onClick={() => setShowPeopleModal(true)} className="text-sm text-zinc-500 font-black uppercase tracking-widest underline italic hover:text-chiachia-green transition-colors p-4 border border-dashed border-zinc-700 rounded-2xl w-full h-full flex items-center justify-center">點此設定常駐選手</button>
                   </div>
                 )}
              </div>
@@ -354,16 +353,16 @@ const Training: React.FC<TrainingProps> = ({
 
       {/* 3. BOTTOM: Keypad */}
       <div className="flex-none flex flex-col pb-1 z-20">
-        <div className="h-5 mb-1 px-1 flex items-center justify-between">
+        <div className="h-6 mb-1 px-1 flex items-center justify-between">
            {todayHistory.length > 0 && (
              <>
-               <div className="text-[9px] text-zinc-500 font-black tracking-widest uppercase italic flex items-center gap-1">
+               <div className="text-[11px] text-zinc-500 font-black tracking-widest uppercase italic flex items-center gap-1">
                   <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></div>
                   {activePerson?.name} Today <span className="text-zinc-400">({todayCount})</span>
                </div>
                <div className="flex space-x-1 overflow-x-auto no-scrollbar">
                  {todayHistory.map((h, i) => (
-                   <span key={i} className="bg-zinc-900 text-zinc-300 text-[9px] px-2 rounded border border-white/10 font-mono">{parseFloat(h.value).toFixed(3)}</span>
+                   <span key={i} className="bg-zinc-900 text-zinc-300 text-xs px-2 rounded border border-white/10 font-mono font-bold">{parseFloat(h.value).toFixed(3)}</span>
                  ))}
                </div>
              </>
@@ -373,17 +372,17 @@ const Training: React.FC<TrainingProps> = ({
         <div className="grid grid-cols-3 gap-1.5 mb-1.5">
           {[1, 2, 3, 4, 5, 6, 7, 8, 9, '.', 0].map(val => (
             <button key={val} onClick={() => typeof val === 'number' || val === '.' ? handleNumberClick(String(val)) : null} 
-              className="glass-card bg-[#111]/90 hover:bg-[#161616] text-white text-2xl font-black rounded-xl flex items-center justify-center active:scale-95 border border-white/5 shadow-liquid h-14 transition-colors">
+              className="glass-card bg-[#111]/90 hover:bg-[#161616] text-white text-4xl font-black rounded-xl flex items-center justify-center active:scale-95 border border-white/5 shadow-liquid h-14 transition-colors font-mono">
               {val}
             </button>
           ))}
-          <button onClick={handleBackspace} className="glass-card bg-[#111]/90 text-rose-500 flex items-center justify-center active:scale-95 rounded-xl border border-white/5 font-black text-xl h-14 hover:bg-rose-500/10 transition-colors">DEL</button>
+          <button onClick={handleBackspace} className="glass-card bg-[#111]/90 text-rose-500 flex items-center justify-center active:scale-95 rounded-xl border border-white/5 font-black text-2xl h-14 hover:bg-rose-500/10 transition-colors">DEL</button>
         </div>
 
         <div className="grid grid-cols-4 gap-1.5 h-14 shrink-0">
-           <button onClick={handleClear} className="bg-zinc-900 text-zinc-500 font-black rounded-xl active:scale-95 border border-white/5 text-[10px] uppercase tracking-widest hover:text-white transition-colors">Clear</button>
+           <button onClick={handleClear} className="bg-zinc-900 text-zinc-500 font-black rounded-xl active:scale-95 border border-white/5 text-xs uppercase tracking-widest hover:text-white transition-colors">Clear</button>
            <button onClick={handleSubmit} disabled={!inputValue || status === 'saving'}
-             className={`col-span-3 font-black rounded-xl text-sm tracking-[0.3em] uppercase transition-all active:scale-[0.98] shadow-lg ${!inputValue || status === 'saving' ? 'bg-zinc-900 text-zinc-800' : 'bg-gradient-to-r from-green-600 to-emerald-500 text-white shadow-glow-green'}`}>
+             className={`col-span-3 font-black rounded-xl text-xl tracking-[0.2em] uppercase transition-all active:scale-[0.98] shadow-lg ${!inputValue || status === 'saving' ? 'bg-zinc-900 text-zinc-800' : 'bg-gradient-to-r from-green-600 to-emerald-500 text-white shadow-glow-green'}`}>
              {status === 'saving' ? 'Saving...' : 'Record Data'}
            </button>
         </div>
@@ -395,7 +394,7 @@ const Training: React.FC<TrainingProps> = ({
               <div className="flex justify-between items-center mb-6 shrink-0">
                 <div>
                   <h3 className="text-xl font-black text-white tracking-tight italic">設定快速切換選手</h3>
-                  <p className="text-[9px] text-chiachia-green font-black uppercase tracking-[0.3em] mt-0.5 italic underline">已選中的選手會出現在紀錄板</p>
+                  <p className="text-[11px] text-chiachia-green font-black uppercase tracking-[0.3em] mt-0.5 italic underline">已選中的選手會出現在紀錄板</p>
                 </div>
                 <button onClick={() => setShowPeopleModal(false)} className="w-10 h-10 flex items-center justify-center bg-white/5 rounded-full text-zinc-500"><X size={20} /></button>
               </div>
@@ -428,7 +427,7 @@ const Training: React.FC<TrainingProps> = ({
                             )}
                           </div>
                           
-                          <span className={`text-[10px] font-black tracking-wider truncate w-full relative z-10 mt-2 ${isPinned ? 'text-white' : 'text-zinc-400 group-hover:text-zinc-200'}`}>
+                          <span className={`text-xs font-black tracking-wider truncate w-full relative z-10 mt-2 ${isPinned ? 'text-white' : 'text-zinc-400 group-hover:text-zinc-200'}`}>
                             {p.name}
                           </span>
                           
@@ -437,7 +436,7 @@ const Training: React.FC<TrainingProps> = ({
                       );
                     })
                   ) : (
-                    <div className="col-span-4 text-center py-10 text-zinc-600 text-[10px] font-black uppercase tracking-widest">載入名單中...</div>
+                    <div className="col-span-4 text-center py-10 text-zinc-600 text-xs font-black uppercase tracking-widest">載入名單中...</div>
                   )}
                 </div>
               </div>
@@ -445,7 +444,7 @@ const Training: React.FC<TrainingProps> = ({
               <div className="pt-4 shrink-0">
                 <button 
                   onClick={() => setShowPeopleModal(false)}
-                  className="w-full py-4 bg-zinc-900 border border-white/10 text-white font-black text-xs tracking-[0.4em] rounded-2xl active:scale-95 transition-all shadow-lg uppercase"
+                  className="w-full py-4 bg-zinc-900 border border-white/10 text-white font-black text-base tracking-[0.4em] rounded-2xl active:scale-95 transition-all shadow-lg uppercase"
                 >
                   確認並返回
                 </button>

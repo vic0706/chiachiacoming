@@ -471,51 +471,51 @@ const Races: React.FC<RacesProps> = ({ data, refreshData, people, raceGroups }) 
       <div className="flex-none px-4 pt-2 pb-3 space-y-3 bg-background/80 backdrop-blur-md z-30 border-b border-white/5 relative shadow-lg">
           <div className="flex justify-between items-end mt-1">
             <div>
-              <h2 className="text-xl font-bold text-white tracking-tight">賽事資訊</h2>
-              <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-[0.3em] mt-0.5 italic">Racing Information</p>
+              <h2 className="text-2xl font-bold text-white tracking-tight">賽事資訊</h2>
+              <p className="text-xs text-zinc-500 font-bold uppercase tracking-[0.3em] mt-0.5 italic">Racing Information</p>
             </div>
             {/* NEW ADD BUTTON: Neon Green Gradient */}
-            <button onClick={handleOpenAdd} className="w-11 h-11 rounded-2xl bg-gradient-to-br from-green-600 to-emerald-500 flex items-center justify-center shadow-glow-green active:scale-95 transition-all text-white border border-white/20">
-              <Plus size={24} />
+            <button onClick={handleOpenAdd} className="w-12 h-12 rounded-2xl bg-gradient-to-br from-green-600 to-emerald-500 flex items-center justify-center shadow-glow-green active:scale-95 transition-all text-white border border-white/20">
+              <Plus size={26} />
             </button>
           </div>
 
           <div className="flex gap-2">
-            <div className="flex-1 relative h-11">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={16} />
-                <input type="text" placeholder="檢索..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full h-full bg-zinc-900/50 border border-white/10 rounded-xl pl-10 pr-3 text-white outline-none text-sm focus:border-chiachia-green/40 shadow-inner" />
+            <div className="flex-1 relative h-12">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={18} />
+                <input type="text" placeholder="檢索..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full h-full bg-zinc-900/50 border border-white/10 rounded-xl pl-10 pr-3 text-white outline-none text-base focus:border-chiachia-green/40 shadow-inner" />
             </div>
-            <div className="relative w-[38%] h-11">
-                <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-sunset-gold" size={14} />
-                <select value={selectedGroup} onChange={(e) => setSelectedGroup(e.target.value)} className="w-full h-full appearance-none bg-zinc-900/50 border border-white/10 rounded-xl pl-9 pr-8 text-white text-xs font-black outline-none truncate shadow-inner">
+            <div className="relative w-[40%] h-12">
+                <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-sunset-gold" size={16} />
+                <select value={selectedGroup} onChange={(e) => setSelectedGroup(e.target.value)} className="w-full h-full appearance-none bg-zinc-900/50 border border-white/10 rounded-xl pl-9 pr-8 text-white text-sm font-black outline-none truncate shadow-inner">
                   <option value="">賽事系列</option>
                   {raceGroups.map(g => <option key={g.id} value={g.name}>{g.name}</option>)}
                 </select>
-                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 pointer-events-none" size={14} />
+                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 pointer-events-none" size={16} />
             </div>
           </div>
 
           <div className="flex flex-col gap-2">
-            <div className="flex gap-2 h-9">
+            <div className="flex gap-2 h-10">
                 <div className="flex items-center bg-zinc-900/50 p-1 rounded-xl border border-white/5 gap-1 shrink-0">
                     {(['1W', '1M', '3M'] as const).map(range => (
-                        <button key={range} onClick={() => setQuickRange(range)} className={`text-[9px] font-bold px-2 py-1 rounded-lg transition-all ${activeRange === range ? 'bg-zinc-800 text-white shadow-inner' : 'text-zinc-500 hover:text-zinc-300'}`}>{range}</button>
+                        <button key={range} onClick={() => setQuickRange(range)} className={`text-[11px] font-bold px-3 py-1 rounded-lg transition-all ${activeRange === range ? 'bg-zinc-800 text-white shadow-inner' : 'text-zinc-500 hover:text-zinc-300'}`}>{range}</button>
                     ))}
                     <div className="w-[1px] h-3 bg-white/10 mx-0.5"></div>
-                    <button onClick={toggleCustomDate} className={`p-1 rounded-lg transition-all ${activeRange === 'custom' ? 'bg-chiachia-green/20 text-chiachia-green' : 'text-zinc-500 hover:text-zinc-300'}`}><Calendar size={14} /></button>
+                    <button onClick={toggleCustomDate} className={`px-2.5 rounded-lg transition-all ${activeRange === 'custom' ? 'bg-chiachia-green/20 text-chiachia-green' : 'text-zinc-500 hover:text-zinc-300'}`}><Calendar size={16} /></button>
                 </div>
                 <div className="flex-1 bg-zinc-900/50 rounded-xl p-1 flex relative border border-white/5">
                     {(['all', 'future', 'past'] as const).map((status) => (
-                        <button key={status} onClick={() => setFilterType(status)} className={`flex-1 text-[9px] font-bold rounded-lg transition-all ${filterType === status ? 'bg-zinc-800 text-white shadow-md' : 'text-zinc-500 hover:text-zinc-300'}`}>{status === 'all' ? '全部' : status === 'future' ? '近期' : '歷史'}</button>
+                        <button key={status} onClick={() => setFilterType(status)} className={`flex-1 text-[11px] font-bold rounded-lg transition-all ${filterType === status ? 'bg-zinc-800 text-white shadow-md' : 'text-zinc-500 hover:text-zinc-300'}`}>{status === 'all' ? '全部' : status === 'future' ? '近期' : '歷史'}</button>
                     ))}
                 </div>
             </div>
             {showCustomDate && (
                 <div className="flex items-center justify-end gap-2 animate-fade-in bg-zinc-900/30 p-2 rounded-xl border border-white/5 border-dashed">
-                    <span className="text-[9px] text-zinc-500 font-bold uppercase tracking-wider mr-1">Range</span>
-                    <input type="date" value={filterStartDate} onChange={(e) => { setFilterStartDate(e.target.value); setActiveRange('custom'); }} className="bg-zinc-950 text-[10px] font-mono text-zinc-300 outline-none w-auto min-w-[80px] text-center p-1 rounded border border-white/10" />
-                    <span className="text-zinc-600 text-[10px]">-</span>
-                    <input type="date" value={filterEndDate} onChange={(e) => { setFilterEndDate(e.target.value); setActiveRange('custom'); }} className="bg-zinc-950 text-[10px] font-mono text-zinc-300 outline-none w-auto min-w-[80px] text-center p-1 rounded border border-white/10" />
+                    <span className="text-[11px] text-zinc-500 font-bold uppercase tracking-wider mr-1">Range</span>
+                    <input type="date" value={filterStartDate} onChange={(e) => { setFilterStartDate(e.target.value); setActiveRange('custom'); }} className="bg-zinc-950 text-xs font-mono text-zinc-300 outline-none w-auto min-w-[90px] text-center p-1 rounded border border-white/10" />
+                    <span className="text-zinc-600 text-xs">-</span>
+                    <input type="date" value={filterEndDate} onChange={(e) => { setFilterEndDate(e.target.value); setActiveRange('custom'); }} className="bg-zinc-950 text-xs font-mono text-zinc-300 outline-none w-auto min-w-[90px] text-center p-1 rounded border border-white/10" />
                 </div>
             )}
           </div>
@@ -550,20 +550,20 @@ const Races: React.FC<RacesProps> = ({ data, refreshData, people, raceGroups }) 
                }
 
                return (
-                  <div key={rec.id} className="flex justify-between items-center bg-black/50 border border-white/10 p-2.5 rounded-xl backdrop-blur-md mb-2 shrink-0 h-14 w-full">
+                  <div key={rec.id} className="flex justify-between items-center bg-black/50 border border-white/10 p-2.5 rounded-xl backdrop-blur-md mb-2 shrink-0 h-16 w-full">
                       <div className="flex items-center gap-2 overflow-hidden">
-                          <div className={`w-8 h-8 rounded-full flex-none flex items-center justify-center overflow-hidden border-2 ${isRetired ? 'bg-zinc-800 border-zinc-500' : 'bg-zinc-800 border-chiachia-green shadow-glow-green'}`}>
+                          <div className={`w-10 h-10 rounded-full flex-none flex items-center justify-center overflow-hidden border-2 ${isRetired ? 'bg-zinc-800 border-zinc-500' : 'bg-zinc-800 border-chiachia-green shadow-glow-green'}`}>
                               {sUrlBase ? (
                                   <img src={sUrlBase} alt={rec.person_name} className="w-full h-full object-contain bg-black" style={{ transform: `translate(${(sx - 50) * 1.5}%, ${(sy - 50) * 1.5}%) scale(${sz})` }}/>
                               ) : (
-                                  <span className={`text-[10px] font-black ${isRetired ? 'text-zinc-400' : 'text-white'}`}>{rec.person_name.charAt(0)}</span>
+                                  <span className={`text-xs font-black ${isRetired ? 'text-zinc-400' : 'text-white'}`}>{rec.person_name.charAt(0)}</span>
                               )}
                           </div>
-                          <div className="min-w-0"><div className="text-[10px] font-bold text-white truncate">{rec.person_name}</div></div>
+                          <div className="min-w-0"><div className="text-xs font-bold text-white truncate">{rec.person_name}</div></div>
                       </div>
                       <div className="flex flex-col items-end">
                         {/* Gold Glory Style for Rank Text */}
-                        <span className="text-xs font-black font-mono italic text-yellow-400 drop-shadow-[0_0_5px_rgba(251,191,36,0.6)]">{rec.value || '--'}</span>
+                        <span className="text-sm font-black font-mono italic text-yellow-400 drop-shadow-[0_0_5px_rgba(251,191,36,0.6)]">{rec.value || '--'}</span>
                       </div>
                   </div>
                );
@@ -580,18 +580,18 @@ const Races: React.FC<RacesProps> = ({ data, refreshData, people, raceGroups }) 
               <div className="relative z-10 p-5">
                 <div className="flex justify-between items-start mb-4">
                   <div className="min-w-0 flex-1">
-                    <div className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md border text-[9px] font-black uppercase tracking-tighter mb-2 ${isUpcoming ? 'bg-sunset-gold text-amber-950 border-sunset-gold/50 shadow-glow-gold' : 'bg-white/10 text-white border-white/20 shadow-inner'}`}>
-                       <Calendar size={10} />
+                    <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border text-[11px] font-black uppercase tracking-tighter mb-2 ${isUpcoming ? 'bg-sunset-gold text-amber-950 border-sunset-gold/50 shadow-glow-gold' : 'bg-white/10 text-white border-white/20 shadow-inner'}`}>
+                       <Calendar size={12} />
                        <span className="font-mono">{event.date}</span>
                     </div>
-                    <h3 className="text-xl font-black italic tracking-tight text-white drop-shadow-[0_2px_10px_rgba(0,0,0,0.9)] leading-tight truncate">{event.name}</h3>
-                    <p className="text-[11px] font-black text-white/95 mt-1 uppercase tracking-[0.15em] drop-shadow-md">{event.series_name || 'BxB'}</p>
+                    <h3 className="text-2xl font-black italic tracking-tight text-white drop-shadow-[0_2px_10px_rgba(0,0,0,0.9)] leading-tight truncate">{event.name}</h3>
+                    <p className="text-xs font-black text-white/95 mt-1 uppercase tracking-[0.15em] drop-shadow-md">{event.series_name || 'BxB'}</p>
                   </div>
                   {isExpanded && (
                       <div className="flex gap-2 shrink-0 animate-fade-in">
-                        <button onClick={(e) => { e.stopPropagation(); handleOpenEdit(event); }} className="p-2 rounded-xl bg-white/10 text-white border border-white/20 backdrop-blur-md active:scale-90 shadow-lg"><Edit2 size={14} /></button>
+                        <button onClick={(e) => { e.stopPropagation(); handleOpenEdit(event); }} className="p-2.5 rounded-xl bg-white/10 text-white border border-white/20 backdrop-blur-md active:scale-90 shadow-lg"><Edit2 size={16} /></button>
                         {event.address && (
-                          <button onClick={(e) => { e.stopPropagation(); if(event.address) window.open(event.address.startsWith('http') ? event.address : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.address)}`, '_blank'); }} className="p-2 rounded-xl bg-black/60 text-white border border-white/20 backdrop-blur-md active:scale-90 shadow-lg">{event.address.startsWith('http') ? <ExternalLink size={14} /> : <MapPin size={14} />}</button>
+                          <button onClick={(e) => { e.stopPropagation(); if(event.address) window.open(event.address.startsWith('http') ? event.address : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.address)}`, '_blank'); }} className="p-2.5 rounded-xl bg-black/60 text-white border border-white/20 backdrop-blur-md active:scale-90 shadow-lg">{event.address.startsWith('http') ? <ExternalLink size={16} /> : <MapPin size={16} />}</button>
                         )}
                       </div>
                   )}
@@ -599,10 +599,10 @@ const Races: React.FC<RacesProps> = ({ data, refreshData, people, raceGroups }) 
                 {isExpanded && (
                    <div className="mt-4 pt-4 border-t border-white/20 animate-fade-in">
                       <div className="flex items-center gap-2 mb-3 text-sunset-gold/90 drop-shadow-md">
-                         <Users size={12} />
-                         <span className="text-[10px] font-black uppercase tracking-widest">參賽選手名單</span>
+                         <Users size={14} />
+                         <span className="text-[11px] font-black uppercase tracking-widest">參賽選手名單</span>
                       </div>
-                      <div className="relative h-[100px] overflow-hidden mask-gradient-vertical">
+                      <div className="relative h-[120px] overflow-hidden mask-gradient-vertical">
                           {recordItems.length > 0 ? (
                             <div className={`grid grid-cols-2 gap-x-2 ${recordItems.length > 4 ? 'animate-marquee-vertical hover:pause' : ''}`}>
                                 {recordItems}
@@ -623,8 +623,8 @@ const Races: React.FC<RacesProps> = ({ data, refreshData, people, raceGroups }) 
                 {!isExpanded && (
                     <div className="flex items-center gap-2 mt-3 pt-3 border-t border-white/10">
                        <div className={`w-1.5 h-1.5 rounded-full ${isUpcoming ? 'bg-sunset-gold animate-pulse' : 'bg-emerald-500'}`}></div>
-                       <span className="text-[10px] font-black text-white/80 uppercase tracking-widest drop-shadow-sm">{isUpcoming ? '戰備預定' : '完賽紀錄'}</span>
-                       <span className="text-[10px] text-zinc-400 font-bold ml-auto">{recordItems.length} 名選手參賽</span>
+                       <span className="text-xs font-black text-white/80 uppercase tracking-widest drop-shadow-sm">{isUpcoming ? '戰備預定' : '完賽紀錄'}</span>
+                       <span className="text-[11px] text-zinc-400 font-bold ml-auto">{recordItems.length} 名選手參賽</span>
                     </div>
                 )}
               </div>
@@ -632,8 +632,8 @@ const Races: React.FC<RacesProps> = ({ data, refreshData, people, raceGroups }) 
           );
         }) : (
             <div className="flex flex-col items-center justify-center h-64 opacity-50">
-                <Trophy size={32} className="text-zinc-600 mb-3" />
-                <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">暫無賽事資料</p>
+                <Trophy size={40} className="text-zinc-600 mb-3" />
+                <p className="text-xs font-black text-zinc-500 uppercase tracking-widest">暫無賽事資料</p>
             </div>
         )}
       </div>
@@ -644,8 +644,8 @@ const Races: React.FC<RacesProps> = ({ data, refreshData, people, raceGroups }) 
             <div className="p-6 pb-2">
                 <div className="flex justify-between items-center mb-4">
                 <div>
-                    <h3 className="text-xl font-bold text-white tracking-tight">{isEditMode ? '管理賽事' : '賽場登錄'}</h3>
-                    <p className="text-[9px] text-chiachia-green font-black uppercase tracking-[0.3em] mt-0.5">Race Deployment</p>
+                    <h3 className="text-2xl font-bold text-white tracking-tight">{isEditMode ? '管理賽事' : '賽場登錄'}</h3>
+                    <p className="text-xs text-chiachia-green font-black uppercase tracking-[0.3em] mt-0.5">Race Deployment</p>
                 </div>
                 <button onClick={() => setShowModal(false)} className="w-10 h-10 flex items-center justify-center bg-white/10 rounded-full text-zinc-400 active:scale-95"><X size={20} /></button>
                 </div>
@@ -655,8 +655,8 @@ const Races: React.FC<RacesProps> = ({ data, refreshData, people, raceGroups }) 
               {/* MOVED: Participant Management to Top */}
               <div className="pb-4 border-b border-white/10 mb-4">
                   <div className="flex justify-between items-center mb-3">
-                      <h4 className="text-sm font-bold text-white flex items-center gap-2"><Users size={14} className="text-sunset-gold"/> 參賽選手管理</h4>
-                      <button type="button" onClick={() => setShowParticipantSelect(true)} className="text-[10px] font-black bg-white/10 text-white px-2 py-1 rounded-lg active:scale-95 hover:bg-white/20 transition-all flex items-center gap-1"><Plus size={10} /> 新增選手</button>
+                      <h4 className="text-base font-bold text-white flex items-center gap-2"><Users size={16} className="text-sunset-gold"/> 參賽選手管理</h4>
+                      <button type="button" onClick={() => setShowParticipantSelect(true)} className="text-xs font-black bg-white/10 text-white px-3 py-1.5 rounded-lg active:scale-95 hover:bg-white/20 transition-all flex items-center gap-1"><Plus size={12} /> 新增選手</button>
                   </div>
                   <div className="space-y-2">
                       {participantRows.filter(row => !row.isDeleted).map((row, idx) => {
@@ -672,49 +672,49 @@ const Races: React.FC<RacesProps> = ({ data, refreshData, people, raceGroups }) 
                           return (
                           <div key={row.key} className="flex items-center gap-2 bg-zinc-900/50 p-2 rounded-xl border border-white/5 animate-fade-in">
                               <div className="relative w-[32%] shrink-0">
-                                  <select value={row.people_id} onChange={(e) => handleRowChange(row.key, 'people_id', e.target.value)} className="w-full appearance-none bg-black/40 border border-white/10 rounded-lg px-2 py-2 text-white text-xs outline-none truncate">
+                                  <select value={row.people_id} onChange={(e) => handleRowChange(row.key, 'people_id', e.target.value)} className="w-full appearance-none bg-black/40 border border-white/10 rounded-lg px-2 py-2 text-white text-sm outline-none truncate">
                                       {dropdownOptions.map(p => (<option key={p.id} value={p.id}>{p.name} {p.is_hidden ? '(退)' : ''}</option>))}
                                   </select>
                               </div>
-                              {isRetired && <div className="text-[9px] text-zinc-500 bg-zinc-800 px-1 rounded border border-zinc-700">退</div>}
-                              <input type="text" placeholder="名次/成績" value={row.value} onChange={(e) => handleRowChange(row.key, 'value', e.target.value)} className="flex-1 min-w-0 bg-black/40 border border-white/10 rounded-lg px-2 py-2 text-white text-xs text-center outline-none focus:border-sunset-gold/50" />
-                              <button type="button" onClick={() => handleRemoveRow(row.key)} className="w-8 h-8 flex items-center justify-center bg-rose-500/10 text-rose-500 rounded-lg active:scale-95 flex-none"><Trash2 size={14} /></button>
+                              {isRetired && <div className="text-[10px] text-zinc-500 bg-zinc-800 px-1 rounded border border-zinc-700">退</div>}
+                              <input type="text" placeholder="名次/成績" value={row.value} onChange={(e) => handleRowChange(row.key, 'value', e.target.value)} className="flex-1 min-w-0 bg-black/40 border border-white/10 rounded-lg px-2 py-2 text-white text-sm text-center outline-none focus:border-sunset-gold/50" />
+                              <button type="button" onClick={() => handleRemoveRow(row.key)} className="w-8 h-8 flex items-center justify-center bg-rose-500/10 text-rose-500 rounded-lg active:scale-95 flex-none"><Trash2 size={16} /></button>
                           </div>
                         );
                       })}
                       {participantRows.filter(row => !row.isDeleted).length === 0 && (
-                          <div className="text-center py-4 text-zinc-600 text-[10px] border border-dashed border-zinc-800 rounded-xl">尚無參賽選手，請點擊上方按鈕新增</div>
+                          <div className="text-center py-4 text-zinc-600 text-xs border border-dashed border-zinc-800 rounded-xl">尚無參賽選手，請點擊上方按鈕新增</div>
                       )}
                   </div>
               </div>
 
               <div className="space-y-4">
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1">日期</label>
-                    <input type="date" required value={eventForm.date} onChange={e => setEventForm({...eventForm, date: e.target.value})} className="w-full bg-zinc-900 border border-white/10 rounded-xl px-4 py-3 text-white font-mono outline-none shadow-inner" />
+                    <label className="text-xs font-black text-zinc-500 uppercase tracking-widest ml-1">日期</label>
+                    <input type="date" required value={eventForm.date} onChange={e => setEventForm({...eventForm, date: e.target.value})} className="w-full bg-zinc-900 border border-white/10 rounded-xl px-4 py-3 text-white font-mono text-base outline-none shadow-inner" />
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1">比賽名稱</label>
-                    <input type="text" required placeholder="例如：全國滑步車邀請賽" value={eventForm.name} onChange={e => setEventForm({...eventForm, name: e.target.value})} className="w-full bg-zinc-900 border border-white/10 rounded-xl px-4 py-3 text-white outline-none shadow-inner" />
+                    <label className="text-xs font-black text-zinc-500 uppercase tracking-widest ml-1">比賽名稱</label>
+                    <input type="text" required placeholder="例如：全國滑步車邀請賽" value={eventForm.name} onChange={e => setEventForm({...eventForm, name: e.target.value})} className="w-full bg-zinc-900 border border-white/10 rounded-xl px-4 py-3 text-white text-base outline-none shadow-inner" />
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1">賽事系列</label>
+                    <label className="text-xs font-black text-zinc-500 uppercase tracking-widest ml-1">賽事系列</label>
                     <div className="relative">
-                        <select value={eventForm.race_id} onChange={e => setEventForm({...eventForm, race_id: e.target.value})} className="w-full appearance-none bg-zinc-900 border border-white/10 rounded-xl px-4 py-3 text-white outline-none shadow-inner text-sm">
+                        <select value={eventForm.race_id} onChange={e => setEventForm({...eventForm, race_id: e.target.value})} className="w-full appearance-none bg-zinc-900 border border-white/10 rounded-xl px-4 py-3 text-white outline-none shadow-inner text-base">
                         {raceGroups.map(g => (<option key={g.id} value={g.id}>{g.name}</option>))}
                         </select>
-                        <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 pointer-events-none" />
+                        <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 pointer-events-none" />
                     </div>
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1 flex items-center gap-1"><MapPin size={12}/> 比賽地址</label>
-                    <input type="text" placeholder="輸入地址或 Google Maps 連結..." value={eventForm.address} onChange={e => setEventForm({...eventForm, address: e.target.value})} className="w-full bg-zinc-900 border border-white/10 rounded-xl px-4 py-3 text-white text-xs outline-none shadow-inner" />
+                    <label className="text-xs font-black text-zinc-500 uppercase tracking-widest ml-1 flex items-center gap-1"><MapPin size={14}/> 比賽地址</label>
+                    <input type="text" placeholder="輸入地址或 Google Maps 連結..." value={eventForm.address} onChange={e => setEventForm({...eventForm, address: e.target.value})} className="w-full bg-zinc-900 border border-white/10 rounded-xl px-4 py-3 text-white text-sm outline-none shadow-inner" />
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1 flex items-center gap-1"><Camera size={12}/> 設定賽事照片</label>
+                    <label className="text-xs font-black text-zinc-500 uppercase tracking-widest ml-1 flex items-center gap-1"><Camera size={14}/> 設定賽事照片</label>
                     <div className="flex gap-2">
                         <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileSelect}/>
-                        <button type="button" onClick={() => fileInputRef.current?.click()} disabled={isUploading} className="w-full px-3 py-3 bg-zinc-800 rounded-xl text-white active:scale-95 border border-white/5 flex items-center justify-center gap-2 hover:bg-zinc-700 transition-all shadow-lg text-xs font-bold">
+                        <button type="button" onClick={() => fileInputRef.current?.click()} disabled={isUploading} className="w-full px-3 py-3 bg-zinc-800 rounded-xl text-white active:scale-95 border border-white/5 flex items-center justify-center gap-2 hover:bg-zinc-700 transition-all shadow-lg text-sm font-bold">
                             {isUploading ? <Loader2 size={16} className="animate-spin" /> : <UploadCloud size={16} />}
                             {isUploading ? '上傳壓縮中...' : '上傳照片'}
                         </button>
@@ -722,13 +722,13 @@ const Races: React.FC<RacesProps> = ({ data, refreshData, people, raceGroups }) 
                   </div>
                   {eventForm.url && (
                     <div className="space-y-3 bg-white/5 p-4 rounded-2xl border border-white/10 shadow-lg relative">
-                    <div className="flex justify-between items-center text-[9px] font-black text-zinc-500 uppercase tracking-widest mb-1">
-                        <span className="flex items-center gap-1"><Maximize size={10}/> 縮放與位置調整</span>
-                        <button type="button" onClick={() => setIsCropperLocked(!isCropperLocked)} className={`flex items-center gap-1 px-2 py-1 rounded-lg border ${isCropperLocked ? 'border-zinc-700 bg-zinc-800 text-zinc-400' : 'border-rose-500/50 bg-rose-500/10 text-rose-500'}`}>{isCropperLocked ? <Lock size={10} /> : <Unlock size={10} />}{isCropperLocked ? '鎖定' : '編輯中'}</button>
+                    <div className="flex justify-between items-center text-[11px] font-black text-zinc-500 uppercase tracking-widest mb-1">
+                        <span className="flex items-center gap-1"><Maximize size={12}/> 縮放與位置調整</span>
+                        <button type="button" onClick={() => setIsCropperLocked(!isCropperLocked)} className={`flex items-center gap-1 px-2 py-1 rounded-lg border ${isCropperLocked ? 'border-zinc-700 bg-zinc-800 text-zinc-400' : 'border-rose-500/50 bg-rose-500/10 text-rose-500'}`}>{isCropperLocked ? <Lock size={12} /> : <Unlock size={12} />}{isCropperLocked ? '鎖定' : '編輯中'}</button>
                     </div>
-                    <div ref={cropperRef} className="relative h-32 rounded-xl overflow-hidden bg-black border border-white/10 shadow-inner group touch-none" style={{ touchAction: 'none' }} onMouseDown={handleDragStart} onMouseMove={handleDragMove} onMouseUp={handleDragEnd} onMouseLeave={handleDragEnd} onTouchStart={handleDragStart} onTouchMove={handleDragMove} onTouchEnd={handleDragEnd}>
+                    <div ref={cropperRef} className="relative h-40 rounded-xl overflow-hidden bg-black border border-white/10 shadow-inner group touch-none" style={{ touchAction: 'none' }} onMouseDown={handleDragStart} onMouseMove={handleDragMove} onMouseUp={handleDragEnd} onMouseLeave={handleDragEnd} onTouchStart={handleDragStart} onTouchMove={handleDragMove} onTouchEnd={handleDragEnd}>
                         <img src={eventForm.url} className={`w-full h-full object-cover pointer-events-none select-none ${isCropperLocked ? 'opacity-80' : ''}`} style={{ transform: `translate(${(posX - 50) * 1.5}%, ${(posY - 50) * 1.5}%) scale(${zoomScale})` }} />
-                        {isCropperLocked && <div className="absolute inset-0 flex items-center justify-center pointer-events-none"><Lock size={24} className="text-white/20" /></div>}
+                        {isCropperLocked && <div className="absolute inset-0 flex items-center justify-center pointer-events-none"><Lock size={32} className="text-white/20" /></div>}
                     </div>
                     <div className={`px-1 transition-opacity ${isCropperLocked ? 'opacity-50 pointer-events-none' : 'opacity-100'}`}>
                         <input type="range" min="1" max="10" step="0.01" value={zoomScale} onChange={e => setZoomScale(parseFloat(e.target.value))} className="w-full accent-sunset-rose h-1.5 bg-zinc-800 rounded-full appearance-none shadow-inner" />
@@ -739,12 +739,12 @@ const Races: React.FC<RacesProps> = ({ data, refreshData, people, raceGroups }) 
 
               <div className="pt-2 space-y-3">
                 {/* Sync Data Button: Green Gradient */}
-                <button type="submit" disabled={isSubmitting} className="w-full bg-gradient-to-r from-green-600 to-emerald-500 text-white font-black text-xs tracking-[0.3em] py-4 rounded-2xl active:scale-95 transition-all shadow-glow-green">
-                  {isSubmitting ? <Loader2 size={16} className="animate-spin mx-auto" /> : '同步變更數據'}
+                <button type="submit" disabled={isSubmitting} className="w-full bg-gradient-to-r from-green-600 to-emerald-500 text-white font-black text-sm tracking-[0.3em] py-4 rounded-2xl active:scale-95 transition-all shadow-glow-green">
+                  {isSubmitting ? <Loader2 size={20} className="animate-spin mx-auto" /> : '同步變更數據'}
                 </button>
                 {isEditMode && (
-                   <button type="button" onClick={() => setConfirmDeleteEvent({key: `del_${Date.now()}`, name: eventForm.name, records: originalRecords})} disabled={isDeleting} className="w-full bg-rose-500/10 text-rose-500 font-bold text-[10px] tracking-widest py-3 rounded-2xl border border-rose-500/20 flex items-center justify-center gap-2 active:bg-rose-500/20 transition-all">
-                    <Trash2 size={14} /> 永久移除整場賽事
+                   <button type="button" onClick={() => setConfirmDeleteEvent({key: `del_${Date.now()}`, name: eventForm.name, records: originalRecords})} disabled={isDeleting} className="w-full bg-rose-500/10 text-rose-500 font-bold text-xs tracking-widest py-3 rounded-2xl border border-rose-500/20 flex items-center justify-center gap-2 active:bg-rose-500/20 transition-all">
+                    <Trash2 size={16} /> 永久移除整場賽事
                   </button>
                 )}
               </div>
@@ -759,8 +759,8 @@ const Races: React.FC<RacesProps> = ({ data, refreshData, people, raceGroups }) 
            <div className="glass-card w-full max-w-md rounded-t-[32px] p-6 shadow-2xl animate-slide-up bg-[#0f0508] border-white/10 flex flex-col max-h-[85vh]" onClick={e => e.stopPropagation()}>
               <div className="flex justify-between items-center mb-4 shrink-0">
                 <div>
-                  <h3 className="text-lg font-black text-white tracking-tight">選擇選手</h3>
-                  <p className="text-[9px] text-zinc-500 font-black uppercase tracking-[0.2em] mt-0.5">Select Player</p>
+                  <h3 className="text-xl font-black text-white tracking-tight">選擇選手</h3>
+                  <p className="text-xs text-zinc-500 font-black uppercase tracking-[0.2em] mt-0.5">Select Player</p>
                 </div>
                 <button onClick={() => setShowParticipantSelect(false)} className="w-8 h-8 flex items-center justify-center bg-white/5 rounded-full text-zinc-500"><X size={18} /></button>
               </div>
@@ -781,15 +781,15 @@ const Races: React.FC<RacesProps> = ({ data, refreshData, people, raceGroups }) 
 
                           return (
                           <button key={p.id} onClick={() => handleAddParticipant(p.id)} className="flex flex-col items-center justify-start py-2.5 px-1 rounded-xl transition-all active:scale-[0.95] bg-zinc-900/60 border border-white/10 aspect-[3/4] relative overflow-hidden group hover:bg-zinc-800">
-                              <div className={`w-12 h-12 rounded-full flex-none overflow-hidden flex items-center justify-center border-2 shadow-lg relative z-10 shrink-0 ${p.is_hidden ? 'border-zinc-700 bg-zinc-800' : 'border-white/10 bg-zinc-950'}`}>
+                              <div className={`w-14 h-14 rounded-full flex-none overflow-hidden flex items-center justify-center border-2 shadow-lg relative z-10 shrink-0 ${p.is_hidden ? 'border-zinc-700 bg-zinc-800' : 'border-white/10 bg-zinc-950'}`}>
                                 {sUrlBase ? (
                                     <img src={sUrlBase} alt={p.name} className="w-full h-full object-contain bg-black" style={{transform: `translate(${(sx - 50) * 1.5}%, ${(sy - 50) * 1.5}%) scale(${sz})`}} />
                                 ) : (
-                                    <span className={`text-base font-black ${p.is_hidden ? 'text-zinc-600' : 'text-white'}`}>{p.name.charAt(0)}</span>
+                                    <span className={`text-lg font-black ${p.is_hidden ? 'text-zinc-600' : 'text-white'}`}>{p.name.charAt(0)}</span>
                                 )}
                               </div>
-                              <span className={`text-[10px] font-black tracking-wider truncate w-full relative z-10 mt-2 ${p.is_hidden ? 'text-zinc-500 line-through' : 'text-zinc-300 group-hover:text-white'}`}>{p.name}</span>
-                              {p.is_hidden && <div className="absolute top-2 right-2 text-[7px] bg-zinc-800 px-1 py-0.5 rounded text-zinc-500 z-20">退</div>}
+                              <span className={`text-xs font-black tracking-wider truncate w-full relative z-10 mt-2 ${p.is_hidden ? 'text-zinc-500 line-through' : 'text-zinc-300 group-hover:text-white'}`}>{p.name}</span>
+                              {p.is_hidden && <div className="absolute top-2 right-2 text-[8px] bg-zinc-800 px-1 py-0.5 rounded text-zinc-500 z-20">退</div>}
                           </button>
                       )})}
                   </div>
@@ -802,11 +802,11 @@ const Races: React.FC<RacesProps> = ({ data, refreshData, people, raceGroups }) 
       {confirmDeleteEvent && (
         <div className="fixed inset-0 z-[110] flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm animate-fade-in">
           <div className="glass-card w-full max-w-xs rounded-3xl p-6 shadow-2xl border-rose-500/30 text-center animate-scale-in">
-            <h3 className="text-lg font-black text-white mb-2">移除此場賽事？</h3>
+            <h3 className="text-xl font-black text-white mb-2">移除此場賽事？</h3>
             <p className="text-xs text-zinc-400 mb-6 leading-relaxed">這將同時刪除所有參賽選手的紀錄（共 {confirmDeleteEvent.records.length} 筆）。</p>
             <div className="grid grid-cols-2 gap-3 mt-6">
-              <button onClick={() => setConfirmDeleteEvent(null)} className="py-3 bg-zinc-900 text-zinc-400 font-bold text-xs rounded-xl active:bg-zinc-800 transition-colors border border-white/5">取消</button>
-              <button onClick={handleDeleteEvent} disabled={isDeleting} className="py-3 bg-rose-600 text-white font-bold text-xs rounded-xl active:scale-95 transition-all shadow-glow-rose">{isDeleting ? '正在移除...' : '確定刪除'}</button>
+              <button onClick={() => setConfirmDeleteEvent(null)} className="py-3 bg-zinc-900 text-zinc-400 font-bold text-sm rounded-xl active:bg-zinc-800 transition-colors border border-white/5">取消</button>
+              <button onClick={handleDeleteEvent} disabled={isDeleting} className="py-3 bg-rose-600 text-white font-bold text-sm rounded-xl active:scale-95 transition-all shadow-glow-rose">{isDeleting ? '正在移除...' : '確定刪除'}</button>
             </div>
           </div>
         </div>
@@ -818,11 +818,11 @@ const Races: React.FC<RacesProps> = ({ data, refreshData, people, raceGroups }) 
             <div className="w-12 h-12 bg-sunset-gold/20 rounded-full flex items-center justify-center mx-auto mb-4">
                <AlertTriangle size={24} className="text-sunset-gold" />
             </div>
-            <h3 className="text-lg font-black text-white mb-2">建立預告賽事？</h3>
+            <h3 className="text-xl font-black text-white mb-2">建立預告賽事？</h3>
             <p className="text-xs text-zinc-400 mb-6 leading-relaxed">您尚未新增任何參賽選手。<br/>系統將自動建立一筆隱藏的佔位紀錄 (PREVIEW) 以確保賽事能顯示於列表中。</p>
             <div className="grid grid-cols-2 gap-3 mt-6">
-              <button onClick={() => setShowPreviewConfirm(false)} className="py-3 bg-zinc-900 text-zinc-400 font-bold text-xs rounded-xl active:bg-zinc-800 transition-colors border border-white/5">取消</button>
-              <button onClick={() => executeSave([])} disabled={isSubmitting} className="py-3 bg-gradient-to-r from-sunset-gold to-orange-500 text-black font-black text-xs rounded-xl active:scale-95 transition-all shadow-glow-gold">{isSubmitting ? <Loader2 size={16} className="animate-spin" /> : '確認建立'}</button>
+              <button onClick={() => setShowPreviewConfirm(false)} className="py-3 bg-zinc-900 text-zinc-400 font-bold text-sm rounded-xl active:bg-zinc-800 transition-colors border border-white/5">取消</button>
+              <button onClick={() => executeSave([])} disabled={isSubmitting} className="py-3 bg-gradient-to-r from-sunset-gold to-orange-500 text-black font-black text-sm rounded-xl active:scale-95 transition-all shadow-glow-gold">{isSubmitting ? <Loader2 size={16} className="animate-spin" /> : '確認建立'}</button>
             </div>
           </div>
         </div>
@@ -834,11 +834,11 @@ const Races: React.FC<RacesProps> = ({ data, refreshData, people, raceGroups }) 
              <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-4">
                <LogOut size={32} className="text-zinc-400" />
             </div>
-            <h3 className="text-lg font-black text-white mb-2">確定退出此賽事？</h3>
+            <h3 className="text-xl font-black text-white mb-2">確定退出此賽事？</h3>
             <p className="text-xs text-zinc-400 mb-6 leading-relaxed">將刪除您的報名與成績紀錄。</p>
             <div className="grid grid-cols-2 gap-3 mt-6">
-              <button onClick={() => setWithdrawTargetId(null)} className="py-3 bg-zinc-900 text-zinc-400 font-bold text-xs rounded-xl active:bg-zinc-800 transition-colors border border-white/5">取消</button>
-              <button onClick={executeWithdraw} className="py-3 bg-rose-600 text-white font-bold text-xs rounded-xl active:scale-95 transition-all shadow-glow-rose">確定退出</button>
+              <button onClick={() => setWithdrawTargetId(null)} className="py-3 bg-zinc-900 text-zinc-400 font-bold text-sm rounded-xl active:bg-zinc-800 transition-colors border border-white/5">取消</button>
+              <button onClick={executeWithdraw} className="py-3 bg-rose-600 text-white font-bold text-sm rounded-xl active:scale-95 transition-all shadow-glow-rose">確定退出</button>
             </div>
           </div>
         </div>
