@@ -79,13 +79,20 @@ const Training: React.FC<TrainingProps> = ({
   }, []);
 
   useEffect(() => {
-    if (defaultType && trainingTypes.length > 0) {
-        const found = trainingTypes.find(t => t.name === defaultType);
-        if (found) setSelectedTypeId(String(found.id));
-    } else if (trainingTypes.length > 0 && !selectedTypeId) {
+    // 修正：只有在 selectedTypeId 為空時才進行初始化設定
+    // 這樣可以避免每次 refreshData (造成 trainingTypes 參考更新) 時，選項被重置回預設值
+    if (!selectedTypeId && trainingTypes.length > 0) {
+        if (defaultType) {
+            const found = trainingTypes.find(t => t.name === defaultType);
+            if (found) {
+                setSelectedTypeId(String(found.id));
+                return;
+            }
+        }
+        // 如果沒有預設值或找不到預設值，選第一個
         setSelectedTypeId(String(trainingTypes[0].id));
     }
-  }, [defaultType, trainingTypes]);
+  }, [defaultType, trainingTypes, selectedTypeId]);
 
   const handleLogin = async () => {
       if (!otpInput) {
@@ -322,15 +329,8 @@ const Training: React.FC<TrainingProps> = ({
                 {pinnedPeople.length > 0 ? (
                   pinnedPeople.map((p) => {
                     const isActive = String(p.id) === String(activePersonId);
-                    const [sUrlBase, sUrlFragment] = (p.s_url || '').split('#');
-                    let sz=1, sx=50, sy=50;
-                    if(sUrlFragment) {
-                        const sp = new URLSearchParams(sUrlFragment);
-                        sz = parseFloat(sp.get('z')||'1');
-                        sx = parseFloat(sp.get('x')||'50');
-                        sy = parseFloat(sp.get('y')||'50');
-                    }
-
+                    
+                    // 移除圖片相關邏輯，僅保留純文字顯示
                     return (
                       <button
                         key={p.id}
@@ -338,11 +338,6 @@ const Training: React.FC<TrainingProps> = ({
                         className={`h-full w-full ${gridConfig.radius} border transition-all duration-200 active:scale-[0.98] flex items-center justify-center relative overflow-hidden shrink-0 ${isActive ? 'bg-gradient-to-b from-chiachia-green/20 to-black border-chiachia-green/60 shadow-glow-green z-10' : 'bg-zinc-900/60 border-white/5 text-zinc-500 hover:bg-zinc-800'}`}
                       >
                         <span className={`${gridConfig.textSize} font-black tracking-wide truncate w-full px-2 transition-all duration-300 ${isActive ? 'text-white scale-110 drop-shadow-[0_0_10px_rgba(57,231,95,0.4)]' : 'text-zinc-600'}`}>
-                            {sUrlBase ? (
-                                <div className="absolute inset-0 opacity-40 mix-blend-screen bg-black">
-                                    <img src={sUrlBase} alt={p.name} className="w-full h-full object-contain" style={{transform: `translate(${(sx - 50) * 1.5}%, ${(sy - 50) * 1.5}%) scale(${sz})`}} />
-                                </div>
-                            ) : null}
                             <span className="relative z-10">{p.name}</span>
                         </span>
                       </button>
