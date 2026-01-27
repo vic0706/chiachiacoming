@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { api } from '../services/api';
 import { DataRecord, LookupItem } from '../types';
-import { ChevronDown, Settings2, Check, X, Lock, Unlock, KeyRound, Loader2 } from 'lucide-react';
+import { ChevronDown, Settings2, Check, X, Lock, Unlock, KeyRound, Loader2, Edit2 } from 'lucide-react';
 import { format } from 'date-fns';
 
 interface TrainingProps {
@@ -34,6 +34,10 @@ const Training: React.FC<TrainingProps> = ({
   const [status, setStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
   const [lastRecord, setLastRecord] = useState<string | null>(null);
   const [showPeopleModal, setShowPeopleModal] = useState(false);
+
+  // Edit History State
+  const [editingHistoryRecord, setEditingHistoryRecord] = useState<DataRecord | null>(null);
+  const [historyEditValue, setHistoryEditValue] = useState('');
 
   // OTP Lock State
   const [isOtpUnlocked, setIsOtpUnlocked] = useState(false);
@@ -226,6 +230,38 @@ const Training: React.FC<TrainingProps> = ({
     }
   };
 
+  const handleEditHistory = (record: DataRecord) => {
+      setEditingHistoryRecord(record);
+      setHistoryEditValue(record.value);
+  };
+
+  const handleSaveHistory = async () => {
+      if (!editingHistoryRecord) return;
+      const val = parseFloat(historyEditValue);
+      if (isNaN(val) || val <= 0) {
+          alert("請輸入有效數值");
+          return;
+      }
+
+      // Preserve all original fields needed for submitRecord
+      const payload: Partial<DataRecord> = {
+          id: editingHistoryRecord.id,
+          date: editingHistoryRecord.date,
+          item: 'training',
+          people_id: editingHistoryRecord.people_id,
+          training_type_id: editingHistoryRecord.training_type_id,
+          value: val.toFixed(3)
+      };
+
+      const success = await api.submitRecord(payload);
+      if (success) {
+          setEditingHistoryRecord(null);
+          await refreshData();
+      } else {
+          alert("更新失敗");
+      }
+  };
+
   const todayRecords = data.filter(d => 
       d.item === 'training' && 
       d.date === format(new Date(), 'yyyy-MM-dd') && 
@@ -362,7 +398,13 @@ const Training: React.FC<TrainingProps> = ({
                </div>
                <div className="flex space-x-1 overflow-x-auto no-scrollbar">
                  {todayHistory.map((h, i) => (
-                   <span key={i} className="bg-zinc-900 text-zinc-300 text-xs px-2 rounded border border-white/10 font-mono font-bold">{parseFloat(h.value).toFixed(3)}</span>
+                   <button 
+                    key={i} 
+                    onClick={() => handleEditHistory(h)}
+                    className="bg-zinc-900 text-zinc-300 text-xs px-2 rounded border border-white/10 font-mono font-bold active:bg-zinc-800 active:scale-95 transition-all"
+                   >
+                       {parseFloat(h.value).toFixed(3)}
+                   </button>
                  ))}
                </div>
              </>
@@ -450,6 +492,38 @@ const Training: React.FC<TrainingProps> = ({
                 </button>
               </div>
            </div>
+        </div>
+      )}
+
+      {/* Edit History Modal */}
+      {editingHistoryRecord && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/85 backdrop-blur-md animate-fade-in" onClick={() => setEditingHistoryRecord(null)}>
+            <div className="glass-card w-full max-w-xs rounded-3xl p-6 shadow-2xl animate-scale-in bg-[#0f0508] border-white/10 text-center" onClick={e => e.stopPropagation()}>
+                <div className="w-12 h-12 bg-zinc-800 rounded-full flex items-center justify-center mx-auto mb-4 border border-white/10">
+                    <Edit2 size={24} className="text-zinc-400" />
+                </div>
+                <h3 className="text-lg font-black text-white mb-1">修改紀錄</h3>
+                <p className="text-xs text-zinc-500 font-bold mb-4">Editing {activePerson?.name}'s Record</p>
+                
+                <input 
+                    autoFocus
+                    type="text" 
+                    inputMode="decimal"
+                    value={historyEditValue}
+                    onChange={(e) => {
+                        const val = e.target.value;
+                        if (val === '' || /^\d*\.?\d{0,3}$/.test(val)) {
+                            setHistoryEditValue(val);
+                        }
+                    }}
+                    className="w-full bg-black border border-chiachia-green/50 rounded-xl px-4 py-3 text-white text-2xl font-mono text-center outline-none mb-6 shadow-inner"
+                />
+
+                <div className="grid grid-cols-2 gap-3">
+                    <button onClick={() => setEditingHistoryRecord(null)} className="py-3 bg-zinc-900 text-zinc-400 font-bold text-sm rounded-xl active:scale-95 transition-all border border-white/5">取消</button>
+                    <button onClick={handleSaveHistory} className="py-3 bg-gradient-to-r from-green-600 to-emerald-500 text-white font-bold text-sm rounded-xl shadow-glow-green active:scale-95 transition-all">確認修改</button>
+                </div>
+            </div>
         </div>
       )}
     </div>
