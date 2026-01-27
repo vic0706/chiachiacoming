@@ -431,8 +431,15 @@ const Dashboard: React.FC<DashboardProps> = ({ data, refreshData, onNavigateToRa
 
   const handleSnapshot = async () => {
       if (!captureRef.current || !expandedChart) return;
+      
+      // 1. Enter Capture Mode (expands UI, hides stats header)
       setIsCapturing(true);
+      
+      // 2. Wait for React render to update the DOM (small delay to ensure expansion)
+      await new Promise(resolve => setTimeout(resolve, 150)); 
+
       try {
+          // 3. Capture expanded content
           const canvas = await html2canvas(captureRef.current, {
               backgroundColor: '#0f0508', // Match modal background
               scale: 2, // High resolution
@@ -440,7 +447,10 @@ const Dashboard: React.FC<DashboardProps> = ({ data, refreshData, onNavigateToRa
               useCORS: true, // Essential for loading external images (avatars)
               ignoreElements: (element) => {
                   return element.hasAttribute('data-html2canvas-ignore');
-              }
+              },
+              // Ensure we capture full height of the expanded content
+              windowHeight: captureRef.current.scrollHeight + 100,
+              height: captureRef.current.scrollHeight
           });
           
           canvas.toBlob(async (blob) => {
@@ -472,6 +482,7 @@ const Dashboard: React.FC<DashboardProps> = ({ data, refreshData, onNavigateToRa
                   link.click();
                   document.body.removeChild(link);
               }
+              // 4. Exit Capture Mode after blob is ready
               setIsCapturing(false);
           }, 'image/png');
 
@@ -618,10 +629,11 @@ const Dashboard: React.FC<DashboardProps> = ({ data, refreshData, onNavigateToRa
       {/* Expanded Chart Modal */}
       {expandedChart && (
         <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-black/90 backdrop-blur-md animate-fade-in" onClick={() => setExpandedChart(null)}>
-           <div className="w-full max-w-lg bg-[#0f0508] border-t sm:border border-white/10 sm:rounded-3xl rounded-t-[32px] shadow-2xl h-[85vh] flex flex-col animate-slide-up relative outline-none ring-0 overflow-hidden" onClick={e => e.stopPropagation()}>
+           {/* 1-2 & 1-4: Modal container. During capture, we remove strict height/overflow limits to allow expansion */}
+           <div className={`w-full max-w-lg bg-[#0f0508] border-t sm:border border-white/10 sm:rounded-3xl rounded-t-[32px] shadow-2xl flex flex-col animate-slide-up relative outline-none ring-0 ${isCapturing ? '' : 'h-[85vh] overflow-hidden'}`} onClick={e => e.stopPropagation()}>
                
-               {/* 1-2: Expanded Capture Range (Wraps everything including Header) */}
-               <div ref={captureRef} className="flex flex-col h-full bg-[#0f0508]">
+               {/* Capture Range Wrapper */}
+               <div ref={captureRef} className={`flex flex-col bg-[#0f0508] ${isCapturing ? 'h-auto' : 'h-full'}`}>
                    
                    {/* Header Row: Title & Buttons */}
                    <div className="flex justify-between items-center shrink-0 pr-6 pl-6 pt-6 pb-2">
@@ -630,7 +642,7 @@ const Dashboard: React.FC<DashboardProps> = ({ data, refreshData, onNavigateToRa
                            <p className="text-xs text-zinc-500 font-black uppercase tracking-[0.3em] mt-0.5">Detailed Analytics</p>
                        </div>
                        
-                       {/* 1-3: Buttons (Excluded from Snapshot via data attribute) */}
+                       {/* Buttons (Excluded from Snapshot via data attribute) */}
                        <div className="flex gap-3" data-html2canvas-ignore="true">
                             {/* Snapshot Button */}
                             <button onClick={handleSnapshot} disabled={isCapturing} className="w-10 h-10 flex items-center justify-center bg-white/5 rounded-full text-zinc-400 border border-white/5 active:scale-95 transition-all hover:bg-white/10 hover:text-white">
@@ -642,9 +654,9 @@ const Dashboard: React.FC<DashboardProps> = ({ data, refreshData, onNavigateToRa
                    </div>
 
                    {/* Scrollable Content Body */}
-                   <div className="flex-1 flex flex-col min-h-0 px-6 pb-6">
-                       {/* 2-2: New Data Display Header - Boxless Design & Transparent */}
-                       <div className="flex-none mb-2 px-2 flex items-end justify-between min-h-[3rem] relative transition-all">
+                   <div className={`flex-1 flex flex-col min-h-0 px-6 pb-6 ${isCapturing ? 'h-auto' : ''}`}>
+                       {/* 1-4: Hide "Player Stats" header (red circle) when capturing */}
+                       <div className={`flex-none mb-2 px-2 items-end justify-between min-h-[3rem] relative transition-all ${isCapturing ? 'hidden' : 'flex'}`}>
                            {focusedData ? (
                                <>
                                  <div className="flex items-center gap-3 relative z-10 animate-fade-in">
@@ -713,7 +725,8 @@ const Dashboard: React.FC<DashboardProps> = ({ data, refreshData, onNavigateToRa
                             )} />
                        </div>
 
-                       <div className="flex-1 overflow-y-auto no-scrollbar pr-1 outline-none">
+                       {/* 1-2 & 1-4: List container expands to full height during capture */}
+                       <div className={`${isCapturing ? 'overflow-visible h-auto' : 'flex-1 overflow-y-auto no-scrollbar'} pr-1 outline-none`}>
                            {expandedChart.data.map((item, idx) => (
                                <div key={idx} onClick={() => handleDrillDown(item.name)} className="flex items-center justify-between p-3 rounded-xl bg-zinc-900/50 border border-white/5 active:scale-[0.98] transition-all mb-2 outline-none" style={{ WebkitTapHighlightColor: 'transparent' }}>
                                    <div className="flex items-center gap-3">
