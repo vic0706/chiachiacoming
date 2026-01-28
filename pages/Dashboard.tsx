@@ -365,16 +365,21 @@ const Dashboard: React.FC<DashboardProps> = ({ data, refreshData, onNavigateToRa
   const calculateAge = (birthday: string, recordDate: string) => birthday ? differenceInYears(new Date(recordDate), new Date(birthday)) : 0;
 
   const ageBests = useMemo(() => {
-      if (!selectedChartType) return { 3: null, 4: null, 5: null, 6: null };
+      if (!selectedChartType) return {};
       const records = data.filter(r => r.item === 'training' && r.name === selectedChartType);
-      const bests: Record<number, { value: number; person: LookupItem } | null> = { 3: null, 4: null, 5: null, 6: null };
+      const bests: Record<number, { value: number; person: LookupItem }> = {};
+      
       records.forEach(r => {
           const person = people.find(p => String(p.id) === String(r.people_id));
           if (!person?.birthday) return;
           const age = calculateAge(person.birthday, r.date);
-          if (age >= 3 && age <= 6) {
+          
+          // Support dynamic age range (e.g. 2 years old and up)
+          if (age >= 2) {
               const val = parseFloat(r.value);
-              if (val > 0 && (!bests[age] || val < bests[age]!.value)) bests[age] = { value: val, person };
+              if (val > 0 && (!bests[age] || val < bests[age].value)) {
+                  bests[age] = { value: val, person };
+              }
           }
       });
       return bests;
@@ -493,7 +498,8 @@ const Dashboard: React.FC<DashboardProps> = ({ data, refreshData, onNavigateToRa
       }
   };
 
-  const activeAges = [3, 4, 5, 6].filter(age => ageBests[age as 3|4|5|6] !== null);
+  // Sort keys numerically
+  const activeAges = useMemo(() => Object.keys(ageBests).map(Number).sort((a, b) => a - b), [ageBests]);
   const marqueeItems = activeAges.length > 0 ? [...activeAges, ...activeAges, ...activeAges, ...activeAges] : [];
 
   return (
@@ -531,7 +537,7 @@ const Dashboard: React.FC<DashboardProps> = ({ data, refreshData, onNavigateToRa
                 <div className="absolute inset-y-0 right-0 w-12 bg-gradient-to-l from-black to-transparent z-10 pointer-events-none"></div>
                 <div className="flex gap-16 animate-marquee-horizontal w-max items-center px-4 h-full">
                     {marqueeItems.map((age, i) => {
-                        const info = ageBests[age as 3|4|5|6];
+                        const info = ageBests[age];
                         if (!info) return null;
                         const [sUrlBase, fragment] = (info.person.s_url || '').split('#');
                         let sz=1, sx=50, sy=50;
